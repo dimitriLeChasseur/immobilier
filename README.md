@@ -136,6 +136,10 @@ docker compose --profile quality up -d   # SonarQube, http://localhost:9000
 ./scripts/sonar-scan.sh                  # échoue si le Quality Gate est rouge
 ```
 
+En intégration continue, `.github/workflows/sonar.yml` rejoue ces tests puis lance l'analyse à
+chaque push ou pull request sur `main`. Il attend les secrets `SONAR_TOKEN` et `SONAR_HOST_URL`,
+et pour SonarQube Cloud les variables `SONAR_ORGANIZATION` et `SONAR_PROJECT_KEY`.
+
 Seuils tenus : aucun bug, aucune vulnérabilité, aucun Security Hotspot ouvert, duplication
 inférieure à 5 %, complexité par fonction inférieure à 15, typage strict des deux côtés.
 
