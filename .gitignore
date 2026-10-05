@@ -1,0 +1,67 @@
+# ---------------------------------------------------------------------------
+# Secrets et configuration locale : ne jamais versionner
+# ---------------------------------------------------------------------------
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.crt
+*.p12
+
+# ---------------------------------------------------------------------------
+# Bases de données et données locales
+# ---------------------------------------------------------------------------
+# Volume Postgres/PostGIS du docker compose (DATA_DIR)
+/data/
+*.sqlite
+*.sqlite3
+*.db
+*.dump
+*.sql.gz
+*.backup
+# Jeux de données téléchargés pour l'ingestion
+*.shp
+*.shx
+*.dbf
+*.gpkg
+/downloads/
+
+# ---------------------------------------------------------------------------
+# Python
+# ---------------------------------------------------------------------------
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*.egg-info/
+build/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.coverage
+.coverage.*
+coverage.xml
+htmlcov/
+
+# ---------------------------------------------------------------------------
+# Node / frontend
+# ---------------------------------------------------------------------------
+node_modules/
+dist/
+.vite/
+*.tsbuildinfo
+frontend/coverage/
+npm-debug.log*
+
+# ---------------------------------------------------------------------------
+# Outils : IDE, analyse, système
+# ---------------------------------------------------------------------------
+.idea/
+.vscode/
+*.swp
+.DS_Store
+Thumbs.db
+.scannerwork/
+*.log

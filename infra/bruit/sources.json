@@ -1,0 +1,53 @@
+{
+  "_commentaire": "Sources des cartes de bruit stratégiques (type A, indice Lden). Il n'existe pas de flux national : chaque direction départementale publie les siens sur Géo-IDE. Pour ajouter un territoire, chercher « bruit Lden <département> » sur data.gouv.fr et recopier l'URL du flux WFS « internet » (jusqu'à .internet.map inclus). Le type 'fichier' accepte une archive Shapefile (.zip) ou un GeoJSON.",
+  "metropoles": {
+    "angers": {
+      "libelle": "Angers Loire Métropole",
+      "bbox": [
+        -0.75,
+        47.36,
+        -0.38,
+        47.58
+      ]
+    },
+    "nantes": {
+      "libelle": "Nantes Métropole",
+      "bbox": [
+        -1.76,
+        47.1,
+        -1.34,
+        47.33
+      ]
+    }
+  },
+  "sources": [
+    {
+      "id": "ddt49-route",
+      "metropole": "angers",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38040/873990c4-3f8e-468c-be8c-080c7c68d694.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_049"
+    },
+    {
+      "id": "ddt49-fer",
+      "metropole": "angers",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38040/435b3bdf-5ceb-4758-a998-f9c526308ff7.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_049"
+    },
+    {
+      "id": "ddtm44-fer",
+      "metropole": "nantes",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38030/16049988-8fbe-4fd3-a55d-80a117e8d6dd.internet.map"
+    },
+    {
+      "id": "ddtm44-route",
+      "metropole": "nantes",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38030/56e20800-dd3b-49ee-895a-e8f118f48ad0.internet.map",
+      "actif": false,
+      "note": "Désactivé le 2026-10-05 : couche de 43 660 zones dont le service renvoie des pages vides de façon intermittente. À retenter, ou à remplacer par l'archive Shapefile (type 'fichier')."
+    }
+  ]
+}

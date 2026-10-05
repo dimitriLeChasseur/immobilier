@@ -1,0 +1,64 @@
+@import 'tailwindcss';
+
+@theme {
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --color-brand-50: #f0fdfa;
+  --color-brand-100: #ccfbf1;
+  --color-brand-500: #14b8a6;
+  --color-brand-600: #0d9488;
+  --color-brand-700: #0f766e;
+  --color-brand-900: #134e4a;
+}
+
+@layer base {
+  body {
+    @apply bg-slate-50 text-slate-800 antialiased;
+  }
+
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-brand-600;
+  }
+}
+
+/* Squelette de chargement : balayage lumineux, coupé si l'utilisateur limite les animations. */
+.skeleton {
+  @apply relative overflow-hidden rounded-md bg-slate-200;
+}
+
+.skeleton::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.65), transparent);
+  animation: shimmer 1.4s infinite;
+}
+
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton::after {
+    animation: none;
+  }
+}
+
+/* Barre de progression native, habillée aux couleurs de l'application. */
+.audit-progress {
+  @apply block h-1.5 w-full appearance-none overflow-hidden rounded-full border-0 bg-slate-100;
+}
+
+.audit-progress::-webkit-progress-bar {
+  @apply bg-slate-100;
+}
+
+.audit-progress::-webkit-progress-value {
+  @apply rounded-full bg-brand-600 transition-all duration-300;
+}
+
+.audit-progress::-moz-progress-bar {
+  @apply rounded-full bg-brand-600;
+}

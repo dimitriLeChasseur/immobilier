@@ -1,0 +1,306 @@
+-- ============================================================================
+-- Audit Immobilier — schéma applicatif (étape 2)
+--
+-- Monté dans le conteneur Postgres (exécuté à la première initialisation,
+-- après immo.sql qui crée le rôle immo_app et le schéma immo).
+-- Idempotent : peut être rejoué sur une base existante avec
+--   docker compose exec -T db psql -U supabase_admin -v ON_ERROR_STOP=1 \
+--     -f /docker-entrypoint-initdb.d/init-scripts/99-zzz-init.sql
+--
+-- Toutes les tables vivent dans le schéma `immo`, non exposé par PostgREST.
+-- ============================================================================
+
+-- ----------------------------------------------------------------------------
+-- 1. Extensions
+-- ----------------------------------------------------------------------------
+CREATE EXTENSION IF NOT EXISTS postgis WITH SCHEMA extensions;
+-- postgis_topology impose son propre schéma `topology`.
+CREATE EXTENSION IF NOT EXISTS postgis_topology;
+-- Planification de la purge du cache.
+CREATE EXTENSION IF NOT EXISTS pg_cron;
+
+-- Les fonctions PostGIS sont résolues via le schéma `extensions` pendant ce script.
+SET search_path = immo, public, extensions;
+
+-- Code commune INSEE : 5 caractères, Corse (2A/2B) et outre-mer (97x/98x) inclus.
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM pg_type t JOIN pg_namespace n ON n.oid = t.typnamespace
+        WHERE n.nspname = 'immo' AND t.typname = 'code_insee'
+    ) THEN
+        CREATE DOMAIN immo.code_insee AS text
+            CHECK (VALUE ~ '^(?:[0-9]{2}|2[AB])[0-9]{3}$');
+    END IF;
+END
+$$;
+
+-- ----------------------------------------------------------------------------
+-- 2. Cache des rapports d'audit
+-- ----------------------------------------------------------------------------
+-- Clé composite (geohash, ban_id, report_version) :
+--   * geohash        : hash spatial de précision 9 (cellule d'environ 5 m),
+--                      calculé par la base à partir de `geom` ;
+--   * ban_id         : identifiant BAN du résultat sélectionné (géocode précis),
+--                      '' si la recherche vient de coordonnées brutes ; distingue
+--                      deux adresses tombant dans la même cellule ;
+--   * report_version : version du format du rapport ; l'incrémenter côté backend
+--                      invalide tout le cache sans rien supprimer.
+CREATE TABLE IF NOT EXISTS immo.api_reports_cache (
+    geohash        text        GENERATED ALWAYS AS (extensions.ST_GeoHash(geom, 9)) STORED,
+    ban_id         text        NOT NULL DEFAULT '',
+    report_version smallint    NOT NULL DEFAULT 1,
+    geom           extensions.geometry(Point, 4326) NOT NULL,
+    code_insee     immo.code_insee NOT NULL,
+    label          text        NOT NULL,
+    payload        jsonb       NOT NULL,
+    -- true si au moins une source a échoué : le backend applique un TTL court.
+    is_partial     boolean     NOT NULL DEFAULT false,
+    created_at     timestamptz NOT NULL DEFAULT now(),
+    expires_at     timestamptz NOT NULL,
+    CONSTRAINT api_reports_cache_pkey PRIMARY KEY (geohash, ban_id, report_version),
+    CONSTRAINT api_reports_cache_ttl_check CHECK (expires_at > created_at),
+    CONSTRAINT api_reports_cache_payload_check CHECK (jsonb_typeof(payload) = 'object'),
+    CONSTRAINT api_reports_cache_label_check CHECK (char_length(label) BETWEEN 1 AND 300),
+    CONSTRAINT api_reports_cache_ban_id_check CHECK (char_length(ban_id) <= 64)
+);
+
+-- Purge des entrées expirées (balayage ordonné sur expires_at).
+CREATE INDEX IF NOT EXISTS api_reports_cache_expires_at_idx
+    ON immo.api_reports_cache (expires_at);
+
+CREATE OR REPLACE FUNCTION immo.purge_expired_reports()
+RETURNS bigint
+LANGUAGE sql
+SET search_path = ''
+AS $$
+    WITH deleted AS (
+        DELETE FROM immo.api_reports_cache WHERE expires_at <= now() RETURNING 1
+    )
+    SELECT count(*) FROM deleted;
+$$;
+
+-- ----------------------------------------------------------------------------
+-- 3. Référentiels statiques (open data)
+-- ----------------------------------------------------------------------------
+
+-- SSMSI — délinquance enregistrée par commune, format long
+-- (une ligne par commune x indicateur x année).
+CREATE TABLE IF NOT EXISTS immo.insee_ssmsi (
+    code_insee       immo.code_insee NOT NULL,
+    indicateur       text        NOT NULL,
+    annee            smallint    NOT NULL,
+    unite_de_compte  text        NOT NULL,
+    -- false : valeur sous le seuil de diffusion (secret statistique), nombre/taux NULL.
+    est_diffuse      boolean     NOT NULL,
+    nombre           integer,
+    taux_pour_mille  numeric(10, 4),
+    population       integer,
+    imported_at      timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT insee_ssmsi_pkey PRIMARY KEY (code_insee, indicateur, annee),
+    CONSTRAINT insee_ssmsi_annee_check CHECK (annee BETWEEN 2000 AND 2100),
+    CONSTRAINT insee_ssmsi_nombre_check CHECK (nombre IS NULL OR nombre >= 0),
+    CONSTRAINT insee_ssmsi_taux_check CHECK (taux_pour_mille IS NULL OR taux_pour_mille >= 0)
+);
+
+-- DGFiP (REI) — taux de taxe foncière sur les propriétés bâties par commune.
+CREATE TABLE IF NOT EXISTS immo.insee_dgfip (
+    code_insee        immo.code_insee NOT NULL,
+    annee             smallint    NOT NULL,
+    libelle_commune   text        NOT NULL,
+    taux_tfb_commune  numeric(6, 2) NOT NULL,
+    taux_tfb_epci     numeric(6, 2) NOT NULL DEFAULT 0,
+    taux_teom         numeric(6, 2),
+    -- Taux global officiel : commune + intercommunalité + taxes annexes (GEMAPI, TSE), hors TEOM.
+    taux_tfb_total    numeric(7, 2) NOT NULL,
+    imported_at       timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT insee_dgfip_pkey PRIMARY KEY (code_insee, annee),
+    CONSTRAINT insee_dgfip_annee_check CHECK (annee BETWEEN 2000 AND 2100),
+    CONSTRAINT insee_dgfip_taux_check CHECK (
+        taux_tfb_commune >= 0 AND taux_tfb_epci >= 0 AND taux_tfb_total >= 0
+        AND (taux_teom IS NULL OR taux_teom >= 0)
+    )
+);
+
+-- Éducation nationale — établissements géolocalisés avec indice de position sociale.
+CREATE TABLE IF NOT EXISTS immo.geo_ips_ecoles (
+    uai                 text        NOT NULL,
+    rentree_scolaire    smallint    NOT NULL,
+    nom                 text        NOT NULL,
+    type_etablissement  text        NOT NULL,
+    secteur             text        NOT NULL,
+    code_insee          immo.code_insee NOT NULL,
+    ips                 numeric(5, 1) NOT NULL,
+    ecart_type_ips      numeric(5, 1),
+    geom                extensions.geometry(Point, 4326) NOT NULL,
+    imported_at         timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT geo_ips_ecoles_pkey PRIMARY KEY (uai, rentree_scolaire),
+    CONSTRAINT geo_ips_ecoles_uai_check CHECK (uai ~ '^[0-9]{7}[A-Z]$'),
+    CONSTRAINT geo_ips_ecoles_type_check
+        CHECK (type_etablissement IN ('ecole', 'college', 'lycee')),
+    CONSTRAINT geo_ips_ecoles_secteur_check CHECK (secteur IN ('public', 'prive')),
+    CONSTRAINT geo_ips_ecoles_ips_check CHECK (ips BETWEEN 0 AND 250)
+);
+
+CREATE INDEX IF NOT EXISTS geo_ips_ecoles_geom_gist
+    ON immo.geo_ips_ecoles USING gist (geom);
+-- Recherches par rayon en mètres : ST_DWithin(geom::geography, point, rayon).
+CREATE INDEX IF NOT EXISTS geo_ips_ecoles_geog_gist
+    ON immo.geo_ips_ecoles USING gist ((geom::extensions.geography));
+CREATE INDEX IF NOT EXISTS geo_ips_ecoles_code_insee_idx
+    ON immo.geo_ips_ecoles (code_insee);
+-- Dernière rentrée publiée (max) sans parcourir la table.
+CREATE INDEX IF NOT EXISTS geo_ips_ecoles_rentree_idx
+    ON immo.geo_ips_ecoles (rentree_scolaire);
+
+-- SITADEL — autorisations d'urbanisme récentes géocodées via la BAN (risque de vis-à-vis).
+CREATE TABLE IF NOT EXISTS immo.geo_sitadel (
+    num_permis               text        NOT NULL,
+    type_autorisation        text        NOT NULL,
+    etat                     text        NOT NULL,
+    date_autorisation        date        NOT NULL,
+    date_ouverture_chantier  date,
+    date_achevement          date,
+    code_insee               immo.code_insee NOT NULL,
+    adresse                  text,
+    nature_projet            text,
+    destination              text,
+    nb_logements             integer,
+    nb_niveaux               smallint,
+    surface_plancher_m2      numeric(12, 2),
+    geom                     extensions.geometry(Point, 4326) NOT NULL,
+    -- 'numero' : géocodé à l'adresse ; 'voie' : au milieu de la rue (imprécis pour un vis-à-vis).
+    precision_geocodage      text        NOT NULL,
+    imported_at              timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT geo_sitadel_pkey PRIMARY KEY (num_permis),
+    CONSTRAINT geo_sitadel_precision_check CHECK (precision_geocodage IN ('numero', 'voie')),
+    CONSTRAINT geo_sitadel_type_check CHECK (type_autorisation IN ('PC', 'PA', 'DP', 'PD')),
+    CONSTRAINT geo_sitadel_etat_check
+        CHECK (etat IN ('autorise', 'commence', 'termine', 'annule')),
+    CONSTRAINT geo_sitadel_nb_logements_check CHECK (nb_logements IS NULL OR nb_logements >= 0),
+    CONSTRAINT geo_sitadel_nb_niveaux_check CHECK (nb_niveaux IS NULL OR nb_niveaux >= 0),
+    CONSTRAINT geo_sitadel_surface_check
+        CHECK (surface_plancher_m2 IS NULL OR surface_plancher_m2 >= 0)
+);
+
+CREATE INDEX IF NOT EXISTS geo_sitadel_geom_gist
+    ON immo.geo_sitadel USING gist (geom);
+CREATE INDEX IF NOT EXISTS geo_sitadel_geog_gist
+    ON immo.geo_sitadel USING gist ((geom::extensions.geography));
+CREATE INDEX IF NOT EXISTS geo_sitadel_commune_date_idx
+    ON immo.geo_sitadel (code_insee, date_autorisation DESC);
+
+-- INSEE — recensement, logements par IRIS (statut d'occupation, vacance).
+CREATE TABLE IF NOT EXISTS immo.insee_iris_logement (
+    code_iris               text        NOT NULL,
+    annee                   smallint    NOT NULL,
+    code_insee              immo.code_insee NOT NULL,
+    logements               integer     NOT NULL,
+    residences_principales  integer     NOT NULL,
+    residences_secondaires  integer     NOT NULL,
+    logements_vacants       integer     NOT NULL,
+    proprietaires           integer     NOT NULL,
+    locataires              integer     NOT NULL,
+    locataires_hlm          integer     NOT NULL,
+    imported_at             timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT insee_iris_logement_pkey PRIMARY KEY (code_iris),
+    CONSTRAINT insee_iris_logement_code_check CHECK (code_iris ~ '^[0-9AB]{9}$'),
+    CONSTRAINT insee_iris_logement_counts_check CHECK (
+        logements >= 0 AND residences_principales >= 0 AND residences_secondaires >= 0
+        AND logements_vacants >= 0 AND proprietaires >= 0 AND locataires >= 0
+        AND locataires_hlm >= 0
+    )
+);
+
+-- ARCEP — éligibilité des locaux aux réseaux fixes, par commune (« Ma connexion internet »).
+CREATE TABLE IF NOT EXISTS immo.arcep_connectivite (
+    code_insee          immo.code_insee NOT NULL,
+    date_donnees        date        NOT NULL,
+    nb_locaux           integer     NOT NULL,
+    eligibles_fibre     integer     NOT NULL,
+    eligibles_cable     integer     NOT NULL,
+    eligibles_4g_fixe   integer     NOT NULL,
+    imported_at         timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT arcep_connectivite_pkey PRIMARY KEY (code_insee),
+    CONSTRAINT arcep_connectivite_counts_check CHECK (
+        nb_locaux >= 0 AND eligibles_fibre >= 0 AND eligibles_cable >= 0 AND eligibles_4g_fixe >= 0
+    )
+);
+
+-- Cartes de bruit stratégiques (indice Lden), ingérées par scripts/ingest_bruit_lden.py
+-- depuis les flux WFS Géo-IDE des directions départementales (schéma COVADIS « ZBR »).
+CREATE TABLE IF NOT EXISTS immo.geo_bruit_lden (
+    id_zone         text        NOT NULL,
+    source_id       text        NOT NULL,
+    code_dept       text        NOT NULL,
+    -- 'route', 'fer', 'air' ou 'industrie'
+    infrastructure  text        NOT NULL,
+    code_infra      text,
+    annee           smallint,
+    -- Borne basse de la classe de bruit en dB(A) : 55 signifie « 55 à 60 dB ».
+    db_min          smallint    NOT NULL,
+    geom            extensions.geometry(MultiPolygon, 4326) NOT NULL,
+    imported_at     timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT geo_bruit_lden_pkey PRIMARY KEY (id_zone),
+    CONSTRAINT geo_bruit_lden_infra_check
+        CHECK (infrastructure IN ('route', 'fer', 'air', 'industrie')),
+    CONSTRAINT geo_bruit_lden_db_check CHECK (db_min BETWEEN 30 AND 100)
+);
+
+CREATE INDEX IF NOT EXISTS geo_bruit_lden_geom_gist
+    ON immo.geo_bruit_lden USING gist (geom);
+CREATE INDEX IF NOT EXISTS geo_bruit_lden_source_idx
+    ON immo.geo_bruit_lden (source_id);
+
+-- ----------------------------------------------------------------------------
+-- 4. Sécurité — RLS, privilèges et policies
+-- ----------------------------------------------------------------------------
+-- Modèle : immo_app (rôle de service du backend FastAPI) n'est PAS propriétaire
+-- des tables ; il y accède uniquement au travers de policies explicites.
+-- anon / authenticated (rôles publics de PostgREST) n'ont ni privilège, ni
+-- policy, ni même l'usage du schéma : trois verrous indépendants.
+ALTER SCHEMA immo OWNER TO postgres;
+REVOKE ALL ON SCHEMA immo FROM PUBLIC, anon, authenticated;
+GRANT USAGE ON SCHEMA immo TO immo_app;
+
+ALTER DEFAULT PRIVILEGES IN SCHEMA immo REVOKE ALL ON TABLES FROM PUBLIC;
+ALTER DEFAULT PRIVILEGES IN SCHEMA immo REVOKE EXECUTE ON FUNCTIONS FROM PUBLIC;
+
+DO $$
+DECLARE
+    tbl text;
+BEGIN
+    FOREACH tbl IN ARRAY ARRAY[
+        'api_reports_cache', 'insee_ssmsi', 'insee_dgfip', 'geo_ips_ecoles', 'geo_sitadel',
+        'insee_iris_logement', 'arcep_connectivite', 'geo_bruit_lden'
+    ]
+    LOOP
+        EXECUTE format('ALTER TABLE immo.%I OWNER TO postgres', tbl);
+        EXECUTE format('ALTER TABLE immo.%I ENABLE ROW LEVEL SECURITY', tbl);
+        EXECUTE format('ALTER TABLE immo.%I FORCE ROW LEVEL SECURITY', tbl);
+
+        EXECUTE format('REVOKE ALL ON immo.%I FROM PUBLIC, anon, authenticated', tbl);
+        EXECUTE format('GRANT SELECT, INSERT, UPDATE, DELETE ON immo.%I TO immo_app', tbl);
+
+        EXECUTE format('DROP POLICY IF EXISTS backend_full_access ON immo.%I', tbl);
+        EXECUTE format(
+            'CREATE POLICY backend_full_access ON immo.%I '
+            'AS PERMISSIVE FOR ALL TO immo_app USING (true) WITH CHECK (true)',
+            tbl
+        );
+    END LOOP;
+END
+$$;
+
+ALTER FUNCTION immo.purge_expired_reports() OWNER TO postgres;
+REVOKE ALL ON FUNCTION immo.purge_expired_reports() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION immo.purge_expired_reports() TO immo_app;
+
+-- Purge horaire des rapports expirés (rejouable : remplace le job du même nom).
+SELECT cron.schedule(
+    'immo-purge-expired-reports',
+    '17 * * * *',
+    'SELECT immo.purge_expired_reports()'
+);
+
+RESET search_path;

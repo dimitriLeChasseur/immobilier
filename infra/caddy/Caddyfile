@@ -1,0 +1,41 @@
+# SITE_ADDRESS=:80 en local (HTTP), SITE_ADDRESS=api.mondomaine.fr en production
+# (Caddy obtient et renouvelle alors le certificat Let's Encrypt tout seul).
+{$SITE_ADDRESS::80}, http://caddy {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Limite la taille des corps de requête (l'API ne reçoit que du JSON léger)
+	request_body {
+		max_size 1MB
+	}
+
+	# Supabase Auth (GoTrue)
+	handle_path /auth/v1/* {
+		reverse_proxy auth:9999
+	}
+
+	# Supabase REST (PostgREST)
+	handle_path /rest/v1/* {
+		reverse_proxy rest:3000
+	}
+
+	# Backend FastAPI
+	handle /api/* {
+		reverse_proxy backend:8000
+	}
+
+	handle /health {
+		reverse_proxy backend:8000
+	}
+
+	handle {
+		respond "Not found" 404
+	}
+}

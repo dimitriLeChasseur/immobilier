@@ -1,0 +1,13 @@
+# En-têtes servis par Cloudflare Pages.
+# Remplacer __API_ORIGIN__ par l'URL du backend (ex. https://api.mondomaine.fr),
+# la même valeur que la variable VITE_API_URL définie dans le projet Pages.
+/*
+  Content-Security-Policy: default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https://tile.openstreetmap.org; connect-src 'self' https://api-adresse.data.gouv.fr __API_ORIGIN__; font-src 'self'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'
+  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+  Permissions-Policy: geolocation=(), camera=(), microphone=()
+
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable

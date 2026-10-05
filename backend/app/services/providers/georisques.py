@@ -1,0 +1,120 @@
+"""Géorisques : inondation, argiles, sismicité, radon, Seveso, catastrophes naturelles."""
+
+from typing import Any
+
+from app.core.geo import haversine_m
+from app.core.http import HttpClient
+from app.services.insights import risk_recommendations
+from app.services.providers.base import (
+    AuditContext,
+    ProviderData,
+    as_rows,
+    gather_parts,
+    to_float,
+)
+
+_BASE_URL = "https://georisques.gouv.fr/api/v1"
+_SOURCE = "georisques"
+_POINT_RADIUS_M = 100
+_SEVESO_RADIUS_M = 2000
+_SEVESO_PAGE_SIZE = 100
+
+
+class GeorisquesProvider:
+    name = "georisques"
+
+    def __init__(self, http: HttpClient) -> None:
+        self._http = http
+
+    async def fetch(self, ctx: AuditContext) -> ProviderData:
+        latlon = f"{ctx.lon},{ctx.lat}"
+        data, missing = await gather_parts(
+            {
+                "risques": self._risks(latlon),
+                "inondation": self._flood(latlon),
+                "argiles": self._clay(latlon),
+                "sismicite": self._seismic(ctx.citycode),
+                "radon": self._radon(ctx.citycode),
+                "seveso": self._seveso(ctx, latlon),
+                "catastrophes_naturelles": self._catnat(latlon),
+            }
+        )
+        data["recommandations"] = risk_recommendations(data)
+        return ProviderData(data=data, missing=missing)
+
+    async def _get(self, path: str, params: dict[str, str | int | float]) -> Any:
+        return await self._http.get_json(_SOURCE, f"{_BASE_URL}/{path}", params=params)
+
+    async def _risks(self, latlon: str) -> list[str]:
+        payload = await self._get("gaspar/risques", {"latlon": latlon, "rayon": _POINT_RADIUS_M})
+        labels = {
+            str(detail.get("libelle_risque_long"))
+            for row in as_rows(payload, "data")
+            for detail in row.get("risques_detail") or []
+            if detail.get("libelle_risque_long")
+        }
+        return sorted(labels)
+
+    async def _flood(self, latlon: str) -> dict[str, Any]:
+        payload = await self._get("gaspar/azi", {"latlon": latlon, "rayon": _POINT_RADIUS_M})
+        zones = sorted({str(row.get("libelle_azi")) for row in as_rows(payload, "data")})
+        return {"concerne": bool(zones), "atlas_zones_inondables": zones}
+
+    async def _clay(self, latlon: str) -> dict[str, Any]:
+        # Corps vide = point hors zone cartographiée (ex. Paris intra-muros).
+        payload = await self._get("rga", {"latlon": latlon})
+        if not isinstance(payload, dict):
+            return {"code": None, "exposition": None}
+        return {"code": payload.get("codeExposition"), "exposition": payload.get("exposition")}
+
+    async def _seismic(self, citycode: str) -> dict[str, Any] | None:
+        payload = await self._get("zonage_sismique", {"code_insee": citycode})
+        rows = as_rows(payload, "data")
+        if not rows:
+            return None
+        return {"code": rows[0].get("code_zone"), "zone": rows[0].get("zone_sismicite")}
+
+    async def _radon(self, citycode: str) -> dict[str, Any] | None:
+        payload = await self._get("radon", {"code_insee": citycode})
+        rows = as_rows(payload, "data")
+        if not rows:
+            return None
+        return {"classe_potentiel": rows[0].get("classe_potentiel")}
+
+    async def _seveso(self, ctx: AuditContext, latlon: str) -> dict[str, Any]:
+        payload = await self._get(
+            "installations_classees",
+            {"latlon": latlon, "rayon": _SEVESO_RADIUS_M, "page_size": _SEVESO_PAGE_SIZE},
+        )
+        sites = [
+            site for row in as_rows(payload, "data") if (site := _seveso_site(row, ctx)) is not None
+        ]
+        sites.sort(key=lambda site: site["distance_m"] if site["distance_m"] is not None else 1e9)
+        return {
+            "rayon_m": _SEVESO_RADIUS_M,
+            "sites": sites,
+            "installations_classees_total": payload.get("results"),
+            # L'API ne filtre pas par statut : au-delà d'une page, la liste est incomplète.
+            "liste_tronquee": int(payload.get("total_pages") or 0) > 1,
+        }
+
+    async def _catnat(self, latlon: str) -> dict[str, Any]:
+        payload = await self._get(
+            "gaspar/catnat", {"latlon": latlon, "rayon": _POINT_RADIUS_M, "page_size": 1}
+        )
+        as_rows(payload, "data")
+        return {"nb_arretes": payload.get("results")}
+
+
+def _seveso_site(row: dict[str, Any], ctx: AuditContext) -> dict[str, Any] | None:
+    status = row.get("statutSeveso")
+    if not isinstance(status, str) or not status.startswith("Seveso"):
+        return None
+    lat, lon = to_float(row.get("latitude")), to_float(row.get("longitude"))
+    distance = round(haversine_m(ctx.lat, ctx.lon, lat, lon)) if lat and lon else None
+    return {
+        "nom": row.get("raisonSociale"),
+        "statut": status,
+        "commune": row.get("commune"),
+        "distance_m": distance,
+    }

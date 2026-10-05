@@ -1,0 +1,61 @@
+# Caddyfile de PRODUCTION — reverse proxy HTTPS vers le conteneur FastAPI.
+#
+# Activation (dans le .env du VPS) :
+#   CADDYFILE=./deploy/Caddyfile
+#   SITE_ADDRESS=api.mondomaine.fr     # le domaine doit déjà pointer vers l'IP du VPS
+#   ACME_EMAIL=vous@mondomaine.fr      # contact Let's Encrypt (alertes d'expiration)
+#
+# Caddy obtient et renouvelle le certificat tout seul ; HTTP (80) est redirigé vers HTTPS.
+# Différences avec infra/caddy/Caddyfile (développement) : le domaine est obligatoire, et
+# seule l'API FastAPI est exposée. Supabase Auth et PostgREST restent internes tant que le
+# frontend n'a pas de connexion utilisateur (voir le bloc commenté en bas pour les rouvrir).
+{
+	email {$ACME_EMAIL}
+}
+
+{$SITE_ADDRESS} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Content-Type-Options "nosniff"
+		X-Frame-Options "DENY"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		Permissions-Policy "geolocation=(), camera=(), microphone=()"
+		-Server
+	}
+
+	# L'API ne reçoit que des requêtes légères.
+	request_body {
+		max_size 1MB
+	}
+
+	log {
+		output stdout
+		format json
+	}
+
+	@api path /api/* /health
+	handle @api {
+		reverse_proxy backend:8000 {
+			# Flux d'audit (Server-Sent Events) : transmettre chaque évènement sans tampon.
+			flush_interval -1
+			# Un audit peut durer une vingtaine de secondes quand une source publique est lente.
+			transport http {
+				response_header_timeout 60s
+			}
+		}
+	}
+
+	handle {
+		respond "Not found" 404
+	}
+
+	# À rouvrir quand le frontend proposera la connexion utilisateur :
+	# handle_path /auth/v1/* {
+	# 	reverse_proxy auth:9999
+	# }
+	# handle_path /rest/v1/* {
+	# 	reverse_proxy rest:3000
+	# }
+}
