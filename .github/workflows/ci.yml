@@ -1,0 +1,69 @@
+# Intégration continue : style, typage et tests à chaque évolution de main.
+# Aucun service payant : l'analyse SonarQube reste disponible en local (scripts/sonar-scan.sh).
+name: Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+# Le moindre privilège suffit : le workflow ne fait que lire le dépôt.
+permissions:
+  contents: read
+
+# Un nouveau push sur la même branche annule l'exécution précédente, devenue inutile.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    name: Backend et frontend
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v7
+
+      - name: Configurer Python 3.11 et uv
+        uses: astral-sh/setup-uv@v10
+        with:
+          python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Installer les dépendances du backend
+        working-directory: backend
+        run: uv sync --frozen
+
+      - name: Vérifier le style et le typage du backend
+        working-directory: backend
+        run: |
+          uv run ruff check app tests
+          uv run mypy app tests
+
+      - name: Exécuter les tests unitaires (pytest)
+        working-directory: backend
+        env:
+          # Valeurs factices : les tests n'ouvrent aucune connexion.
+          DATABASE_URL: postgresql://test:test@localhost/test
+          SUPABASE_JWT_SECRET: test
+        run: uv run pytest --cov=app --cov-report=term
+
+      - name: Configurer Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Tester le frontend
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run typecheck
+          npm run lint
+          npm run test
+          npm run build
