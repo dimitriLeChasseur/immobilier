@@ -24,6 +24,8 @@ export interface AuditLocation {
   /** Identifiant BAN de l'adresse la plus proche, résolu par le serveur. */
   adresse_id?: string | null
   /** Présent quand l'audit porte sur une voie entière ; `points` : [lon, lat] de ses numéros. */
+  /** Une voie était demandée mais n'a pas pu être vérifiée : l'analyse porte sur le point. */
+  voie_non_verifiee?: boolean
   rue?: { id: string; nom: string; nb_numeros: number; longueur_m: number; points: [number, number][] } | null
 }
 
@@ -62,6 +64,8 @@ export interface AddressSuggestion {
   lon: number
   /** Vrai pour une voie entière : l'audit agrège alors le long de la rue. */
   street?: boolean
+  /** Renseigné pour une commune entière : on ouvre alors sa fiche plutôt qu'un audit. */
+  commune?: { code: string; nom: string }
 }
 
 // --- Données par source. Tout champ peut manquer si la source n'a répondu que partiellement.
@@ -170,6 +174,20 @@ export interface DvfData {
   /** Absent en mode « rue ». */
   rayon_m?: number
   /** Repère du mode « rue » : ventes de tout le secteur traversé. */
+  /** Médiane des 24 derniers mois de ventes connues ; null s'il y en a trop peu. */
+  recent?: {
+    mois: number
+    jusqu_au: string
+    nb_ventes: number
+    prix_m2_median: number
+    par_type?: Record<string, { nb_ventes: number; prix_m2_median: number }>
+    /** Sens de l'évolution sur deux ans ; null s'il y a trop peu de ventes pour en juger. */
+    tendance?: 'en hausse' | 'en baisse' | 'stable' | null
+    /** Chiffrée seulement avec assez de ventes dans chaque période. */
+    tendance_pct: number | null
+  } | null
+  /** [lon, lat, prix médian au m², nombre de ventes, année de la dernière] par emplacement. */
+  points?: [number, number, number, number, number][]
   comparaison?: { perimetre: string; nb_ventes: number; prix_m2_median: number; ecart_pct: number }
   nb_ventes: number
   prix_m2_median: number
@@ -284,6 +302,9 @@ export interface EcolesData {
     type_etablissement: 'ecole' | 'college' | 'lycee'
     secteur: 'public' | 'prive'
     ips: number
+    /** Position de l'établissement, pour la carte. */
+    lon?: number
+    lat?: number
     distance_m: number
   }[]
 }
@@ -303,6 +324,8 @@ export interface PermisData {
     nb_niveaux: number | null
     adresse: string | null
     precision_geocodage: 'numero' | 'voie'
+    lon?: number
+    lat?: number
     distance_m: number
   }[]
 }

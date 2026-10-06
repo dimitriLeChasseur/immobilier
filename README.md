@@ -166,6 +166,19 @@ main.
 Options : `--metropole angers`, `--source ddt49-route`. Le script sort en erreur (code 1) si une
 source échoue, sans effacer les données déjà chargées.
 
+### Tests d'intégration SQL
+
+Les tests unitaires simulent le dépôt. `backend/tests/test_integration_sql.py` exécute les
+requêtes géographiques et les agrégats sur une vraie base (bruit le long d'une voie, préfixes
+d'arrondissements, distance au contour d'un parc). Ils sont ignorés sans base, donc en CI :
+
+```bash
+cd backend && IMMO_TEST_DATABASE_URL=postgresql://immo_app:<mot de passe>@127.0.0.1:5433/postgres \
+    uv run pytest tests/test_integration_sql.py
+```
+
+Chaque test insère ses propres lignes sous des codes inexistants et les retire en sortant.
+
 ### Test de fumée
 
 Les tests unitaires simulent toutes les API. Pour détecter une source arrêtée, déplacée ou

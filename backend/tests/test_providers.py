@@ -145,3 +145,61 @@ def test_dvf_section_distance_is_zero_inside_and_grows_outside() -> None:
     # 0,01° de latitude au nord du bord : environ 1,1 km.
     assert 1000 < _distance_to_feature(inside, 48.02, 2.005) < 1200
     assert _distance_to_feature({"geometry": None}, 48.0, 2.0) == 0
+
+
+def priced(mutation: str, when: str, price: float) -> dict[str, Any]:
+    return dvf_row(id_mutation=mutation, date_mutation=when, valeur_fonciere=str(price))
+
+
+def window_of(old: int, recent: int, *, place: tuple[str, str] | None = None) -> dict[str, Any]:
+    """Synthèse de `old` ventes de 2022 à 6 000 €/m² et `recent` ventes de 2025 à 7 200 €/m²."""
+
+    def sale(name: str, year: int, index: int, price: float) -> dict[str, Any]:
+        month, day = index % 9 + 1, index % 27 + 1
+        row = priced(f"{name}{index}", f"{year}-0{month}-{day:02d}", price)
+        if place is not None:
+            row["latitude"], row["longitude"] = place
+        return row
+
+    rows = [sale("old", 2022, i, 300_000) for i in range(old)]
+    rows += [sale("new", 2025, i, 360_000) for i in range(recent)]
+    return summarize(build_sales(rows, *ORIGIN, radius_m=300))
+
+
+def test_dvf_recent_median_covers_the_last_24_months_of_known_sales() -> None:
+    summary = window_of(20, 20)
+    window = summary["recent"]
+    assert window["mois"] == 24
+    # La fenêtre se termine à la dernière vente publiée, pas à la date du jour.
+    assert window["jusqu_au"].startswith("2025-")
+    assert window["nb_ventes"] == 20
+    assert window["prix_m2_median"] > summary["prix_m2_median"]
+    assert window["par_type"] == {"appartement": {"nb_ventes": 20, "prix_m2_median": 7200}}
+    # Les ventes de 2022 sont à plus de 24 mois : elles servent de période de comparaison.
+    assert (window["tendance"], window["tendance_pct"]) == ("en hausse", 20.0)
+
+
+def test_dvf_trend_is_only_quantified_with_enough_sales_in_both_periods() -> None:
+    # Entre 5 et 19 ventes : le sens de l'évolution, sans pourcentage trompeur.
+    small = window_of(5, 30)["recent"]
+    assert (small["tendance"], small["tendance_pct"]) == ("en hausse", None)
+    # Sur un petit échantillon, un écart de quelques points reste « stable ».
+    slight = summarize(
+        build_sales(
+            [priced(f"o{i}", f"2022-0{i + 1}-15", 300_000) for i in range(5)]
+            + [priced(f"n{i}", f"2025-0{i + 1}-15", 318_000) for i in range(5)],
+            *ORIGIN,
+            radius_m=300,
+        )
+    )["recent"]
+    assert (slight["tendance"], slight["tendance_pct"]) == ("stable", None)
+    # Moins de cinq ventes avant : rien n'est avancé.
+    none = window_of(4, 30)["recent"]
+    assert (none["tendance"], none["tendance_pct"]) == (None, None)
+    assert window_of(30, 4)["recent"] is None
+
+
+def test_dvf_map_points_group_the_sales_of_one_building() -> None:
+    summary = window_of(3, 4, place=("48.8628", "2.3377"))
+    # Sept ventes à la même adresse : un seul point, avec leur médiane et la dernière année.
+    assert summary["points"] == [[2.3377, 48.8628, 7200, 7, 2025]]

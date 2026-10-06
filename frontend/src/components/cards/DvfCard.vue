@@ -24,6 +24,17 @@ const scope = computed(() =>
   street.value ? `${formatInteger(props.data.nb_ventes)} ventes dans la rue` : `${formatInteger(props.data.nb_ventes)} ventes à moins de ${props.data.rayon_m} m`,
 )
 
+// Le marché des deux dernières années, plus parlant que cinq ans de ventes mêlées.
+const recentHint = computed(() => {
+  const recent = props.data.recent
+  if (!recent) return undefined
+  const sales = `${formatInteger(recent.nb_ventes)} ventes jusqu’au ${formatDate(recent.jusqu_au)}`
+  // Sans assez de ventes pour chiffrer l'évolution, seul son sens est donné.
+  if (recent.tendance_pct === null) return recent.tendance ? `${sales} · ${recent.tendance} sur deux ans` : sales
+  const sign = recent.tendance_pct > 0 ? '+' : ''
+  return `${sales} · ${sign}${formatDecimal(recent.tendance_pct)} % en deux ans`
+})
+
 const chart = computed<ChartConfiguration>(() => ({
   type: 'bar',
   data: {
@@ -56,7 +67,13 @@ const chart = computed<ChartConfiguration>(() => ({
     <div class="min-w-0">
       <div class="mb-4 flex flex-wrap gap-x-8 gap-y-3">
         <StatTile
-          label="Prix médian"
+          v-if="data.recent"
+          :label="`Prix médian, ${data.recent.mois} derniers mois`"
+          :value="formatPricePerM2(data.recent.prix_m2_median)"
+          :hint="recentHint"
+        />
+        <StatTile
+          :label="data.recent ? 'Prix médian sur 5 ans' : 'Prix médian'"
           :value="formatPricePerM2(data.prix_m2_median)"
           :hint="scope"
         />

@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+
+import { MARKER_STYLES, type MapMarker, type MarkerKind } from '../lib/markers'
 
 const props = defineProps<{
   lat: number
@@ -9,6 +11,8 @@ const props = defineProps<{
   label: string
   /** Mode « rue » : [lon, lat] des numéros de la voie, tracés à la place du cercle. */
   street?: [number, number][]
+  /** Ventes, écoles et permis à placer autour de l'adresse. */
+  markers?: MapMarker[]
 }>()
 
 const DVF_RADIUS_M = 300
@@ -24,29 +28,62 @@ const container = ref<HTMLDivElement | null>(null)
 let map: L.Map | undefined
 let overlay: L.LayerGroup | undefined
 
-function drawStreet(points: [number, number][]): void {
+function drawStreet(points: [number, number][], recentre: boolean): void {
   if (!map || !overlay) return
   const positions = points.map(([lon, lat]): L.LatLngTuple => [lat, lon])
   for (const position of positions) {
     L.circleMarker(position, { radius: 4, color: '#ffffff', weight: 1, fillColor: '#0f766e', fillOpacity: 0.9 }).addTo(overlay)
   }
-  map.fitBounds(L.latLngBounds(positions), { padding: [24, 24], maxZoom: 18 })
+  if (recentre) map.fitBounds(L.latLngBounds(positions), { padding: [24, 24], maxZoom: 18 })
 }
 
-function draw(): void {
+/** Petits points colorés par nature ; le libellé apparaît au survol ou au toucher. */
+function drawMarkers(): void {
+  if (!overlay) return
+  for (const marker of props.markers ?? []) {
+    L.circleMarker([marker.lat, marker.lon], {
+      // Un immeuble aux nombreuses ventes ressort un peu plus gros.
+      radius: (marker.weight ?? 1) > 1 ? 7 : 5,
+      color: '#ffffff',
+      weight: 1,
+      fillColor: MARKER_STYLES[marker.kind].color,
+      fillOpacity: 0.85,
+    })
+      .bindTooltip(marker.label)
+      .addTo(overlay)
+  }
+}
+
+// Seules les natures présentes sur la carte figurent dans la légende.
+const legend = computed(() => {
+  const present = new Set((props.markers ?? []).map((marker) => marker.kind))
+  return (Object.keys(MARKER_STYLES) as MarkerKind[])
+    .filter((kind) => present.has(kind))
+    .map((kind) => ({ kind, ...MARKER_STYLES[kind] }))
+})
+
+/**
+ * Redessine la carte. `recentre` est faux quand seuls les points changent (sources arrivant
+ * une à une) : le cadrage choisi par l'utilisateur est alors conservé.
+ */
+function draw(recentre = true): void {
   if (!map || !overlay) return
   const position: L.LatLngTuple = [props.lat, props.lon]
   overlay.clearLayers()
   if (props.street?.length) {
-    drawStreet(props.street)
+    drawStreet(props.street, recentre)
+    drawMarkers()
     return
   }
+  // Le cercle est non interactif : il ne doit pas masquer le survol des points qu'il contient.
   L.circle(position, {
     radius: DVF_RADIUS_M,
     color: '#0d9488',
     weight: 1.5,
     fillOpacity: 0.08,
+    interactive: false,
   }).addTo(overlay)
+  drawMarkers()
   // Marqueur vectoriel : évite les images d'icône de Leaflet, mal résolues par les bundlers.
   L.circleMarker(position, {
     radius: 8,
@@ -57,7 +94,7 @@ function draw(): void {
   })
     .bindTooltip(props.label)
     .addTo(overlay)
-  map.setView(position, DEFAULT_ZOOM)
+  if (recentre) map.setView(position, DEFAULT_ZOOM)
 }
 
 onMounted(() => {
@@ -71,7 +108,14 @@ onMounted(() => {
   draw()
 })
 
-watch(() => [props.lat, props.lon, props.street], draw)
+watch(
+  () => [props.lat, props.lon, props.street],
+  () => draw(),
+)
+watch(
+  () => props.markers,
+  () => draw(false),
+)
 onBeforeUnmount(() => map?.remove())
 </script>
 
@@ -85,5 +129,11 @@ onBeforeUnmount(() => map?.remove())
           : 'Le cercle représente le rayon de 300 m utilisé pour les prix de vente.'
       }}
     </figcaption>
+    <ul v-if="legend.length" class="flex flex-wrap gap-x-4 gap-y-1 border-t border-slate-200 px-4 py-2 text-xs text-slate-600">
+      <li v-for="item in legend" :key="item.kind" class="flex items-center gap-1.5">
+        <span class="size-2.5 rounded-full" :style="{ backgroundColor: item.color }" aria-hidden="true"></span>
+        {{ item.legend }}
+      </li>
+    </ul>
   </figure>
 </template>

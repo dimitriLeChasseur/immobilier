@@ -61,7 +61,7 @@ _COMMUNE_SCHOOLS = """
     FROM (
         SELECT DISTINCT ON (uai) uai, type_etablissement, ips
         FROM geo_ips_ecoles
-        WHERE code_insee = $1
+        WHERE left(code_insee, length($1)) = $1
           AND rentree_scolaire >= (SELECT max(rentree_scolaire) FROM geo_ips_ecoles) - 1
         ORDER BY uai, rentree_scolaire DESC
     ) AS etablissements
@@ -70,14 +70,15 @@ _COMMUNE_SCHOOLS = """
     ORDER BY type_etablissement
 """
 
-# Les quartiers IRIS d'une commune portent son code en préfixe.
+# $1 : code de la commune ou, pour Paris, Lyon et Marseille, préfixe de ses arrondissements
+# (écoles et quartiers IRIS y sont rangés par arrondissement).
 _COMMUNE_HOUSING = """
     SELECT max(annee) AS annee, sum(logements) AS logements,
            sum(residences_principales) AS residences_principales,
            sum(logements_vacants) AS logements_vacants,
            sum(proprietaires) AS proprietaires, sum(locataires) AS locataires
     FROM insee_iris_logement
-    WHERE left(code_iris, 5) = $1
+    WHERE left(code_iris, length($1)) = $1
 """
 
 _PROPERTY_TAX = """
@@ -94,6 +95,7 @@ _SCHOOLS = f"""
         -- ne sont pas publiés la même année.
         SELECT DISTINCT ON (uai)
                uai, nom, type_etablissement, secteur, ips, ecart_type_ips, rentree_scolaire,
+               ST_X(geom) AS lon, ST_Y(geom) AS lat,
                round(ST_Distance(geom::geography, {_POINT_GEOG})) AS distance_m
         FROM geo_ips_ecoles
         WHERE ST_DWithin(geom::geography, {_POINT_GEOG}, $3)
@@ -108,6 +110,7 @@ _SCHOOLS = f"""
 _PERMITS = f"""
     SELECT num_permis, type_autorisation, etat, date_autorisation, nature_projet, destination,
            nb_logements, nb_niveaux, surface_plancher_m2, adresse, precision_geocodage,
+           ST_X(geom) AS lon, ST_Y(geom) AS lat,
            round(ST_Distance(geom::geography, {_POINT_GEOG})) AS distance_m
     FROM geo_sitadel
     WHERE ST_DWithin(geom::geography, {_POINT_GEOG}, $3)

@@ -84,7 +84,10 @@ describe('rapport', () => {
     const sections = buildReportSections(sources)
     expect(sections.map((section) => section.title)).toEqual(['Marché immobilier'])
     const rows = Object.fromEntries(sections[0]?.rows ?? [])
-    expect(rows['Rendement locatif brut (avant taxe foncière et charges)']).toBe(formatPercent(4))
+    // Loyer d'appartement rapporté au prix des appartements (4 300 €/m²), non à la médiane tous types.
+    expect(rows['Rendement locatif brut des appartements (avant taxe foncière et charges)']).toBe(
+      formatPercent((14 * 12 * 100) / 4300),
+    )
     expect(sections[0]?.table?.body).toHaveLength(1)
   })
 
@@ -118,5 +121,22 @@ describe('ordre d’affichage indépendant de l’ordre des clés reçues', () =
       'espaces_verts',
       'autre',
     ])
+  })
+})
+
+describe('prix de référence du rendement', () => {
+  it('ne retient que le prix des appartements, comparable au loyer d’appartement', async () => {
+    const { flatPrice } = await import('../src/lib/format')
+    const flats = (count: number) => ({ par_type: { appartement: { prix_m2_median: 4300, nb_ventes: count } } })
+    expect(flatPrice(flats(40))).toBe(4300)
+    // Trop peu de ventes pour parler d'un prix de marché.
+    expect(flatPrice(flats(4))).toBeNull()
+    // Les 24 derniers mois priment dès qu'ils comptent assez de ventes d'appartements.
+    const recent = (count: number) => ({ ...flats(40), recent: flats(count) })
+    expect(flatPrice({ ...recent(12), recent: { par_type: { appartement: { prix_m2_median: 4100, nb_ventes: 12 } } } })).toBe(4100)
+    expect(flatPrice(recent(2))).toBe(4300)
+    expect(flatPrice({ par_type: { maison: { prix_m2_median: 3000 } } })).toBeNull()
+    expect(flatPrice({ par_type: '***LOCKED***' })).toBeNull()
+    expect(flatPrice(null)).toBeNull()
   })
 })

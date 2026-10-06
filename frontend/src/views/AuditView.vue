@@ -13,6 +13,8 @@ import VisitChecklist from '../components/VisitChecklist.vue'
 import { useAccount } from '../composables/useAccount'
 import { useAudit } from '../composables/useAudit'
 import { useAuth } from '../composables/useAuth'
+import { communeSlug } from '../lib/commune'
+import { mapMarkers } from '../lib/markers'
 import { clearPendingAudit, savePendingAudit } from '../lib/pending'
 import { buildReportSections, synthesisSections, unavailableSources } from '../lib/report'
 import { DEFAULT_DESCRIPTION, setPageMeta, SITE_NAME } from '../lib/seo'
@@ -56,6 +58,8 @@ const unlockLabel = computed(() => {
   if (credits.value > 0) return `Débloquer avec 1 crédit (${credits.value} restants)`
   return 'Débloquer l’audit complet de cette adresse'
 })
+// Ventes, écoles et permis placés sur la carte ; vide en aperçu gratuit (positions non transmises).
+const markers = computed(() => mapMarkers(sources.value))
 const statusText = computed(() => {
   // Pendant le chargement, les étapes affichées tiennent lieu de message d'état.
   if (!meta.value) return ''
@@ -86,6 +90,14 @@ function run(target: AuditTarget, label: string): void {
 }
 
 function onSelect(suggestion: AddressSuggestion): void {
+  // Une commune entière n'est pas une adresse : sa fiche est plus juste qu'un audit de son centre.
+  if (suggestion.commune) {
+    void router.push({
+      name: 'commune',
+      params: { slug: communeSlug(suggestion.commune.nom, suggestion.commune.code) },
+    })
+    return
+  }
   run({ lat: suggestion.lat, lon: suggestion.lon, banId: suggestion.id }, suggestion.label)
 }
 
@@ -265,6 +277,10 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
                   Code INSEE {{ location.citycode }}<template v-if="location.rue">
                     · {{ location.rue.nb_numeros }} numéros · environ {{ location.rue.longueur_m }} m</template>
                 </p>
+                <p v-if="location?.voie_non_verifiee" class="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900" role="status">
+                  La rue n’a pas pu être identifiée (service d’adresses indisponible) : cette analyse porte
+                  sur un seul point, pas sur la rue entière. Relancez l’audit dans un instant.
+                </p>
                 <p v-if="location?.rue" class="mt-3 rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-900">
                   Analyse de la rue entière : ventes et diagnostics énergie de ses numéros, zonages et
                   bruit le long de la voie. Les autres blocs sont calculés depuis son milieu.
@@ -330,6 +346,7 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
                 :lon="location.lon"
                 :label="location.label"
                 :street="location.rue?.points"
+                :markers="markers"
               />
               <output v-else class="skeleton block h-72 w-full rounded-2xl lg:h-80" aria-label="Chargement de la carte"></output>
             </div>

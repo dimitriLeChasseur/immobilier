@@ -9,6 +9,7 @@ import json
 from collections import defaultdict
 from collections.abc import Iterator
 from dataclasses import dataclass
+from datetime import date, timedelta
 from statistics import median, quantiles
 from typing import Any
 
@@ -32,6 +33,13 @@ _LON_LAT = 2
 # Marge autour de l'emprise de la voie pour retrouver ses sections cadastrales.
 _STREET_MARGIN_M = 40
 _RECENT_SALES = 10
+_RECENT_MONTHS = 24
+# Ventes nécessaires pour avancer une médiane, puis pour chiffrer son évolution.
+_MIN_SALES_FOR_MEDIAN = 5
+_MIN_SALES_FOR_TREND_PCT = 20
+_STABLE_BELOW_PCT = 3.0
+_STABLE_BELOW_PCT_SMALL_SAMPLE = 10.0
+_MAX_MAP_POINTS = 300
 _HOUSING = {"Appartement": "appartement", "Maison": "maison"}
 _IGNORED_LOCALS = {"Dépendance", "None", ""}
 _MIN_SURFACE_M2 = 9.0
@@ -50,6 +58,8 @@ class Sale:
     rooms: int | None = None
     # Numéro dans la voie, tel que publié par DVF.
     number: int | None = None
+    lat: float = 0.0
+    lon: float = 0.0
 
     @property
     def price_m2(self) -> float:
@@ -241,6 +251,8 @@ def _sale_from_lots(
         distance_m=round(distance),
         rooms=round(rooms) if rooms else None,
         number=round(number) if (number := to_float(first.get("adresse_numero"))) else None,
+        lat=lot_lat,
+        lon=lot_lon,
     )
 
 
@@ -263,6 +275,83 @@ def _spread(sales: list[Sale]) -> dict[str, int]:
     }
 
 
+def _sale_date(sale: Sale) -> date | None:
+    try:
+        return date.fromisoformat(sale.date[:10])
+    except ValueError:
+        return None
+
+
+def _recent(sales: list[Sale]) -> dict[str, Any] | None:
+    """Médiane des 24 derniers mois de ventes connues, et son évolution sur la période d'avant.
+
+    La fenêtre se termine à la dernière vente publiée (DVF a plusieurs mois de retard), non à
+    la date du jour. Sans assez de ventes, aucun chiffre n'est avancé.
+    """
+    dated = [(when, sale) for sale in sales if (when := _sale_date(sale)) is not None]
+    if not dated:
+        return None
+    latest = max(when for when, _ in dated)
+    window = timedelta(days=_RECENT_MONTHS * 365 // 12)
+    recent = [sale for when, sale in dated if latest - when < window]
+    previous = [sale for when, sale in dated if window <= latest - when < 2 * window]
+    if len(recent) < _MIN_SALES_FOR_MEDIAN:
+        return None
+    median_recent = _median_price(recent)
+    by_kind: dict[str, list[Sale]] = defaultdict(list)
+    for sale in recent:
+        by_kind[sale.kind].append(sale)
+    return {
+        "mois": _RECENT_MONTHS,
+        "jusqu_au": latest.isoformat(),
+        "nb_ventes": len(recent),
+        "prix_m2_median": median_recent,
+        "par_type": {
+            kind: {"nb_ventes": len(items), "prix_m2_median": _median_price(items)}
+            for kind, items in sorted(by_kind.items())
+        },
+        **_trend(median_recent, len(recent), previous),
+    }
+
+
+def _trend(median_recent: int, nb_recent: int, previous: list[Sale]) -> dict[str, Any]:
+    """Évolution par rapport aux 24 mois précédents.
+
+    Un pourcentage n'est donné qu'avec assez de ventes dans chaque période ; en dessous,
+    seul le sens de l'évolution est indiqué, et rien du tout sur une poignée de ventes.
+    """
+    if len(previous) < _MIN_SALES_FOR_MEDIAN:
+        return {"tendance": None, "tendance_pct": None}
+    change = 100 * (median_recent - _median_price(previous)) / _median_price(previous)
+    precise = min(nb_recent, len(previous)) >= _MIN_SALES_FOR_TREND_PCT
+    # Sur une poignée de ventes, un écart de quelques points n'est que du bruit : il faut un
+    # mouvement net pour parler de hausse ou de baisse.
+    if abs(change) < (_STABLE_BELOW_PCT if precise else _STABLE_BELOW_PCT_SMALL_SAMPLE):
+        direction = "stable"
+    else:
+        direction = "en hausse" if change > 0 else "en baisse"
+    return {"tendance": direction, "tendance_pct": round(change, 1) if precise else None}
+
+
+def _map_points(sales: list[Sale]) -> list[list[float]]:
+    """[lon, lat, prix médian au m², nombre de ventes, année de la dernière] par emplacement.
+
+    Les ventes d'un même immeuble partagent une position : elles sont réunies en un point.
+    """
+    by_place: dict[tuple[float, float], list[Sale]] = defaultdict(list)
+    for sale in sales:
+        if sale.date[:4].isdigit():
+            by_place[(round(sale.lon, 5), round(sale.lat, 5))].append(sale)
+    points = [
+        [lon, lat, _median_price(items), len(items), max(int(item.date[:4]) for item in items)]
+        for (lon, lat), items in by_place.items()
+    ]
+    # Les emplacements les plus actifs d'abord, si le plafond doit en écarter : en zone très
+    # dense, ce sont donc les ventes isolées (souvent des maisons) qui sortent de la carte.
+    points.sort(key=lambda point: -point[3])
+    return points[:_MAX_MAP_POINTS]
+
+
 def summarize(sales: list[Sale]) -> dict[str, Any]:
     """Indicateurs de prix au m² : global, par type de bien et par année."""
     by_kind: dict[str, list[Sale]] = defaultdict(list)
@@ -273,6 +362,8 @@ def summarize(sales: list[Sale]) -> dict[str, Any]:
     return {
         "nb_ventes": len(sales),
         "prix_m2_median": _median_price(sales),
+        "recent": _recent(sales),
+        "points": _map_points(sales),
         "dispersion": _spread(sales),
         "par_type": {
             kind: {"nb_ventes": len(items), "prix_m2_median": _median_price(items)}

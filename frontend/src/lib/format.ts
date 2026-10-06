@@ -1,6 +1,8 @@
 /** Mise en forme française des valeurs affichées. `—` quand la valeur est absente. */
 
 const EMPTY = '—'
+/** Nombre minimal de ventes d'appartements pour avancer un rendement. */
+export const MIN_SALES_FOR_YIELD = 5
 
 const integer = new Intl.NumberFormat('fr-FR', { maximumFractionDigits: 0 })
 const euros = new Intl.NumberFormat('fr-FR', { style: 'currency', currency: 'EUR', maximumFractionDigits: 0 })
@@ -40,6 +42,24 @@ export function formatDate(iso: string | null | undefined): string {
   const normalized = /^\d{8}$/.test(iso) ? `${iso.slice(0, 4)}-${iso.slice(4, 6)}-${iso.slice(6)}` : iso
   const date = new Date(normalized)
   return Number.isNaN(date.getTime()) ? EMPTY : longDate.format(date)
+}
+
+/**
+ * Prix médian des appartements vendus à proximité, seul comparable au loyer d'appartement.
+ * Null si la valeur est masquée par le serveur ou s'il y a trop peu de ventes d'appartements.
+ */
+export function flatPrice(dvf: { par_type?: unknown; recent?: unknown } | null | undefined): number | null {
+  // Les 24 derniers mois s'ils comptent assez de ventes, sinon les cinq ans.
+  const recent = (dvf?.recent as { par_type?: unknown } | null | undefined)?.par_type
+  return flatMedian(recent) ?? flatMedian(dvf?.par_type)
+}
+
+function flatMedian(byKind: unknown): number | null {
+  if (typeof byKind !== 'object' || byKind === null) return null
+  const flats = (byKind as Record<string, { prix_m2_median?: unknown; nb_ventes?: unknown } | undefined>).appartement
+  // Une poignée de ventes ne fait pas un prix de marché (quartier pavillonnaire).
+  if (typeof flats?.nb_ventes !== 'number' || flats.nb_ventes < MIN_SALES_FOR_YIELD) return null
+  return typeof flats.prix_m2_median === 'number' ? flats.prix_m2_median : null
 }
 
 /** Rendement locatif brut annuel, en %. */
