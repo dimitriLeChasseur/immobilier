@@ -1,14 +1,23 @@
 """Résolution serveur de la localisation (BAN, repli sur geo.api.gouv.fr)."""
 
+import re
 from typing import Any, Protocol
 
 from app.core.errors import SourceError
+from app.core.geo import haversine_m
 from app.core.http import HttpClient
 from app.schemas.audit import Location
 from app.services.providers.base import as_rows
 
 _BAN_REVERSE_URL = "https://api-adresse.data.gouv.fr/reverse/"
 _GEO_COMMUNES_URL = "https://geo.api.gouv.fr/communes"
+_BAN_LOOKUP_URL = "https://plateforme.adresse.data.gouv.fr/lookup"
+# Identifiant BAN d'un numéro : commune, voie, numéro, suffixe éventuel.
+_HOUSE_NUMBER_ID = re.compile(r"^[0-9][0-9AB][0-9]{3}_[0-9a-z]{4,12}_[0-9]{5}(_[0-9a-z]{1,12})?$")
+# Écart toléré entre le point demandé et la position du numéro dans la BAN. La recherche et
+# la fiche du numéro donnent le même point à moins d'un mètre près : une marge courte suffit,
+# et elle borne ce qu'un droit payé ouvre autour de l'adresse.
+_SAME_PLACE_M = 15
 
 
 def _region_from_context(context: Any) -> str | None:
@@ -16,6 +25,18 @@ def _region_from_context(context: Any) -> str | None:
     if not isinstance(context, str) or "," not in context:
         return None
     return context.rsplit(",", 1)[1].strip() or None
+
+
+def _address_label(address: dict[str, Any]) -> str | None:
+    """« 10 Rue du Canal 49100 Angers » d'après la fiche BAN d'un numéro, None si incomplète."""
+    street = (address.get("voie") or {}).get("nomVoie")
+    city = (address.get("commune") or {}).get("nom")
+    number = address.get("numero")
+    if not isinstance(street, str) or not isinstance(city, str) or not isinstance(number, int):
+        return None
+    suffix = address.get("suffixe") if isinstance(address.get("suffixe"), str) else ""
+    postcode = address.get("codePostal") if isinstance(address.get("codePostal"), str) else ""
+    return " ".join(part for part in (f"{number}{suffix}", street, postcode, city) if part)
 
 
 class Geocoder(Protocol):
@@ -47,10 +68,17 @@ class BanGeocoder:
         citycode, address_id = properties.get("citycode"), properties.get("id")
         if not isinstance(citycode, str):
             raise SourceError("invalid_response", "citycode", transient=False)
+        # L'adresse choisie par l'utilisateur prime sur la plus proche du point, si la BAN
+        # confirme qu'elle se trouve bien là : deux adresses peuvent partager un même point.
+        label = str(properties.get("label") or citycode)
+        chosen = await self._chosen_address(ban_id, lat, lon)
+        if chosen is not None:
+            # L'en-tête du rapport nomme l'adresse choisie, pas sa voisine la plus proche.
+            address_id, label = chosen[0], chosen[1] or label
         return Location(
             lat=lat,
             lon=lon,
-            label=str(properties.get("label") or citycode),
+            label=label,
             citycode=citycode,
             postcode=properties.get("postcode"),
             city=properties.get("city"),
@@ -58,6 +86,31 @@ class BanGeocoder:
             ban_id=ban_id,
             adresse_id=address_id if isinstance(address_id, str) and address_id else None,
         )
+
+    async def _chosen_address(
+        self, ban_id: str, lat: float, lon: float
+    ) -> tuple[str, str | None] | None:
+        """(`ban_id`, libellé) s'il désigne un numéro situé au point demandé, None sinon.
+
+        L'identifiant vient du navigateur : il n'est retenu qu'après vérification, car il
+        fonde le droit d'accès payé et la fiche du bâtiment.
+        """
+        if not _HOUSE_NUMBER_ID.match(ban_id):
+            return None
+        try:
+            payload = await self._http.get_json("ban_lookup", f"{_BAN_LOOKUP_URL}/{ban_id}")
+        except SourceError:
+            return None
+        if not isinstance(payload, dict) or payload.get("type") != "numero":
+            return None
+        coordinates = (payload.get("position") or {}).get("coordinates")
+        if not isinstance(coordinates, list) or len(coordinates) < 2:  # noqa: PLR2004
+            return None
+        try:
+            distance = haversine_m(lat, lon, float(coordinates[1]), float(coordinates[0]))
+        except (TypeError, ValueError):
+            return None
+        return (ban_id, _address_label(payload)) if distance <= _SAME_PLACE_M else None
 
     async def _from_commune(self, lat: float, lon: float, ban_id: str) -> Location | None:
         payload = await self._http.get_json(

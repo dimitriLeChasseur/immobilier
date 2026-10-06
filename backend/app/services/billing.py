@@ -249,7 +249,7 @@ class BillingService:
         Sans réponse du géocodeur, le droit reste attaché au seul point acheté.
         """
         try:
-            location = await self._geocoder.reverse(target.lat, target.lon, "")
+            location = await self._geocoder.reverse(target.lat, target.lon, target.ban_id)
         except SourceError:
             return None
         return location.adresse_id if location else None
