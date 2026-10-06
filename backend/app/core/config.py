@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     breaker_reset_after_s: float = Field(default=30.0, gt=0)
 
     # Cache des rapports
-    report_version: int = Field(default=7, ge=1, le=32767)
+    report_version: int = Field(default=8, ge=1, le=32767)
     cache_ttl_hours: int = Field(default=168, ge=1)
     cache_partial_ttl_minutes: int = Field(default=15, ge=1)
     air_quality_ttl_hours: int = Field(default=12, ge=1)
@@ -51,6 +51,12 @@ class Settings(BaseSettings):
     # « Carte des loyers » : ressource data.gouv du dernier millésime
     loyers_resource_id: str = "55b34088-0964-415f-9df7-d87dd98a09be"
     loyers_millesime: int = 2025
+    # Même millésime, par typologie : appartements de 1-2 pièces, de 3 pièces et plus, maisons.
+    loyers_t1_t2_resource_id: str = "14a1fe11-b2d1-49b3-9f6b-83d12df9482c"
+    loyers_t3_plus_resource_id: str = "5e3b28a4-cf56-43a3-ae79-43cceeb27f8c"
+    loyers_maison_resource_id: str = "129f764d-b613-44e4-952c-5ff50a8c9b73"
+    # Zonage ABC des communes (ministère chargé du logement), liste en vigueur.
+    zonage_abc_resource_id: str = "13f7282b-8a25-43ab-9713-8bb4e476df55"
 
     @field_validator("cors_allowed_origins", mode="before")
     @classmethod

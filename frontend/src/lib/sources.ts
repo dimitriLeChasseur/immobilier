@@ -30,6 +30,10 @@ export const SOURCE_INFO: Record<SourceName, SourceInfo> = {
     title: 'Performance énergétique (DPE)',
     emptyText: 'Aucun diagnostic enregistré dans un rayon de 150 m.',
   },
+  batiment: {
+    title: 'Le bâtiment',
+    emptyText: 'Adresse non rattachée à un bâtiment dans la base nationale des bâtiments.',
+  },
   qualite_air: {
     title: 'Qualité de l’air',
     emptyText: 'Indice ATMO non publié pour cette commune aujourd’hui.',

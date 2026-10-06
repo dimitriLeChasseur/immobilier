@@ -13,6 +13,7 @@ from app.schemas.audit import Finding, SourceResult, Synthesis
 _MAX_FINDINGS = 3
 _STRONG_NOISE_DB = 65
 _CLAY_STRONG = 3
+_INDUSTRIAL_SITE_NEAR_M = 100
 _RADON_MAX = 3
 _POOR_ENERGY_SHARE_PCT = 40
 _GOOD_ENERGY_LABELS = frozenset({"A", "B", "C"})
@@ -62,14 +63,80 @@ def _level(value: Any) -> int | None:
 
 
 def _flood(data: Data) -> _Scored | None:
-    if not (data.get("inondation") or {}).get("concerne"):
+    """Une seule alerte inondation, appuyée sur le signal le plus précis disponible."""
+    plans = [
+        plan["nom"]
+        for plan in data.get("plans_prevention") or []
+        if "PPRN-I" in str(plan.get("type")) or str(plan.get("nom")).upper().startswith("PPRI")
+    ]
+    listed = bool((data.get("inondation") or {}).get("concerne"))
+    if not listed and not plans and not data.get("tri"):
+        return None
+    advice = "demandez l'état des risques et vérifiez si l'adresse est en zone réglementée."
+    if plans:
+        return _scored(
+            90,
+            "Risques",
+            "Commune couverte par un plan de prévention des inondations",
+            f"{', '.join(plans[:2])} : {advice}",
+        )
+    return _scored(
+        90 if listed else 60,
+        "Risques",
+        "Zone inondable répertoriée" if listed else "Territoire à risque important d'inondation",
+        f"Secteur signalé par les inventaires nationaux : {advice}",
+    )
+
+
+def _industrial_past(data: Data) -> _Scored | None:
+    sites = (data.get("anciens_sites_industriels") or {}).get("plus_proches") or []
+    nearest = _number(sites[0].get("distance_m")) if sites else None
+    if nearest is None or nearest > _INDUSTRIAL_SITE_NEAR_M:
         return None
     return _scored(
-        90,
+        55,
         "Risques",
-        "Zone inondable répertoriée",
-        "Le secteur figure dans un atlas des zones inondables : demandez l'état des risques "
-        "et vérifiez le plan de prévention.",
+        f"Ancien site industriel à {round(nearest)} m",
+        "Une activité passée a pu polluer les sols : consultez sa fiche sur Géorisques, "
+        "surtout pour un jardin ou un rez-de-chaussée.",
+    )
+
+
+def _cavity(data: Data) -> _Scored | None:
+    cavities = data.get("cavites") or {}
+    nearest = _number((cavities.get("plus_proche") or {}).get("distance_m"))
+    if nearest is None:
+        return None
+    return _scored(
+        65,
+        "Risques",
+        f"Cavité souterraine à {round(nearest)} m",
+        f"{cavities.get('nb_cavites')} cavité(s) recensée(s) dans un rayon de "
+        f"{cavities.get('rayon_m')} m : risque d'affaissement à faire préciser.",
+    )
+
+
+def _heritage(data: Data) -> _Scored | None:
+    if not (data.get("monument_historique") or {}).get("dans_perimetre"):
+        return None
+    return _scored(
+        40,
+        "Urbanisme",
+        "Abords d'un monument historique",
+        "Les travaux visibles de l'extérieur sont soumis à l'avis de l'architecte des "
+        "Bâtiments de France : délais et contraintes à prévoir.",
+    )
+
+
+def _building_energy(data: Data) -> _Scored | None:
+    label = (data.get("dpe") or {}).get("classe")
+    if label not in _GOOD_ENERGY_LABELS:
+        return None
+    return _scored(
+        55,
+        "Énergie",
+        f"Bâtiment classé {label}",
+        "Étiquette énergie retenue pour le bâtiment par la base nationale des bâtiments.",
     )
 
 
@@ -342,6 +409,9 @@ _ALERTS: tuple[tuple[str, Rule], ...] = (
     ("georisques", _flood),
     ("georisques", _seveso),
     ("georisques", _clay),
+    ("georisques", _cavity),
+    ("georisques", _industrial_past),
+    ("batiment", _heritage),
     ("georisques", _radon),
     ("bruit", _noise_alert),
     ("permis_construire", _overlook),
@@ -356,6 +426,7 @@ _STRENGTHS: tuple[tuple[str, Rule], ...] = (
     ("proximite", _transport),
     ("proximite", _shops),
     ("bruit", _quiet),
+    ("batiment", _building_energy),
     ("dpe", _good_energy),
     ("delinquance", _crime_strength),
     ("taxe_fonciere", _tax_strength),

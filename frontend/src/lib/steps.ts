@@ -32,7 +32,7 @@ const DEFINITIONS: StepDefinition[] = [
     key: 'risks',
     activeLabel: 'Analyse des risques environnementaux…',
     doneLabel: 'Risques environnementaux analysés',
-    sources: ['georisques', 'qualite_air', 'bruit', 'ensoleillement', 'dpe'],
+    sources: ['georisques', 'qualite_air', 'bruit', 'ensoleillement', 'dpe', 'batiment'],
   },
   {
     key: 'planning',

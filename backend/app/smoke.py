@@ -26,20 +26,31 @@ logger = logging.getLogger("smoke")
 # Champs qu'une source en bonne santé renvoie pour l'adresse de référence. Leur absence
 # signale un changement de format côté fournisseur.
 EXPECTED_KEYS: dict[str, tuple[str, ...]] = {
-    "georisques": ("risques", "inondation", "argiles", "sismicite", "radon", "seveso"),
+    "georisques": (
+        "risques",
+        "inondation",
+        "argiles",
+        "sismicite",
+        "radon",
+        "seveso",
+        "plans_prevention",
+        "anciens_sites_industriels",
+        "cavites",
+    ),
     "cadastre": ("identifiant", "section"),
-    "urbanisme": ("zones",),
+    "urbanisme": ("zones", "servitudes", "prescriptions"),
     "dvf": ("nb_ventes", "prix_m2_median", "dernieres_ventes"),
     "dpe": ("nb_dpe_analyses", "repartition_dpe"),
+    "batiment": ("annee_construction", "nb_logements", "dpe", "monument_historique"),
     "proximite": ("categories",),
     "qualite_air": ("indice", "qualificatif"),
     "ensoleillement": ("score", "masque_relief_deg"),
-    "loyers": ("loyer_m2_charges_comprises",),
+    "loyers": ("loyer_m2_charges_comprises", "par_typologie"),
     "delinquance": ("indicateurs",),
     "taxe_fonciere": ("taux_tfb_total",),
     "ecoles": ("etablissements",),
     "permis_construire": ("nb_permis",),
-    "marche_locatif": ("occupation", "encadrement_loyers"),
+    "marche_locatif": ("occupation", "encadrement_loyers", "zonage_abc"),
     "connectivite": ("part_fibre_pct",),
     "copropriete": ("charges_m2_an",),
     "reseau_mobile": ("nb_sites", "operateurs"),
@@ -59,13 +70,13 @@ class Case:
 
 CASES = (
     Case(
-        "adresse : 12 Rue Boisnet, Angers",
-        AuditQuery(lat=47.474912, lon=-0.550563, ban_id="49007_0810_00012"),
+        "adresse : 8 Rue du Canal, Angers",
+        AuditQuery(lat=47.47408, lon=-0.55107, ban_id="49007_1350_00008"),
     ),
     Case(
         "rue : Rue Saint-Aubin, Angers",
         AuditQuery(lat=47.469077, lon=-0.5529, ban_id="49007_7050"),
-        may_be_empty=frozenset({"cadastre"}),
+        may_be_empty=frozenset({"cadastre", "batiment"}),
         extra_keys={"dvf": ("comparaison",), "dpe": ("par_numero",)},
     ),
 )

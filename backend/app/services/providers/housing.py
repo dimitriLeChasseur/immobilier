@@ -57,22 +57,54 @@ def _share(part: Any, total: Any) -> float | None:
     return round(100 * part / total, 1)
 
 
+_TABULAR_URL = "https://tabular-api.data.gouv.fr/api/resources"
+# Zones où l'offre de logements est jugée insuffisante par l'arrêté de zonage.
+_TENSE_ZONES = frozenset({"Abis", "A bis", "A", "B1"})
+
+
 class RentalMarketProvider:
     """Occupation des logements du quartier (IRIS) et encadrement des loyers."""
 
     name = "marche_locatif"
 
-    def __init__(self, http: HttpClient, repository: ReferenceRepository) -> None:
+    def __init__(
+        self,
+        http: HttpClient,
+        repository: ReferenceRepository,
+        *,
+        abc_resource_id: str | None = None,
+    ) -> None:
         self._http = http
         self._repository = repository
+        self._abc_resource_id = abc_resource_id
 
     async def fetch(self, ctx: AuditContext) -> ProviderData:
         data, missing = await gather_parts(
-            {"occupation": self._occupancy(ctx), "encadrement_loyers": self._rent_control(ctx)}
+            {
+                "occupation": self._occupancy(ctx),
+                "encadrement_loyers": self._rent_control(ctx),
+                "zonage_abc": self._abc_zone(ctx),
+            }
         )
         # Aucun recensement national des communes ayant instauré un permis de louer.
         data["permis_de_louer"] = {"statut": "inconnu"}
         return ProviderData(data=data, missing=missing)
+
+    async def _abc_zone(self, ctx: AuditContext) -> dict[str, Any] | None:
+        """Zone A bis, A, B1, B2 ou C de la commune : tension du marché du logement."""
+        if self._abc_resource_id is None:
+            return None
+        url = f"{_TABULAR_URL}/{self._abc_resource_id}/data/"
+        for code in reversed(ctx.commune_codes):
+            payload = await self._http.get_json(
+                "data_gouv_tabular", url, params={"CODGEO__exact": code, "page_size": 1}
+            )
+            for row in as_rows(payload, "data"):
+                # L'intitulé de la colonne porte la date d'entrée en vigueur de la liste.
+                for column, zone in row.items():
+                    if column.startswith("Zonage ABC") and isinstance(zone, str):
+                        return {"zone": zone.strip(), "tendu": zone.strip() in _TENSE_ZONES}
+        return None
 
     async def _occupancy(self, ctx: AuditContext) -> dict[str, Any] | None:
         payload = await self._http.get_json(

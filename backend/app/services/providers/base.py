@@ -25,6 +25,8 @@ class AuditContext:
     region: str | None = None
     # Renseignée en mode « rue » : les sources qui le peuvent agrègent alors le long de la voie.
     street: Street | None = None
+    # Identifiant BAN de l'adresse la plus proche du point, résolu par le serveur.
+    address_id: str | None = None
 
     @property
     def commune_codes(self) -> list[str]:

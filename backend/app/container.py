@@ -16,6 +16,7 @@ from app.services.billing import BillingService
 from app.services.geocoding import BanGeocoder
 from app.services.providers.apicarto import CadastreProvider, UrbanismeProvider
 from app.services.providers.base import Provider
+from app.services.providers.building import BuildingProvider
 from app.services.providers.dpe import DpeProvider
 from app.services.providers.dvf import DvfProvider
 from app.services.providers.environment import AirQualityProvider, SunlightProvider
@@ -58,19 +59,25 @@ def build_audit_service(
         UrbanismeProvider(http),
         DvfProvider(http),
         DpeProvider(http),
+        BuildingProvider(http),
         PoiProvider(http, repository=reference, ors_api_key=ors_key),
         AirQualityProvider(http),
         SunlightProvider(http),
         RentsProvider(
             http,
             resource_id=settings.loyers_resource_id,
+            typology_resources={
+                "t1_t2": settings.loyers_t1_t2_resource_id,
+                "t3_plus": settings.loyers_t3_plus_resource_id,
+                "maison": settings.loyers_maison_resource_id,
+            },
             millesime=settings.loyers_millesime,
         ),
         CrimeProvider(reference),
         PropertyTaxProvider(reference),
         SchoolsProvider(reference),
         PermitsProvider(reference),
-        RentalMarketProvider(http, reference),
+        RentalMarketProvider(http, reference, abc_resource_id=settings.zonage_abc_resource_id),
         ConnectivityProvider(reference),
         CondoChargesProvider(),
         MobileNetworkProvider(http),

@@ -141,6 +141,16 @@ uv run scripts/ingest_osm_poi.py --region pays-de-la-loire # une région Geofabr
 
 Données © les contributeurs d'OpenStreetMap (ODbL), extraits fournis par Geofabrik.
 
+### Sources interrogées en direct pour le bâtiment et les risques complémentaires
+
+| Donnée | Source | Limite connue |
+| --- | --- | --- |
+| Bâtiment à l'adresse, copropriété immatriculée | API ouverte de la BDNB (CSTB), par identifiant BAN | 120 requêtes par minute et par IP, trois par audit |
+| Plans de prévention, territoires à risque d'inondation | Géorisques (`gaspar/pprn`, `gaspar/tri`) | plans listés à l'échelle de la commune |
+| Anciens sites industriels, cavités, mouvements de terrain | Géorisques (`ssp/casias`, `cavites`, `mvt`), rayon de 500 m | inventaires non exhaustifs |
+| Servitudes d'utilité publique, prescriptions | API Carto, Géoportail de l'urbanisme | selon les documents versés par la commune |
+| Zonage ABC, loyers par typologie | API tabulaire de data.gouv.fr | identifiants de ressource millésimés dans la configuration |
+
 ### Tâche planifiée du bruit Lden
 
 Le script est autonome (dépendances déclarées en tête de fichier, résolues par `uv`) et lit la

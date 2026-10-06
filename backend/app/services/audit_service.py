@@ -160,6 +160,7 @@ class AuditService:
             postcode=location.postcode,
             region=location.region,
             street=plan.street,
+            address_id=location.adresse_id,
         )
         sources: dict[str, SourceResult] = dict(plan.reused)
         tasks = [asyncio.create_task(self._run_provider(p, context)) for p in plan.pending]

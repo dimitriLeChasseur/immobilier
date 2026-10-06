@@ -79,9 +79,52 @@ export interface GeorisquesData {
     installations_classees_total: number | null
     liste_tronquee: boolean
   }
-  catastrophes_naturelles?: { nb_arretes: number | null }
+  catastrophes_naturelles?: {
+    nb_arretes: number | null
+    par_type?: { type: string; nb_arretes: number; dernier: number | null }[]
+  }
+  /** Plans de prévention des risques de la commune. */
+  plans_prevention?: { nom: string; type: string | null; en_revision: boolean }[]
+  /** Territoires à risque important d'inondation couvrant le point. */
+  tri?: string[]
+  anciens_sites_industriels?: {
+    rayon_m: number
+    nb_sites: number | null
+    plus_proches: { adresse: string | null; statut: string | null; distance_m: number }[]
+  }
+  cavites?: {
+    rayon_m: number
+    nb_cavites: number | null
+    plus_proche: { type: string | null; nom: string | null; distance_m: number } | null
+  }
+  mouvements_terrain?: { rayon_m: number; nb_evenements: number | null }
   /** Recommandation par risque (clés : argiles, radon, inondation, sismicite), fournie par le serveur. */
   recommandations?: Record<string, string>
+}
+
+export interface BatimentData {
+  adresse?: string | null
+  nb_adresses?: number | null
+  annee_construction?: number | null
+  usage?: string | null
+  nb_niveaux?: number | null
+  hauteur_m?: number | null
+  nb_logements?: number | null
+  materiaux?: { murs: string | null; toit: string | null }
+  chauffage?: { energie: string | null; installation: string | null }
+  dpe?: { classe: string | null; repartition: Record<string, number> }
+  monument_historique?: { dans_perimetre: boolean; nom: string | null; distance_m: number | null }
+  /** null : aucune copropriété immatriculée ; absent : registre sans réponse. */
+  copropriete?: {
+    nom: string | null
+    immatriculation: string | null
+    nb_lots: number | null
+    nb_logements: number | null
+    nb_lots_stationnement: number | null
+    nb_lots_tertiaires: number | null
+    annee_construction: number | null
+  } | null
+  origine: string
 }
 
 export interface CadastreData {
@@ -90,6 +133,8 @@ export interface CadastreData {
   numero: string | null
   contenance_m2: number | null
   commune: string | null
+  /** « adresse » : parcelle déclarée pour l'adresse dans la BAN, le point tombant sur la voie. */
+  origine?: 'point' | 'adresse'
 }
 
 export interface UrbanismeData {
@@ -101,6 +146,9 @@ export interface UrbanismeData {
     date_validation: string | null
     reglement: string | null
   }[]
+  /** Servitudes d'utilité publique et prescriptions du document d'urbanisme au point audité. */
+  servitudes?: { code: string; categorie: string; detail: string | null }[]
+  prescriptions?: string[]
 }
 
 export interface DvfSale {
@@ -190,6 +238,10 @@ export interface LoyersData {
   nb_observations: number | null
   niveau_prediction: string | null
   millesime: number
+  /** Loyer par taille de logement ; une typologie sans réponse est absente. */
+  par_typologie?: Partial<
+    Record<'t1_t2' | 't3_plus' | 'maison', { loyer_m2_charges_comprises: number; nb_observations: number | null }>
+  >
 }
 
 export interface DelinquanceData {
@@ -268,6 +320,8 @@ export interface MarcheLocatifData {
   } | null
   encadrement_loyers?: { statut: 'oui' | 'partiel' | 'non'; territoire: string | null; verifie_le: string }
   permis_de_louer: { statut: string }
+  /** Zonage ABC de la commune ; `tendu` : zones A bis, A et B1. */
+  zonage_abc?: { zone: string; tendu: boolean } | null
 }
 
 export interface ConnectiviteData {
@@ -314,6 +368,7 @@ export interface SourceDataMap {
   urbanisme: UrbanismeData
   dvf: DvfData
   dpe: DpeData
+  batiment: BatimentData
   proximite: ProximiteData
   qualite_air: QualiteAirData
   ensoleillement: EnsoleillementData

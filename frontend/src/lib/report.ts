@@ -1,4 +1,5 @@
 import type {
+  BatimentData,
   BruitData,
   ReportSynthesis,
   ConnectiviteData,
@@ -10,6 +11,7 @@ import type {
   ReseauMobileData,
   SourceResults,
   TaxeFonciereData,
+  UrbanismeData,
 } from '../types/audit'
 import {
   capitalize,
@@ -141,12 +143,60 @@ function riskRows(data: GeorisquesData): Rows {
   const disasterRows: Rows = data.catastrophes_naturelles
     ? [['Arrêtés de catastrophe naturelle', formatInteger(data.catastrophes_naturelles.nb_arretes)]]
     : []
-  return [...verdicts, ...sevesoRows, ...disasterRows]
+  return [...verdicts, ...sevesoRows, ...groundRows(data), ...disasterRows]
+}
+
+/** Plans de prévention, passé industriel et cavités : les compléments de l'étape « risques ». */
+function groundRows(data: GeorisquesData): Rows {
+  const rows: Rows = []
+  if (data.plans_prevention?.length) {
+    rows.push(['Plans de prévention des risques (commune)', data.plans_prevention.map((plan) => plan.nom).join(' ; ')])
+  }
+  if (data.tri?.length) rows.push(['Territoire à risque important d’inondation', data.tri.join(', ')])
+  const sites = data.anciens_sites_industriels
+  if (sites?.plus_proches.length) {
+    const nearest = sites.plus_proches[0]
+    rows.push([
+      `Anciens sites industriels (${formatDistance(sites.rayon_m)})`,
+      `${formatInteger(sites.nb_sites)} recensés, le plus proche à ${formatDistance(nearest?.distance_m)}`,
+    ])
+  }
+  const cavities = data.cavites
+  if (cavities?.plus_proche) {
+    rows.push([
+      `Cavités souterraines (${formatDistance(cavities.rayon_m)})`,
+      `${formatInteger(cavities.nb_cavites)} recensée(s), la plus proche à ${formatDistance(cavities.plus_proche.distance_m)}`,
+    ])
+  }
+  return rows
 }
 
 function risks(sources: SourceResults): ReportSection {
   const data = sources.georisques?.data
   return { title: 'Risques naturels et technologiques', rows: data ? riskRows(data) : [] }
+}
+
+function easementRows(zoning: UrbanismeData | null | undefined): Rows {
+  const easements = zoning?.servitudes ?? []
+  if (!easements.length) return []
+  return [['Servitudes d’utilité publique', easements.map((item) => `${item.categorie} (${item.code})`).join(' ; ')]]
+}
+
+function buildingRows(building: BatimentData | null | undefined): Rows {
+  if (!building) return []
+  const rows: Rows = []
+  if (building.annee_construction) rows.push(['Année de construction du bâtiment', String(building.annee_construction)])
+  if (building.nb_niveaux) rows.push(['Niveaux', String(building.nb_niveaux)])
+  if (building.nb_logements) rows.push(['Logements dans le bâtiment', formatInteger(building.nb_logements)])
+  if (building.dpe?.classe) rows.push(['Étiquette énergie du bâtiment', building.dpe.classe])
+  if (building.copropriete) {
+    rows.push([
+      'Copropriété',
+      `${formatInteger(building.copropriete.nb_lots)} lots, immatriculation ${building.copropriete.immatriculation ?? '—'}`,
+    ])
+  }
+  if (building.monument_historique?.dans_perimetre) rows.push(['Monument historique', 'Bâtiment situé dans les abords protégés'])
+  return rows
 }
 
 function planning(sources: SourceResults): ReportSection {
@@ -167,7 +217,16 @@ function planning(sources: SourceResults): ReportSection {
         ],
       ]
     : []
-  return { title: 'Urbanisme', rows: [...parcelRows, ...zoneRows, ...permitRows] }
+  return {
+    title: 'Urbanisme',
+    rows: [
+      ...buildingRows(sources.batiment?.data),
+      ...parcelRows,
+      ...zoneRows,
+      ...easementRows(sources.urbanisme?.data),
+      ...permitRows,
+    ],
+  }
 }
 
 /** Classe de bruit la plus forte au point, telle qu'affichée à l'écran. */

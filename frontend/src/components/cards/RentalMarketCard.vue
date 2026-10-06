@@ -77,6 +77,15 @@ const rentControlDetail = computed(() => {
         </a>
         <p class="mt-1 text-xs opacity-70">Liste officielle vérifiée le {{ formatDate(rentControl.verifie_le) }}.</p>
       </div>
+      <div v-if="data.zonage_abc" class="rounded-xl bg-slate-100 px-3 py-2 text-slate-700">
+        <p class="text-sm font-medium">
+          Zone {{ data.zonage_abc.zone }} : marché {{ data.zonage_abc.tendu ? 'tendu' : 'détendu' }}
+        </p>
+        <p class="mt-1 text-xs">
+          Zonage ABC de la commune, qui mesure le déséquilibre entre offre et demande de logements et
+          conditionne plusieurs aides et plafonds (prêt à taux zéro, logement intermédiaire).
+        </p>
+      </div>
       <div class="rounded-xl bg-slate-100 px-3 py-2 text-slate-700">
         <p class="text-sm font-medium">Permis de louer : à vérifier en mairie</p>
         <p class="mt-1 text-xs">

@@ -5,6 +5,7 @@ import { SOURCE_INFO } from '../lib/sources'
 import { isLocked, teaserHook } from '../lib/teaser'
 import type { SourceDataMap, SourceName, SourceResult, SourceResults } from '../types/audit'
 import AirCard from './cards/AirCard.vue'
+import BuildingCard from './cards/BuildingCard.vue'
 import CondoCard from './cards/CondoCard.vue'
 import ConnectivityCard from './cards/ConnectivityCard.vue'
 import CrimeCard from './cards/CrimeCard.vue'
@@ -124,6 +125,9 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
         </SourceCard>
         <SourceCard v-bind="card('permis_construire', true)">
           <template #default="{ data }"><PermitsCard :data="data" /></template>
+        </SourceCard>
+        <SourceCard v-if="!street" class="lg:col-span-3" v-bind="card('batiment')">
+          <template #default="{ data }"><BuildingCard :data="data" /></template>
         </SourceCard>
         <SourceCard v-if="!street" v-bind="card('cadastre', true)">
           <template #default="{ data }"><ParcelCard :data="data" /></template>

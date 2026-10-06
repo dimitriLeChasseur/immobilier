@@ -44,9 +44,59 @@ const indicators = computed(() => riskIndicators(props.data))
         Zone très dense en installations classées : cette liste peut être incomplète.
       </dd>
     </div>
+    <div v-if="data.plans_prevention?.length">
+      <dt class="text-slate-500">Plans de prévention des risques de la commune</dt>
+      <dd>
+        <span v-for="plan in data.plans_prevention" :key="plan.nom" class="block">
+          {{ plan.nom }}<template v-if="plan.en_revision"> (en révision)</template>
+        </span>
+      </dd>
+      <dd class="text-xs text-slate-500">
+        Vérifiez sur l’état des risques si l’adresse est en zone réglementée.
+      </dd>
+    </div>
+    <div v-if="data.tri?.length">
+      <dt class="text-slate-500">Territoire à risque important d’inondation</dt>
+      <dd>{{ data.tri.join(', ') }}</dd>
+    </div>
+    <div v-if="data.anciens_sites_industriels">
+      <dt class="text-slate-500">
+        Anciens sites industriels à moins de {{ formatDistance(data.anciens_sites_industriels.rayon_m) }}
+      </dt>
+      <dd v-if="data.anciens_sites_industriels.plus_proches.length">
+        {{ formatInteger(data.anciens_sites_industriels.nb_sites) }} recensés, les plus proches :
+        <span v-for="site in data.anciens_sites_industriels.plus_proches" :key="`${site.adresse}-${site.distance_m}`" class="block">
+          {{ site.adresse ?? 'Adresse non précisée' }}, à {{ formatDistance(site.distance_m) }}
+        </span>
+      </dd>
+      <dd v-else>Aucun recensé</dd>
+    </div>
+    <div v-if="data.cavites">
+      <dt class="text-slate-500">Cavités souterraines à moins de {{ formatDistance(data.cavites.rayon_m) }}</dt>
+      <dd v-if="data.cavites.plus_proche">
+        {{ formatInteger(data.cavites.nb_cavites) }} recensée(s), la plus proche à
+        {{ formatDistance(data.cavites.plus_proche.distance_m) }}<template v-if="data.cavites.plus_proche.nom">
+          ({{ data.cavites.plus_proche.nom }})</template>
+      </dd>
+      <dd v-else>Aucune recensée</dd>
+    </div>
+    <div v-if="data.mouvements_terrain?.nb_evenements">
+      <dt class="text-slate-500">
+        Mouvements de terrain à moins de {{ formatDistance(data.mouvements_terrain.rayon_m) }}
+      </dt>
+      <dd>{{ formatInteger(data.mouvements_terrain.nb_evenements) }} évènement(s) recensé(s)</dd>
+    </div>
     <div v-if="data.catastrophes_naturelles">
       <dt class="text-slate-500">Arrêtés de catastrophe naturelle sur la commune</dt>
-      <dd>{{ formatInteger(data.catastrophes_naturelles.nb_arretes) }}</dd>
+      <dd>
+        {{ formatInteger(data.catastrophes_naturelles.nb_arretes) }}
+        <template v-if="data.catastrophes_naturelles.par_type?.length">
+          :
+          <span v-for="kind in data.catastrophes_naturelles.par_type" :key="kind.type" class="block">
+            {{ kind.type }} : {{ kind.nb_arretes }}<template v-if="kind.dernier"> (dernier en {{ kind.dernier }})</template>
+          </span>
+        </template>
+      </dd>
     </div>
     <div v-if="data.risques?.length">
       <dt class="text-slate-500">Risques recensés sur la commune</dt>

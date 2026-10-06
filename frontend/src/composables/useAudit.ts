@@ -12,6 +12,7 @@ export const DEFAULT_SOURCES: SourceName[] = [
   'urbanisme',
   'dvf',
   'dpe',
+  'batiment',
   'proximite',
   'qualite_air',
   'ensoleillement',
