@@ -29,7 +29,8 @@ function flood(data: GeorisquesData): Verdict {
         value: `Zone inondable (${data.inondation.atlas_zones_inondables.join(', ')})`,
         tone: 'bad',
       }
-    : { value: 'Hors atlas des zones inondables', tone: 'good' }
+    : // Neutre, pas vert : l'atlas ne couvre ni les PPRI ni les remontées de nappe.
+      { value: 'Non répertorié dans l’atlas des zones inondables', tone: 'neutral' }
 }
 
 function clay(data: GeorisquesData): Verdict {

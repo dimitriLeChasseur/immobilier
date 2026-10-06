@@ -4,7 +4,7 @@ Ces textes font partie du rapport (API, PDF, interface) : ils vivent dans la cou
 pour que tous les supports disent la même chose.
 """
 
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from typing import Any
 
 _CLAY_SENSITIVE_FROM = 2
@@ -18,6 +18,12 @@ CLAY_ADVICE = (
 )
 RADON_MAX_ADVICE = "Niveau maximal maîtrisable : aérez chaque jour, posez un dosimètre en hiver."
 RADON_MEDIUM_ADVICE = "Une ventilation en bon état suffit le plus souvent."
+# L'atlas n'est qu'un inventaire : son silence ne vaut pas absence de risque.
+FLOOD_UNLISTED_ADVICE = (
+    "Seul l'atlas des zones inondables est consulté ici. Il ne couvre ni les plans de "
+    "prévention (PPRI), ni les remontées de nappe, ni le ruissellement : demandez l'état "
+    "des risques au vendeur ou éditez-le sur georisques.gouv.fr."
+)
 FLOOD_ADVICE = (
     "Demandez l'état des risques au vendeur et consultez le plan de prévention (PPRI) : "
     "il peut limiter les travaux et peser sur l'assurance."
@@ -49,10 +55,14 @@ OPEN_HORIZON_SUMMARY = (
     "été comme hiver."
 )
 
-_NOISE_QUIET_MESSAGE = (
-    "Hors des zones de bruit cartographiées : moins de 55 dB(A) en moyenne sur 24 h "
-    "pour les grandes infrastructures routières et ferroviaires."
-)
+_NOISE_KINDS = {
+    "route": "routières",
+    "fer": "ferroviaires",
+    "air": "aéroportuaires",
+    "industrie": "industrielles",
+}
+# Sources de bruit dont l'absence de carte doit être dite : les deux plus répandues.
+_NOISE_EXPECTED = {"route": "routier", "fer": "ferroviaire"}
 _NOISE_MESSAGES: tuple[tuple[int, str], ...] = (
     (
         70,
@@ -86,8 +96,9 @@ def risk_recommendations(risks: Mapping[str, Any]) -> dict[str, str]:
         advice["radon"] = RADON_MAX_ADVICE
     elif radon == _RADON_MEDIUM:
         advice["radon"] = RADON_MEDIUM_ADVICE
-    if (risks.get("inondation") or {}).get("concerne"):
-        advice["inondation"] = FLOOD_ADVICE
+    flood = risks.get("inondation")
+    if flood is not None:
+        advice["inondation"] = FLOOD_ADVICE if flood.get("concerne") else FLOOD_UNLISTED_ADVICE
     seismic = _level((risks.get("sismicite") or {}).get("code"))
     if seismic is not None and seismic >= _SEISMIC_REGULATED_FROM:
         advice["sismicite"] = SEISMIC_ADVICE
@@ -121,14 +132,30 @@ def relief_summary(mask_deg: Mapping[str, float]) -> str:
     )
 
 
-def noise_message(max_db: int | None) -> str:
-    """Constat sur l'exposition au bruit (`max_db` : borne basse de la classe la plus forte)."""
-    if max_db is None:
-        return _NOISE_QUIET_MESSAGE
-    for threshold, message in _NOISE_MESSAGES:
-        if max_db >= threshold:
-            return message
-    return _NOISE_QUIET_MESSAGE
+def _join(words: list[str]) -> str:
+    return " et ".join(filter(None, [", ".join(words[:-1]), words[-1]])) if words else ""
+
+
+def noise_message(max_db: int | None, covered: Sequence[str] = ("route", "fer")) -> str:
+    """Constat sur l'exposition au bruit (`max_db` : borne basse de la classe la plus forte).
+
+    `covered` liste les infrastructures dont la carte existe ici : le constat ne porte que
+    sur elles, et l'absence de carte routière ou ferroviaire est signalée.
+    """
+    message = next((text for threshold, text in _NOISE_MESSAGES if (max_db or 0) >= threshold), "")
+    if not message:
+        kinds = _join([_NOISE_KINDS[kind] for kind in _NOISE_KINDS if kind in covered])
+        message = (
+            "Hors des zones de bruit cartographiées : moins de 55 dB(A) en moyenne sur 24 h "
+            f"pour les grandes infrastructures {kinds}."
+        )
+    unmapped = [label for kind, label in _NOISE_EXPECTED.items() if kind not in covered]
+    if unmapped:
+        message += (
+            f" Bruit {_join(unmapped)} non cartographié dans notre base pour ce secteur : "
+            "ce constat n'en dit rien."
+        )
+    return message
 
 
 # Indice ATMO (arrêté du 10 juillet 2020) : six niveaux, du meilleur au pire.

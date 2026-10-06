@@ -61,7 +61,7 @@ export const SOURCE_INFO: Record<SourceName, SourceInfo> = {
   },
   bruit: {
     title: 'Bruit des infrastructures',
-    emptyText: 'Cartographie acoustique non encore publiée par la métropole sur ce secteur.',
+    emptyText: 'Cartes de bruit non intégrées à notre base pour ce secteur : consultez celles de la préfecture.',
   },
   delinquance: {
     title: 'Délinquance enregistrée',

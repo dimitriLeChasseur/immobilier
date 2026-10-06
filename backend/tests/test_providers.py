@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from app.services.providers.dvf import _section_key, build_sales, summarize
+from app.services.providers.dvf import _distance_to_feature, _section_key, build_sales, summarize
 from app.services.providers.poi import build_query, classify
 from app.services.solar import horizon_profile, sun_position, sunlight_scores
 
@@ -134,3 +134,14 @@ def test_sunlight_score_drops_with_southern_relief() -> None:
     scores = sunlight_scores(48.86, masked)
     assert scores["solstice_hiver"] == 0
     assert 50 < scores["annuel"] < 100
+
+
+def test_dvf_section_distance_is_zero_inside_and_grows_outside() -> None:
+    square = [[[2.0, 48.0], [2.01, 48.0], [2.01, 48.01], [2.0, 48.01], [2.0, 48.0]]]
+    inside = {"geometry": {"type": "Polygon", "coordinates": square}}
+    multi = {"geometry": {"type": "MultiPolygon", "coordinates": [square]}}
+    assert _distance_to_feature(inside, 48.005, 2.005) == 0
+    assert _distance_to_feature(multi, 48.005, 2.005) == 0
+    # 0,01° de latitude au nord du bord : environ 1,1 km.
+    assert 1000 < _distance_to_feature(inside, 48.02, 2.005) < 1200
+    assert _distance_to_feature({"geometry": None}, 48.0, 2.0) == 0

@@ -19,6 +19,7 @@ from app.core.errors import SourceError
 from app.core.http import HttpClient
 from app.core.security import AuthenticatedUser
 from app.repositories.billing import BillingRepository
+from app.services.geocoding import Geocoder
 
 logger = logging.getLogger(__name__)
 
@@ -119,6 +120,7 @@ def checkout_params(
     *,
     site_url: str,
     tax_rate_id: str | None = None,
+    address_id: str | None = None,
 ) -> dict[str, str]:
     """Paramètres de création d'une session Stripe Checkout (formulaire à clés imbriquées)."""
     item = "line_items[0]"
@@ -144,6 +146,8 @@ def checkout_params(
         params["metadata[lat]"] = str(target.lat)
         params["metadata[lon]"] = str(target.lon)
         params["metadata[label]"] = target.label[:_MAX_LABEL_LENGTH]
+        if address_id:
+            params["metadata[ban_id]"] = address_id
     if offer.mode == "subscription":
         params[f"{item}[price_data][recurring][interval]"] = "month"
         # Reporté sur l'abonnement : ses évènements futurs désignent ainsi l'utilisateur.
@@ -197,6 +201,7 @@ class BillingService:
         *,
         http: HttpClient,
         repository: BillingRepository,
+        geocoder: Geocoder,
         secret_key: str | None,
         webhook_secret: str | None,
         api_url: str,
@@ -205,6 +210,7 @@ class BillingService:
     ) -> None:
         self._http = http
         self._repository = repository
+        self._geocoder = geocoder
         self._secret_key = secret_key
         self._webhook_secret = webhook_secret
         self._api_url = api_url.rstrip("/")
@@ -226,11 +232,27 @@ class BillingService:
             "stripe",
             f"{self._api_url}/v1/checkout/sessions",
             data=checkout_params(
-                offer, user, target, site_url=self._site_url, tax_rate_id=self._pro_tax_rate_id
+                offer,
+                user,
+                target,
+                site_url=self._site_url,
+                tax_rate_id=self._pro_tax_rate_id,
+                address_id=await self.address_id(target) if target else None,
             ),
             headers={"Authorization": f"Bearer {self._secret_key}"},
         )
         return _session_url(session)
+
+    async def address_id(self, target: CheckoutTarget) -> str | None:
+        """Identifiant BAN de l'adresse achetée, résolu ici et jamais repris du navigateur.
+
+        Sans réponse du géocodeur, le droit reste attaché au seul point acheté.
+        """
+        try:
+            location = await self._geocoder.reverse(target.lat, target.lon, "")
+        except SourceError:
+            return None
+        return location.adresse_id if location else None
 
     async def portal_url(self, user: AuthenticatedUser) -> str:
         """URL du portail client Stripe : factures, moyen de paiement, résiliation."""
@@ -286,6 +308,7 @@ class BillingService:
             lat=lat if has_address else None,
             lon=lon if has_address else None,
             label=metadata.get("label"),
+            address_id=metadata.get("ban_id") if has_address else None,
             origin=offer.id,
             credits=credits,
         )

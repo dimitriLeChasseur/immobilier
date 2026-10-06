@@ -38,6 +38,10 @@ describe('risques', () => {
       inondation: { concerne: false, atlas_zones_inondables: [] },
     })
     expect(indicators.every((item) => item.advice === undefined)).toBe(true)
+    // Le silence de l'atlas n'est jamais présenté en vert : il ne couvre ni PPRI ni nappes.
+    const flood = indicators.find((item) => item.label === 'Inondation')
+    expect(flood?.tone).toBe('neutral')
+    expect(flood?.value).toBe('Non répertorié dans l’atlas des zones inondables')
     expect(indicators.find((item) => item.label === 'Sismicité')?.tone).toBe('neutral')
     expect(indicators.find((item) => item.label === 'Radon')?.tone).toBe('good')
   })
@@ -124,6 +128,15 @@ describe('réseau mobile et bruit', () => {
       props: { data: { indice: 'Lden', niveau_max_db: null, sources: [], message: 'Calme.' } },
     })
     expect(quiet.text()).toContain('Moins de 55 dB')
+
+    // Seul le ferroviaire est cartographié : le calme affiché ne doit pas couvrir la route.
+    const railOnly = mount(NoiseCard, {
+      props: {
+        data: { indice: 'Lden', niveau_max_db: null, sources: [], infrastructures_couvertes: ['fer'], message: 'x' },
+      },
+    })
+    expect(railOnly.text()).toContain('Moins de 55 dB (voie ferrée seulement)')
+    expect(railOnly.find('.text-emerald-700, .text-emerald-600').exists()).toBe(false)
   })
 })
 
@@ -256,7 +269,7 @@ describe('transparence sur les données manquantes', () => {
       },
     })
     const notice = card.find('p')
-    expect(notice.text()).toBe('Cartographie acoustique non encore publiée par la métropole sur ce secteur.')
+    expect(notice.text()).toBe('Cartes de bruit non intégrées à notre base pour ce secteur : consultez celles de la préfecture.')
     expect(notice.classes()).toContain('bg-slate-100')
     expect(card.text()).not.toContain('Indisponible')
   })

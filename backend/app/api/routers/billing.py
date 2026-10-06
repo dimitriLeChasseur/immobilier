@@ -108,12 +108,17 @@ def _payment_error(exc: Exception) -> HTTPException:
 
 @router.post("/unlock", dependencies=[Depends(enforce_rate_limit)])
 async def unlock_with_credit(
-    body: Address, user: RequiredUserDep, repository: BillingRepositoryDep
+    body: Address,
+    user: RequiredUserDep,
+    repository: BillingRepositoryDep,
+    billing: BillingServiceDep,
 ) -> Account:
     """Débloque une adresse avec un crédit du Pack Investisseur."""
     target = body.to_target()
     try:
-        unlocked = await repository.spend_credit(user.id, target.lat, target.lon, target.label)
+        unlocked = await repository.spend_credit(
+            user.id, target.lat, target.lon, target.label, await billing.address_id(target)
+        )
         account = await repository.account(user.id)
     except RepositoryError as exc:
         raise HTTPException(status.HTTP_503_SERVICE_UNAVAILABLE, "Compte indisponible.") from exc

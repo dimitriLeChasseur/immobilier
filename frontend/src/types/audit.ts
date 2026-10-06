@@ -19,6 +19,8 @@ export interface AuditLocation {
   city: string | null
   region?: string | null
   ban_id: string
+  /** Identifiant BAN de l'adresse la plus proche, résolu par le serveur. */
+  adresse_id?: string | null
 }
 
 export interface ReportMeta {
@@ -103,6 +105,8 @@ export interface DvfData {
 
 export interface DpeData {
   rayon_m: number
+  /** Distance du diagnostic analysé le plus lointain : l'échantillon est pris du plus proche au plus loin. */
+  rayon_effectif_m?: number | null
   nb_dpe_total: number | null
   nb_dpe_analyses: number
   repartition_dpe: Record<string, number>
@@ -251,6 +255,8 @@ export interface BruitData {
   /** Borne basse de la classe la plus forte ; null si le point est hors des zones cartographiées. */
   niveau_max_db: number | null
   sources: { infrastructure: 'route' | 'fer' | 'air' | 'industrie'; db_min: number; db_max: number | null }[]
+  /** Types d'infrastructure dont la carte existe sur ce secteur ; absent des rapports antérieurs. */
+  infrastructures_couvertes?: BruitData['sources'][number]['infrastructure'][]
   message: string
 }
 

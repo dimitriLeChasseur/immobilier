@@ -286,12 +286,19 @@ CREATE TABLE IF NOT EXISTS immo.audit_entitlements (
     geohash     text        NOT NULL,
     origin      text        NOT NULL,
     label       text,
+    -- Identifiant BAN de l'adresse, résolu par le serveur à l'achat : le droit suit l'adresse
+    -- même si la BAN déplace son point de quelques mètres.
+    ban_id      text,
     granted_at  timestamptz NOT NULL DEFAULT now(),
     CONSTRAINT audit_entitlements_pkey PRIMARY KEY (user_id, geohash),
     CONSTRAINT audit_entitlements_origin_check
         CHECK (origin IN ('unit', 'pack', 'subscription', 'admin')),
     CONSTRAINT audit_entitlements_geohash_check CHECK (char_length(geohash) = 9)
 );
+
+ALTER TABLE immo.audit_entitlements ADD COLUMN IF NOT EXISTS ban_id text;
+CREATE INDEX IF NOT EXISTS audit_entitlements_ban_id_idx
+    ON immo.audit_entitlements (user_id, ban_id) WHERE ban_id IS NOT NULL;
 
 -- Crédits d'audit restants (Pack Investisseur) : un crédit débloque une adresse.
 CREATE TABLE IF NOT EXISTS immo.user_credits (

@@ -7,7 +7,7 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 
-from app.api.deps import AuditServiceDep, FullAccessDep, enforce_rate_limit
+from app.api.deps import AccessCheck, AccessCheckDep, AuditServiceDep, enforce_rate_limit
 from app.core.errors import LocationNotFoundError, SourceError
 from app.schemas.audit import AuditQuery, AuditReport
 from app.services.audit_service import AuditService, DoneEvent, LocationEvent
@@ -33,12 +33,12 @@ async def list_sources(service: AuditServiceDep) -> dict[str, list[str]]:
     responses={404: {"description": "Hors couverture"}, 429: {"description": "Débit dépassé"}},
 )
 async def get_audit(
-    query: AuditQueryDep, service: AuditServiceDep, full_access: FullAccessDep
+    query: AuditQueryDep, service: AuditServiceDep, access: AccessCheckDep
 ) -> AuditReport:
     """Rapport d'audit en une seule réponse JSON ; version « teaser » sans droit d'accès."""
     try:
         report = await service.get_report(query)
-        return report if full_access else mask_report(report)
+        return report if await access.allows(report.location) else mask_report(report)
     except LocationNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, _NOT_FOUND_DETAIL) from exc
     except SourceError as exc:
@@ -47,11 +47,11 @@ async def get_audit(
 
 @router.get("/audit/stream", dependencies=[Depends(enforce_rate_limit)])
 async def stream_audit(
-    query: AuditQueryDep, service: AuditServiceDep, full_access: FullAccessDep
+    query: AuditQueryDep, service: AuditServiceDep, access: AccessCheckDep
 ) -> StreamingResponse:
     """Même rapport, émis source par source : `location`, `source`…, puis `done` ou `error`."""
     return StreamingResponse(
-        _sse_events(service, query, full_access),
+        _sse_events(service, query, access),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -62,11 +62,14 @@ def _sse(event: str, data: dict[str, Any]) -> str:
 
 
 async def _sse_events(
-    service: AuditService, query: AuditQuery, full_access: bool
+    service: AuditService, query: AuditQuery, access: AccessCheck
 ) -> AsyncIterator[str]:
+    # Restreint tant que la localisation, premier évènement du flux, n'a pas ouvert le droit.
+    full_access = False
     try:
         async for event in service.stream(query):
             if isinstance(event, LocationEvent):
+                full_access = await access.allows(event.location)
                 yield _sse("location", event.location.model_dump(mode="json"))
             elif isinstance(event, DoneEvent):
                 meta = event.meta if full_access else mask_meta(event.meta)

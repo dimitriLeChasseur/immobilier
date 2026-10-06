@@ -4,7 +4,7 @@ import logging
 import math
 from typing import Annotated
 
-from fastapi import Depends, Header, HTTPException, Query, Request, status
+from fastapi import Depends, Header, HTTPException, Request, status
 
 from app.core.config import get_settings
 from app.core.errors import RepositoryError
@@ -12,7 +12,7 @@ from app.core.rate_limit import SlidingWindowRateLimiter
 from app.core.security import AuthenticatedUser, InvalidTokenError, decode_access_token
 from app.repositories.billing import BillingRepository
 from app.repositories.entitlements import EntitlementRepository
-from app.schemas.audit import AuditQuery
+from app.schemas.audit import Location
 from app.services.audit_service import AuditService
 from app.services.billing import BillingService
 
@@ -76,22 +76,34 @@ def _unauthorized() -> HTTPException:
     )
 
 
-async def has_full_access(
-    query: Annotated[AuditQuery, Query()],
+class AccessCheck:
+    """Décide si le demandeur reçoit le rapport complet d'une localisation."""
+
+    def __init__(self, user: AuthenticatedUser | None, entitlements: EntitlementRepository) -> None:
+        self._user = user
+        self._entitlements = entitlements
+
+    async def allows(self, location: Location) -> bool:
+        """Vrai si l'utilisateur a acheté l'audit de cette adresse (ou est abonné).
+
+        Refus par défaut : sans utilisateur, sans droit, ou si la vérification échoue.
+        """
+        if self._user is None:
+            return False
+        try:
+            return await self._entitlements.has_access(
+                self._user.id, location.lat, location.lon, location.adresse_id
+            )
+        except RepositoryError:
+            logger.warning("Vérification des droits impossible : accès restreint par défaut")
+            return False
+
+
+def get_access_check(
     user: Annotated[AuthenticatedUser | None, Depends(get_current_user)],
     entitlements: Annotated[EntitlementRepository, Depends(get_entitlements)],
-) -> bool:
-    """Vrai si l'utilisateur a acheté l'audit complet de cette adresse.
-
-    Refus par défaut : sans utilisateur, sans droit, ou si la vérification échoue.
-    """
-    if user is None:
-        return False
-    try:
-        return await entitlements.has_access(user.id, query.lat, query.lon)
-    except RepositoryError:
-        logger.warning("Vérification des droits impossible : accès restreint par défaut")
-        return False
+) -> AccessCheck:
+    return AccessCheck(user, entitlements)
 
 
 def require_user(
@@ -116,4 +128,4 @@ AuditServiceDep = Annotated[AuditService, Depends(get_audit_service)]
 RequiredUserDep = Annotated[AuthenticatedUser, Depends(require_user)]
 BillingServiceDep = Annotated[BillingService, Depends(get_billing_service)]
 BillingRepositoryDep = Annotated[BillingRepository, Depends(get_billing_repository)]
-FullAccessDep = Annotated[bool, Depends(has_full_access)]
+AccessCheckDep = Annotated[AccessCheck, Depends(get_access_check)]

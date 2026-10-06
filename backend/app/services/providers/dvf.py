@@ -7,6 +7,7 @@ sections qui recoupent le rayon (API Carto), puis leurs mutations en parallèle.
 
 import json
 from collections import defaultdict
+from collections.abc import Iterator
 from dataclasses import dataclass
 from statistics import median, quantiles
 from typing import Any
@@ -14,7 +15,6 @@ from typing import Any
 from app.core.errors import NoDataError
 from app.core.geo import circle_polygon, haversine_m
 from app.core.http import HttpClient
-from app.services.providers.apicarto import feature_properties
 from app.services.providers.base import (
     AuditContext,
     ProviderData,
@@ -27,6 +27,7 @@ _FEUILLE_URL = "https://apicarto.ign.fr/api/cadastre/feuille"
 _MUTATIONS_URL = "https://app.dvf.etalab.gouv.fr/api/mutations3"
 _RADIUS_M = 300
 _MAX_SECTIONS = 12
+_LON_LAT = 2
 _RECENT_SALES = 10
 _HOUSING = {"Appartement": "appartement", "Maison": "maison"}
 _IGNORED_LOCALS = {"Dépendance", "None", ""}
@@ -78,16 +79,40 @@ class DvfProvider:
     async def _sections(self, ctx: AuditContext) -> list[tuple[str, str]]:
         polygon = json.dumps(circle_polygon(ctx.lat, ctx.lon, _RADIUS_M), separators=(",", ":"))
         payload = await self._http.get_json("apicarto", _FEUILLE_URL, params={"geom": polygon})
-        sections = {
-            section
-            for properties in feature_properties(payload)
-            if (section := _section_key(properties)) is not None
-        }
-        return sorted(sections)[:_MAX_SECTIONS]
+        distances: dict[tuple[str, str], float] = {}
+        for feature in as_rows(payload, "features"):
+            section = _section_key(feature.get("properties") or {})
+            if section is not None:
+                distance = _distance_to_feature(feature, ctx.lat, ctx.lon)
+                distances[section] = min(distance, distances.get(section, distance))
+        # Au-delà du plafond, ce sont les sections les plus éloignées qui sont écartées.
+        return sorted(distances, key=lambda section: (distances[section], section))[:_MAX_SECTIONS]
 
     async def _mutations(self, commune: str, section: str) -> list[dict[str, Any]]:
         payload = await self._http.get_json("dvf", f"{_MUTATIONS_URL}/{commune}/{section}")
         return as_rows(payload, "mutations")
+
+
+def _positions(coordinates: Any) -> Iterator[tuple[float, float]]:
+    """Sommets (lon, lat) d'une géométrie GeoJSON, quel que soit son niveau d'imbrication."""
+    if not isinstance(coordinates, list):
+        return
+    if len(coordinates) >= _LON_LAT and all(isinstance(c, int | float) for c in coordinates[:2]):
+        yield float(coordinates[0]), float(coordinates[1])
+        return
+    for item in coordinates:
+        yield from _positions(item)
+
+
+def _distance_to_feature(feature: dict[str, Any], lat: float, lon: float) -> float:
+    """Distance du point à l'emprise de la feuille (0 si le point est dedans)."""
+    points = list(_positions((feature.get("geometry") or {}).get("coordinates")))
+    if not points:
+        return 0.0
+    lons, lats = [p[0] for p in points], [p[1] for p in points]
+    nearest_lon = min(max(lon, min(lons)), max(lons))
+    nearest_lat = min(max(lat, min(lats)), max(lats))
+    return haversine_m(lat, lon, nearest_lat, nearest_lon)
 
 
 def _section_key(properties: dict[str, Any]) -> tuple[str, str] | None:

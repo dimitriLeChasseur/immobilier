@@ -17,6 +17,7 @@ from app.api.routers import billing
 from app.core.errors import SourceError
 from app.core.rate_limit import SlidingWindowRateLimiter
 from app.core.security import AuthenticatedUser
+from app.schemas.audit import Location
 from app.services.billing import (
     OFFERS,
     BillingService,
@@ -30,6 +31,8 @@ WEBHOOK_SECRET = "whsec_test"  # noqa: S105
 USER = AuthenticatedUser(id="3f0c1f0e-6f1d-4b1e-9d59-0a1c2b3d4e5f", email="a@example.org")
 TARGET = CheckoutTarget(48.86, 2.33, "75101_1234_00001", "1 rue de Rivoli 75001 Paris")
 NOW = 1_800_000_000
+# Identifiant résolu par le serveur, distinct de celui que le navigateur envoie.
+RESOLVED_ID = "75101_8525_00001"
 
 
 def sign(payload: bytes, *, secret: str = WEBHOOK_SECRET, timestamp: int = NOW) -> str:
@@ -45,6 +48,7 @@ class FakeRepository:
         self.credits = 0
         self.subscription_active = False
         self.unlocked: list[tuple[float, float]] = []
+        self.unlocked_ids: list[str | None] = []
         self.customer: str | None = None
 
     def _is_new(self, event_id: str) -> bool:
@@ -69,11 +73,14 @@ class FakeRepository:
     async def account(self, user_id: str) -> dict[str, Any]:
         return {"credits": self.credits, "subscription_active": self.subscription_active}
 
-    async def spend_credit(self, user_id: str, lat: float, lon: float, label: str) -> bool:
+    async def spend_credit(
+        self, user_id: str, lat: float, lon: float, label: str, address_id: str | None
+    ) -> bool:
         if self.credits == 0:
             return False
         self.credits -= 1
         self.unlocked.append((lat, lon))
+        self.unlocked_ids.append(address_id)
         return True
 
     async def customer_id(self, user_id: str) -> str | None:
@@ -100,6 +107,26 @@ class FakeHttp:
         return {"id": "cs_test_1", "url": "https://checkout.stripe.com/c/pay/cs_test_1"}
 
 
+class FakeGeocoder:
+    """Résout toujours la même adresse BAN, ou échoue comme une BAN indisponible."""
+
+    def __init__(self) -> None:
+        self.fail = False
+
+    async def reverse(self, lat: float, lon: float, ban_id: str) -> Location | None:
+        if self.fail:
+            raise SourceError("timeout", "ban")
+        return Location(lat=lat, lon=lon, label="x", citycode="75101", adresse_id=RESOLVED_ID)
+
+
+GEOCODER = FakeGeocoder()
+
+
+@pytest.fixture(autouse=True)
+def _geocoder_is_up() -> None:
+    GEOCODER.fail = False
+
+
 @pytest.fixture
 def repository() -> FakeRepository:
     return FakeRepository()
@@ -116,6 +143,7 @@ def make_service(
     return BillingService(
         http=http,  # type: ignore[arg-type]
         repository=repository,
+        geocoder=GEOCODER,
         secret_key="sk_test_x" if configured else None,
         webhook_secret=WEBHOOK_SECRET if configured else None,
         api_url="https://stripe.test",
@@ -133,7 +161,7 @@ def checkout_event(
 ) -> dict[str, Any]:
     metadata = {"user_id": USER.id, "offer": offer}
     if address:
-        metadata |= {"lat": "48.86", "lon": "2.33", "label": TARGET.label}
+        metadata |= {"lat": "48.86", "lon": "2.33", "label": TARGET.label, "ban_id": RESOLVED_ID}
     return {
         "id": event_id,
         "type": "checkout.session.completed",
@@ -219,6 +247,7 @@ async def test_unit_purchase_unlocks_the_address(
             "lat": 48.86,
             "lon": 2.33,
             "label": TARGET.label,
+            "address_id": RESOLVED_ID,
             "origin": "unit",
             "credits": 0,
         }
@@ -369,6 +398,17 @@ def test_checkout_returns_the_stripe_url(client: TestClient, http: FakeHttp) -> 
     assert url == "https://stripe.test/v1/checkout/sessions"
     assert headers == {"Authorization": "Bearer sk_test_x"}
     assert data["metadata[user_id]"] == USER.id
+    # L'identifiant d'adresse vient du géocodage serveur, pas du ban_id envoyé par le client.
+    assert data["metadata[ban_id]"] == RESOLVED_ID
+
+
+def test_checkout_survives_a_geocoder_outage(client: TestClient, http: FakeHttp) -> None:
+    GEOCODER.fail = True
+    response = client.post(
+        "/api/v1/checkout", json={"offer": "unit", "address": ADDRESS}, headers=AUTH
+    )
+    assert response.status_code == 200
+    assert "metadata[ban_id]" not in http.calls[0][1]
 
 
 @pytest.mark.parametrize(
@@ -419,6 +459,7 @@ def test_unlock_spends_one_credit(client: TestClient, repository: FakeRepository
     assert response.status_code == 200
     assert response.json() == {"email": USER.email, "credits": 1, "subscription_active": False}
     assert repository.unlocked == [(48.86, 2.33)]
+    assert repository.unlocked_ids == [RESOLVED_ID]
 
 
 def test_unlock_without_credit_is_402(client: TestClient) -> None:

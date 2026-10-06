@@ -1,5 +1,6 @@
 """ADEME : diagnostics de performance énergétique des logements voisins."""
 
+import math
 from collections import Counter
 from typing import Any
 
@@ -34,11 +35,15 @@ class DpeProvider:
         rows = as_rows(payload, "results")
         if not rows:
             raise NoDataError
+        # L'API renvoie les diagnostics du plus proche au plus lointain : l'échantillon
+        # couvre donc un rayon réel souvent bien inférieur au rayon demandé.
+        distances = [d for row in rows if (d := to_float(row.get("_geo_distance"))) is not None]
         energy = Counter(str(row["etiquette_dpe"]) for row in rows if row.get("etiquette_dpe"))
         climate = Counter(str(row["etiquette_ges"]) for row in rows if row.get("etiquette_ges"))
         return ProviderData(
             data={
                 "rayon_m": _RADIUS_M,
+                "rayon_effectif_m": math.ceil(max(distances)) if distances else None,
                 "nb_dpe_total": payload.get("total"),
                 "nb_dpe_analyses": len(rows),
                 "repartition_dpe": dict(sorted(energy.items())),

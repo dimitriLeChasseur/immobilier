@@ -39,6 +39,9 @@ class Location(BaseModel):
     city: str | None = None
     region: str | None = None
     ban_id: str = ""
+    # Identifiant BAN de l'adresse la plus proche du point, résolu par le serveur. À la
+    # différence de `ban_id` (repris de la requête), il peut fonder un droit d'accès.
+    adresse_id: str | None = None
 
 
 class SourceResult(BaseModel):

@@ -33,7 +33,7 @@ _CLEAR_KEYS: dict[str, frozenset[str]] = {
     "georisques": frozenset({"risques", "catastrophes_naturelles"}),
     "reseau_mobile": frozenset({"nb_sites", "rayon_m", "liste_tronquee"}),
     "permis_construire": frozenset({"nb_permis", "rayon_m"}),
-    "dpe": frozenset({"nb_dpe_total", "nb_dpe_analyses", "rayon_m"}),
+    "dpe": frozenset({"nb_dpe_total", "nb_dpe_analyses", "rayon_m", "rayon_effectif_m"}),
     "proximite": frozenset({"rayon_m", "methode_temps"}),
     "ecoles": frozenset({"rayon_m"}),
     "loyers": frozenset({"type_bien", "nb_observations", "millesime", "niveau_prediction"}),

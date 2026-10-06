@@ -44,7 +44,7 @@ class BanGeocoder:
         if not features:
             return await self._from_commune(lat, lon, ban_id)
         properties: dict[str, Any] = features[0].get("properties") or {}
-        citycode = properties.get("citycode")
+        citycode, address_id = properties.get("citycode"), properties.get("id")
         if not isinstance(citycode, str):
             raise SourceError("invalid_response", "citycode", transient=False)
         return Location(
@@ -56,6 +56,7 @@ class BanGeocoder:
             city=properties.get("city"),
             region=_region_from_context(properties.get("context")),
             ban_id=ban_id,
+            adresse_id=address_id if isinstance(address_id, str) and address_id else None,
         )
 
     async def _from_commune(self, lat: float, lon: float, ban_id: str) -> Location | None:

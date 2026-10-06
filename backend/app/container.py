@@ -91,15 +91,17 @@ def build_billing_service(
     def secret(value: SecretStr | None) -> str | None:
         return value.get_secret_value() if value else None
 
+    # Client dédié : son coupe-circuit est indépendant de ceux des sources d'audit.
+    http = HttpClient(
+        session,
+        timeout_s=settings.http_timeout_s,
+        failure_threshold=settings.breaker_failure_threshold,
+        reset_after_s=settings.breaker_reset_after_s,
+    )
     return BillingService(
-        # Client dédié : son coupe-circuit est indépendant de ceux des sources d'audit.
-        http=HttpClient(
-            session,
-            timeout_s=settings.http_timeout_s,
-            failure_threshold=settings.breaker_failure_threshold,
-            reset_after_s=settings.breaker_reset_after_s,
-        ),
+        http=http,
         repository=repository,
+        geocoder=BanGeocoder(http),
         secret_key=secret(settings.stripe_secret_key),
         webhook_secret=secret(settings.stripe_webhook_secret),
         api_url=settings.stripe_api_url,

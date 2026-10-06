@@ -9,14 +9,23 @@ const props = defineProps<{ data: BruitData }>()
 const STRONG_DB = 65
 const INFRASTRUCTURES = { route: 'Route', fer: 'Voie ferrée', air: 'Aéroport', industrie: 'Industrie' } as const
 
+// Sans carte routière ou ferroviaire, « moins de 55 dB » ne vaut que pour l'autre source.
+const covered = computed<(keyof typeof INFRASTRUCTURES)[]>(
+  () => props.data.infrastructures_couvertes ?? ['route', 'fer'],
+)
+const complete = computed(() => covered.value.includes('route') && covered.value.includes('fer'))
+
 const tone = computed(() => {
   const level = props.data.niveau_max_db
-  if (level === null) return 'good'
+  if (level === null) return complete.value ? 'good' : 'default'
   return level >= STRONG_DB ? 'bad' : 'warn'
 })
+const coveredLabel = computed(() =>
+  covered.value.map((kind) => INFRASTRUCTURES[kind].toLowerCase()).join(', '),
+)
 const headline = computed(() => {
   const strongest = props.data.sources[0]
-  if (!strongest) return 'Moins de 55 dB'
+  if (!strongest) return complete.value ? 'Moins de 55 dB' : `Moins de 55 dB (${coveredLabel.value} seulement)`
   return strongest.db_max === null ? `Plus de ${strongest.db_min} dB` : `${strongest.db_min} à ${strongest.db_max} dB`
 })
 </script>
@@ -33,7 +42,7 @@ const headline = computed(() => {
     </div>
   </dl>
   <p class="mt-3 text-xs text-slate-500">
-    Cartes de bruit stratégiques des grandes routes et voies ferrées. Les rues ordinaires et le
-    voisinage n’y figurent pas.
+    Cartes de bruit stratégiques des grandes infrastructures ({{ coveredLabel }}). Les rues
+    ordinaires et le voisinage n’y figurent pas.
   </p>
 </template>

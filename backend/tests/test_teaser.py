@@ -42,7 +42,9 @@ SOURCES = {
     "cadastre": SourceResult(status="empty"),
 }
 REPORT = AuditReport(
-    location=Location(lat=47.4706, lon=-0.5517, label="Angers", citycode="49007"),
+    location=Location(
+        lat=47.4706, lon=-0.5517, label="Angers", citycode="49007", adresse_id="49007_6120_00012"
+    ),
     sources=SOURCES,
     meta=ReportMeta(
         generated_at=datetime(2026, 1, 1, tzinfo=UTC),
@@ -87,10 +89,12 @@ class FullService:
 class Entitlements:
     def __init__(self, granted: bool = False, broken: bool = False) -> None:
         self.granted, self.broken = granted, broken
-        self.checked: list[tuple[str, float, float]] = []
+        self.checked: list[tuple[str, float, float, str | None]] = []
 
-    async def has_access(self, user_id: str, lat: float, lon: float) -> bool:
-        self.checked.append((user_id, lat, lon))
+    async def has_access(
+        self, user_id: str, lat: float, lon: float, address_id: str | None = None
+    ) -> bool:
+        self.checked.append((user_id, lat, lon, address_id))
         if self.broken:
             raise RepositoryError("down")
         return self.granted
@@ -146,7 +150,8 @@ def test_logged_in_user_without_purchase_still_gets_the_teaser(
 ) -> None:
     response = client.get("/api/v1/audit", params=PARAMS, headers=bearer(token()))
     assert_teaser(response.json(), response.text)
-    assert entitlements.checked == [(USER_ID, 47.4706, -0.5517)]
+    # Le droit est vérifié sur l'adresse résolue par le serveur, pas sur un identifiant client.
+    assert entitlements.checked == [(USER_ID, 47.4706, -0.5517, "49007_6120_00012")]
 
 
 def test_buyer_of_this_address_gets_the_full_report() -> None:

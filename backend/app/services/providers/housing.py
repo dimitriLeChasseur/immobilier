@@ -274,10 +274,11 @@ class NoiseProvider:
 
     async def fetch(self, ctx: AuditContext) -> ProviderData:
         try:
-            levels = await self._repository.noise_levels(ctx.lat, ctx.lon)
+            covered = await self._repository.noise_coverage(ctx.lat, ctx.lon)
+            levels = await self._repository.noise_levels(ctx.lat, ctx.lon) if covered else []
         except RepositoryError as exc:
             raise SourceError("http_error", str(exc)) from exc
-        if levels is None:
+        if not covered:
             # Aucune carte ingérée pour ce territoire : on ne peut rien affirmer.
             raise NoDataError
         max_db = max((level["db_min"] for level in levels), default=None)
@@ -295,6 +296,7 @@ class NoiseProvider:
                     }
                     for level in levels
                 ],
-                "message": noise_message(max_db),
+                "infrastructures_couvertes": covered,
+                "message": noise_message(max_db, covered),
             }
         )

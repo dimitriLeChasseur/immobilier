@@ -16,9 +16,10 @@ _RECORD_EVENT = """
 """
 
 _GRANT = f"""
-    INSERT INTO audit_entitlements (user_id, geohash, origin, label)
-    VALUES ($1::uuid, {_GEOHASH}, $4, $5)
-    ON CONFLICT (user_id, geohash) DO NOTHING
+    INSERT INTO audit_entitlements (user_id, geohash, origin, label, ban_id)
+    VALUES ($1::uuid, {_GEOHASH}, $4, $5, $6)
+    ON CONFLICT (user_id, geohash) DO UPDATE SET
+        ban_id = COALESCE(audit_entitlements.ban_id, EXCLUDED.ban_id)
     RETURNING geohash
 """  # noqa: S608
 
@@ -68,7 +69,8 @@ _ACCOUNT = """
 
 _IS_ENTITLED = f"""
     SELECT EXISTS (
-        SELECT 1 FROM audit_entitlements WHERE user_id = $1::uuid AND geohash = {_GEOHASH}
+        SELECT 1 FROM audit_entitlements
+        WHERE user_id = $1::uuid AND (geohash = {_GEOHASH} OR ban_id = $4::text)
     )
 """  # noqa: S608
 
@@ -83,6 +85,7 @@ class BillingRepository(Protocol):
         lat: float | None,
         lon: float | None,
         label: str | None,
+        address_id: str | None,
         origin: str,
         credits: int,
     ) -> bool: ...
@@ -103,7 +106,9 @@ class BillingRepository(Protocol):
 
     async def account(self, user_id: str) -> dict[str, Any]: ...
 
-    async def spend_credit(self, user_id: str, lat: float, lon: float, label: str) -> bool: ...
+    async def spend_credit(
+        self, user_id: str, lat: float, lon: float, label: str, address_id: str | None
+    ) -> bool: ...
 
     async def customer_id(self, user_id: str) -> str | None: ...
 
@@ -123,6 +128,7 @@ class PostgresBillingRepository:
         lat: float | None,
         lon: float | None,
         label: str | None,
+        address_id: str | None,
         origin: str,
         credits: int,
     ) -> bool:
@@ -131,7 +137,7 @@ class PostgresBillingRepository:
             if await connection.fetchval(_RECORD_EVENT, event_id, event_type) is None:
                 return False
             if lat is not None and lon is not None:
-                await connection.execute(_GRANT, user_id, lon, lat, origin, label)
+                await connection.execute(_GRANT, user_id, lon, lat, origin, label, address_id)
             if credits > 0:
                 await connection.execute(_ADD_CREDITS, user_id, credits)
             return True
@@ -174,15 +180,17 @@ class PostgresBillingRepository:
             value: str | None = await self._pool.fetchval(_CUSTOMER, user_id)
         return value
 
-    async def spend_credit(self, user_id: str, lat: float, lon: float, label: str) -> bool:
+    async def spend_credit(
+        self, user_id: str, lat: float, lon: float, label: str, address_id: str | None
+    ) -> bool:
         """Débloque une adresse avec un crédit. Renvoie False s'il n'en reste aucun.
 
         Une adresse déjà débloquée ne consomme rien.
         """
         async with db_errors(), self._pool.acquire() as connection, connection.transaction():
-            if await connection.fetchval(_IS_ENTITLED, user_id, lon, lat):
+            if await connection.fetchval(_IS_ENTITLED, user_id, lon, lat, address_id):
                 return True
             if await connection.fetchval(_SPEND_CREDIT, user_id) is None:
                 return False
-            await connection.execute(_GRANT, user_id, lon, lat, "pack", label)
+            await connection.execute(_GRANT, user_id, lon, lat, "pack", label, address_id)
             return True

@@ -32,7 +32,7 @@ def test_clay_and_radon_recommendations_use_the_agreed_wording() -> None:
     [
         {},
         {"argiles": {"code": "1"}, "radon": {"classe_potentiel": "1"}},
-        {"argiles": {"code": None}, "radon": None, "inondation": {"concerne": False}},
+        {"argiles": {"code": None}, "radon": None},
         {"sismicite": {"code": "2"}},
     ],
 )
@@ -72,6 +72,29 @@ def test_relief_summary() -> None:
     summary = insights.relief_summary(alpine)
     assert "Relief marqué au sud-est (24°" in summary
     assert summary.endswith("Meilleur dégagement au sud-ouest.")
+
+
+def test_flood_atlas_silence_is_never_presented_as_safe() -> None:
+    advice = insights.risk_recommendations({"inondation": {"concerne": False}})
+    assert "PPRI" in advice["inondation"]
+    assert "remontées de nappe" in advice["inondation"]
+    assert (
+        insights.risk_recommendations({"inondation": {"concerne": True}})["inondation"]
+        != (advice["inondation"])
+    )
+
+
+def test_noise_message_only_speaks_for_the_mapped_infrastructures() -> None:
+    quiet = insights.noise_message(None, ["fer"])
+    assert "infrastructures ferroviaires." in quiet
+    assert "routières" not in quiet
+    assert "Bruit routier non cartographié" in quiet
+    loud = insights.noise_message(70, ["route"])
+    assert loud.startswith("Exposition très forte")
+    assert "Bruit ferroviaire non cartographié" in loud
+    complete = insights.noise_message(None, ["fer", "route"])
+    assert "routières et ferroviaires." in complete
+    assert "non cartographié" not in complete
 
 
 def test_noise_message_by_level() -> None:
@@ -156,16 +179,20 @@ async def test_mobile_network_without_antenna_is_empty() -> None:
 
 
 class NoiseRepository:
-    def __init__(self, levels: list[dict[str, Any]] | None) -> None:
-        self._levels = levels
+    def __init__(self, levels: list[dict[str, Any]], covered: list[str]) -> None:
+        self._levels, self._covered = levels, covered
 
-    async def noise_levels(self, lat: float, lon: float) -> list[dict[str, Any]] | None:
+    async def noise_levels(self, lat: float, lon: float) -> list[dict[str, Any]]:
         return self._levels
+
+    async def noise_coverage(self, lat: float, lon: float) -> list[str]:
+        return self._covered
 
 
 async def test_noise_reports_the_loudest_class_and_its_sources() -> None:
     repository = NoiseRepository(
-        [{"infrastructure": "fer", "db_min": 70}, {"infrastructure": "route", "db_min": 55}]
+        [{"infrastructure": "fer", "db_min": 70}, {"infrastructure": "route", "db_min": 55}],
+        ["fer", "route"],
     )
     data = (await NoiseProvider(repository).fetch(ANGERS)).data  # type: ignore[arg-type]
     assert data["niveau_max_db"] == 70
@@ -174,11 +201,19 @@ async def test_noise_reports_the_loudest_class_and_its_sources() -> None:
 
 
 async def test_noise_distinguishes_quiet_from_unmapped() -> None:
-    quiet = (await NoiseProvider(NoiseRepository([])).fetch(ANGERS)).data  # type: ignore[arg-type]
+    repository = NoiseRepository([], ["fer", "route"])
+    quiet = (await NoiseProvider(repository).fetch(ANGERS)).data  # type: ignore[arg-type]
     assert quiet["niveau_max_db"] is None
     assert "moins de 55 dB" in quiet["message"]
+    assert quiet["infrastructures_couvertes"] == ["fer", "route"]
 
-    unmapped = NoiseProvider(NoiseRepository(None))  # type: ignore[arg-type]
+    # Nantes : seul le ferroviaire est ingéré, le constat ne doit rien dire de la rocade.
+    rail_only = NoiseRepository([], ["fer"])
+    partial = (await NoiseProvider(rail_only).fetch(ANGERS)).data  # type: ignore[arg-type]
+    assert "routières" not in partial["message"]
+    assert "Bruit routier non cartographié" in partial["message"]
+
+    unmapped = NoiseProvider(NoiseRepository([], []))  # type: ignore[arg-type]
     with pytest.raises(NoDataError):
         await unmapped.fetch(ANGERS)
 

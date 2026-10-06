@@ -22,7 +22,9 @@ META = ReportMeta(
 
 
 class NoEntitlements:
-    async def has_access(self, user_id: str, lat: float, lon: float) -> bool:
+    async def has_access(
+        self, user_id: str, lat: float, lon: float, address_id: str | None = None
+    ) -> bool:
         return False
 
 

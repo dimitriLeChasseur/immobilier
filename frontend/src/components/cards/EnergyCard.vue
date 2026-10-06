@@ -21,6 +21,14 @@ const LABEL_COLORS: Record<string, string> = {
 }
 const LABELS = Object.keys(LABEL_COLORS)
 
+// Le rayon affiché est celui que l'échantillon couvre vraiment, pas le rayon demandé.
+const hint = computed(() => {
+  const { nb_dpe_analyses: analysed, nb_dpe_total: total, rayon_m: radius, rayon_effectif_m: reach } = props.data
+  const sample = `${formatInteger(analysed)} diagnostics`
+  if (total === null || total <= analysed) return `${sample} analysés à moins de ${reach ?? radius} m`
+  return `${sample} les plus proches, à moins de ${reach ?? radius} m (${formatInteger(total)} recensés dans ${radius} m)`
+})
+
 const chart = computed<ChartConfiguration>(() => ({
   type: 'bar',
   data: {
@@ -42,7 +50,7 @@ const chart = computed<ChartConfiguration>(() => ({
   <StatTile
     label="Étiquette la plus fréquente"
     :value="data.etiquette_dominante ?? '—'"
-    :hint="`${formatInteger(data.nb_dpe_analyses)} diagnostics analysés à moins de ${data.rayon_m} m`"
+    :hint="hint"
   />
   <p
     v-if="data.analyse?.message"

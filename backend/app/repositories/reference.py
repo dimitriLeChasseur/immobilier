@@ -82,10 +82,12 @@ _NOISE_LEVELS = f"""
     ORDER BY db_min DESC
 """  # noqa: S608
 
+# Une carte routière ne dit rien du bruit ferroviaire : la couverture se mesure par type.
 _NOISE_COVERAGE = f"""
-    SELECT EXISTS (
-        SELECT 1 FROM geo_bruit_lden WHERE ST_DWithin(geom, {_POINT_GEOM}, $3)
-    )
+    SELECT DISTINCT infrastructure
+    FROM geo_bruit_lden
+    WHERE ST_DWithin(geom, {_POINT_GEOM}, $3)
+    ORDER BY infrastructure
 """  # noqa: S608
 
 
@@ -109,7 +111,7 @@ _POI_COVERAGE = f"""
 # Un territoire est considéré comme ingéré si un point d'intérêt existe à moins de 20 km.
 _POI_COVERAGE_M = 20_000
 
-# Un territoire est considéré comme cartographié si une zone de bruit existe à ~10 km.
+# Un type d'infrastructure est considéré comme cartographié si une de ses zones existe à ~10 km.
 _NOISE_COVERAGE_DEG = 0.1
 
 
@@ -130,7 +132,9 @@ class ReferenceRepository(Protocol):
 
     async def connectivity(self, codes: list[str]) -> dict[str, Any] | None: ...
 
-    async def noise_levels(self, lat: float, lon: float) -> list[dict[str, Any]] | None: ...
+    async def noise_levels(self, lat: float, lon: float) -> list[dict[str, Any]]: ...
+
+    async def noise_coverage(self, lat: float, lon: float) -> list[str]: ...
 
     async def pois_nearby(
         self, lat: float, lon: float, radius_m: int, limit: int
@@ -198,14 +202,17 @@ class PostgresReferenceRepository:
                 return _jsonable(record)
         return None
 
-    async def noise_levels(self, lat: float, lon: float) -> list[dict[str, Any]] | None:
-        """Classes de bruit au point ; None si aucune carte ne couvre ce secteur."""
+    async def noise_levels(self, lat: float, lon: float) -> list[dict[str, Any]]:
+        """Classes de bruit au point, la plus forte d'abord."""
         async with db_errors():
             records = await self._pool.fetch(_NOISE_LEVELS, lon, lat)
-            if records:
-                return [_jsonable(record) for record in records]
-            covered = await self._pool.fetchval(_NOISE_COVERAGE, lon, lat, _NOISE_COVERAGE_DEG)
-        return [] if covered else None
+        return [_jsonable(record) for record in records]
+
+    async def noise_coverage(self, lat: float, lon: float) -> list[str]:
+        """Types d'infrastructure cartographiés autour du point ; vide si rien n'est ingéré."""
+        async with db_errors():
+            records = await self._pool.fetch(_NOISE_COVERAGE, lon, lat, _NOISE_COVERAGE_DEG)
+        return [str(record["infrastructure"]) for record in records]
 
     async def pois_nearby(
         self, lat: float, lon: float, radius_m: int, limit: int

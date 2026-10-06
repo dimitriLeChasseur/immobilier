@@ -18,6 +18,6 @@ export const CHECKLIST_ITEMS: readonly ChecklistItem[] = [
   },
   {
     id: 'dpe',
-    label: 'Demander le DPE complet (les DPE des ventes voisines ne sont pas publics).',
+    label: 'Demander le DPE complet du logement (le rapport ne montre que ceux du voisinage).',
   },
 ]
