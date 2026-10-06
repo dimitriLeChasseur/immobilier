@@ -5,7 +5,11 @@ import { formatDistance, formatInteger } from '../../lib/format'
 import { riskIndicators, type Tone } from '../../lib/insights'
 import type { GeorisquesData } from '../../types/audit'
 
-const props = defineProps<{ data: GeorisquesData }>()
+const props = defineProps<{
+  data: GeorisquesData
+  /** Une servitude de plan de prévention couvre le point (source : urbanisme). */
+  preventionPlan?: boolean
+}>()
 
 const TONE_CLASSES: Record<Tone, string> = {
   good: 'bg-emerald-50 text-emerald-800',
@@ -14,7 +18,7 @@ const TONE_CLASSES: Record<Tone, string> = {
   neutral: 'bg-slate-100 text-slate-600',
 }
 
-const indicators = computed(() => riskIndicators(props.data))
+const indicators = computed(() => riskIndicators(props.data, props.preventionPlan))
 </script>
 
 <template>

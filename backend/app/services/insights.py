@@ -24,9 +24,11 @@ FLOOD_UNLISTED_ADVICE = (
     "prévention (PPRI), ni les remontées de nappe, ni le ruissellement : demandez l'état "
     "des risques au vendeur ou éditez-le sur georisques.gouv.fr."
 )
+# L'atlas répond pour toute la commune : il ne dit pas si l'adresse elle-même est exposée.
 FLOOD_ADVICE = (
-    "Demandez l'état des risques au vendeur et consultez le plan de prévention (PPRI) : "
-    "il peut limiter les travaux et peser sur l'assurance."
+    "Constat valable pour la commune, pas pour cette adresse précise. Demandez l'état des "
+    "risques au vendeur : il indique si le bien est dans une zone réglementée (PPRI), ce qui "
+    "peut limiter les travaux et peser sur l'assurance."
 )
 SEISMIC_ADVICE = (
     "Des règles de construction parasismique s'appliquent aux bâtiments neufs et aux gros travaux."

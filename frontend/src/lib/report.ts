@@ -21,10 +21,11 @@ import {
   formatEuros,
   formatInteger,
   formatPercent,
+  flatPrice,
   formatPricePerM2,
   grossYield,
 } from './format'
-import { riskIndicators } from './insights'
+import { inPreventionPlan, riskIndicators } from './insights'
 import { isFailure, orderedCategories, POI_CATEGORY_LABELS, SCHOOL_KIND_LABELS } from './sources'
 
 export interface ReportSection {
@@ -93,14 +94,14 @@ function taxRows(tax: TaxeFonciereData | null | undefined): Rows {
 function market(sources: SourceResults): ReportSection {
   const dvf = sources.dvf?.data
   const rent = sources.loyers?.data
-  const gross = grossYield(rent?.loyer_m2_charges_comprises, dvf?.prix_m2_median)
+  const gross = grossYield(rent?.loyer_m2_charges_comprises, flatPrice(dvf))
   const rentRows: Rows = rent
     ? [['Loyer d’annonce, appartement', `${formatDecimal(rent.loyer_m2_charges_comprises)} €/m²`]]
     : []
   const yieldRows: Rows =
     gross === null
       ? []
-      : [['Rendement locatif brut (avant taxe foncière et charges)', formatPercent(gross)]]
+      : [['Rendement locatif brut des appartements (avant taxe foncière et charges)', formatPercent(gross)]]
   const condo = sources.copropriete?.data
   const condoRows: Rows = condo
     ? [
@@ -124,8 +125,8 @@ function market(sources: SourceResults): ReportSection {
 }
 
 /** Mêmes verdicts et conseils qu'à l'écran, puis les compléments chiffrés. */
-function riskRows(data: GeorisquesData): Rows {
-  const verdicts = riskIndicators(data)
+function riskRows(data: GeorisquesData, preventionPlan: boolean): Rows {
+  const verdicts = riskIndicators(data, preventionPlan)
     .filter((indicator) => indicator.tone !== 'neutral')
     .map((indicator): [string, string] => [
       indicator.label,
@@ -173,7 +174,7 @@ function groundRows(data: GeorisquesData): Rows {
 
 function risks(sources: SourceResults): ReportSection {
   const data = sources.georisques?.data
-  return { title: 'Risques naturels et technologiques', rows: data ? riskRows(data) : [] }
+  return { title: 'Risques naturels et technologiques', rows: data ? riskRows(data, inPreventionPlan(sources.urbanisme?.data)) : [] }
 }
 
 function easementRows(zoning: UrbanismeData | null | undefined): Rows {

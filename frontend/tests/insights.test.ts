@@ -12,7 +12,7 @@ import SourceCard from '../src/components/SourceCard.vue'
 import VisitChecklist from '../src/components/VisitChecklist.vue'
 import YieldCard from '../src/components/cards/YieldCard.vue'
 import { formatEuros, formatPercent, netYield } from '../src/lib/format'
-import { riskIndicators } from '../src/lib/insights'
+import { inPreventionPlan, riskIndicators } from '../src/lib/insights'
 import { buildReportPdf } from '../src/lib/pdf'
 import { SOURCE_INFO } from '../src/lib/sources'
 import { buildSteps } from '../src/lib/steps'
@@ -39,11 +39,36 @@ describe('risques', () => {
     })
     expect(indicators.every((item) => item.advice === undefined)).toBe(true)
     // Le silence de l'atlas n'est jamais présenté en vert : il ne couvre ni PPRI ni nappes.
-    const flood = indicators.find((item) => item.label === 'Inondation')
+    const flood = indicators.find((item) => item.label.startsWith('Inondation'))
     expect(flood?.tone).toBe('neutral')
     expect(flood?.value).toBe('Non répertorié dans l’atlas des zones inondables')
     expect(indicators.find((item) => item.label === 'Sismicité')?.tone).toBe('neutral')
     expect(indicators.find((item) => item.label === 'Radon')?.tone).toBe('good')
+  })
+})
+
+describe('inondation : signal à l’adresse contre signal communal', () => {
+  const communal = { inondation: { concerne: true, atlas_zones_inondables: ['Vallée de la Loire'] } }
+
+  it('reste orange tant que seul l’atlas communal est connu', () => {
+    const flood = riskIndicators(communal)[0]
+    expect(flood?.tone).toBe('warn')
+    expect(flood?.value).toContain('Commune concernée')
+  })
+
+  it('passe au rouge quand une servitude de plan de prévention couvre le point', () => {
+    const zoning = { servitudes: [{ code: 'AC1' }, { code: 'PM1' }] }
+    expect(inPreventionPlan(zoning)).toBe(true)
+    const flood = riskIndicators(communal, inPreventionPlan(zoning))[0]
+    expect(flood?.tone).toBe('bad')
+    expect(flood?.value).toBe('Adresse dans le périmètre d’un plan de prévention des risques')
+    expect(flood?.advice).toContain('état des risques')
+  })
+
+  it('n’affirme rien sans servitude lisible (liste absente ou masquée par le serveur)', () => {
+    expect(inPreventionPlan({ servitudes: [{ code: 'AC1' }] })).toBe(false)
+    expect(inPreventionPlan({ servitudes: '***LOCKED***' })).toBe(false)
+    expect(inPreventionPlan(null)).toBe(false)
   })
 })
 

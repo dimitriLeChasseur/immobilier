@@ -14,8 +14,10 @@ _MAX_FINDINGS = 3
 _STRONG_NOISE_DB = 65
 _CLAY_STRONG = 3
 _INDUSTRIAL_SITE_NEAR_M = 100
+_CAVITY_NEAR_M = 200
 _RADON_MAX = 3
-_POOR_ENERGY_SHARE_PCT = 40
+# Plus exigeant que le signal de la carte DPE (40 %) : seule une nette majorité fait une alerte.
+_POOR_ENERGY_SHARE_PCT = 50
 _GOOD_ENERGY_LABELS = frozenset({"A", "B", "C"})
 _BURGLARY = "Cambriolages de logement"
 # Écart au repère départemental à partir duquel un taux est jugé remarquable.
@@ -26,6 +28,7 @@ _LOW_FIBRE_PCT, _HIGH_FIBRE_PCT = 80, 95
 _WALKABLE_MIN = 5
 _GOOD_IPS = 110
 _GOOD_YIELD_PCT = 6.0
+_MIN_SALES_FOR_YIELD = 5
 _MONTHS = 12
 
 
@@ -33,14 +36,18 @@ _MONTHS = 12
 class _Scored:
     weight: int
     finding: Finding
+    # Vrai pour un constat propre à l'adresse ; faux s'il vaut pour toute la commune.
+    local: bool = True
 
 
 Data = Mapping[str, Any]
+Sources = Mapping[str, SourceResult]
 Rule = Callable[[Data], _Scored | None]
+CrossRule = Callable[[Sources], _Scored | None]
 
 
-def _scored(weight: int, theme: str, title: str, detail: str) -> _Scored:
-    return _Scored(weight, Finding(theme=theme, titre=title, detail=detail))
+def _scored(weight: int, theme: str, title: str, detail: str, *, local: bool = True) -> _Scored:
+    return _Scored(weight, Finding(theme=theme, titre=title, detail=detail), local)
 
 
 def _number(value: Any) -> float | None:
@@ -62,29 +69,44 @@ def _level(value: Any) -> int | None:
 # --- Alertes
 
 
-def _flood(data: Data) -> _Scored | None:
-    """Une seule alerte inondation, appuyée sur le signal le plus précis disponible."""
+def _has_easement(sources: Sources, code: str) -> bool:
+    """Vrai si une servitude de cette catégorie couvre le point (Géoportail de l'urbanisme)."""
+    easements = _data(sources, "urbanisme").get("servitudes") or []
+    return any(item.get("code") == code for item in easements)
+
+
+def _prevention_plan(sources: Sources) -> _Scored | None:
+    """Seul constat de risque naturel établi à l'adresse : la servitude d'un plan de prévention."""
+    if not _has_easement(sources, "PM1"):
+        return None
+    return _scored(
+        90,
+        "Risques",
+        "Adresse dans le périmètre d'un plan de prévention des risques",
+        "Une servitude de plan de prévention des risques naturels couvre ce point : le règlement "
+        "peut limiter les travaux et peser sur l'assurance. Demandez l'état des risques.",
+    )
+
+
+def _flood_in_commune(sources: Sources) -> _Scored | None:
+    """Mention, et non alerte forte : atlas, plans et TRI sont connus à l'échelle de la commune."""
+    if _has_easement(sources, "PM1"):
+        return None
+    data = _data(sources, "georisques")
     plans = [
         plan["nom"]
         for plan in data.get("plans_prevention") or []
         if "PPRN-I" in str(plan.get("type")) or str(plan.get("nom")).upper().startswith("PPRI")
     ]
-    listed = bool((data.get("inondation") or {}).get("concerne"))
-    if not listed and not plans and not data.get("tri"):
+    if not plans and not (data.get("inondation") or {}).get("concerne") and not data.get("tri"):
         return None
-    advice = "demandez l'état des risques et vérifiez si l'adresse est en zone réglementée."
-    if plans:
-        return _scored(
-            90,
-            "Risques",
-            "Commune couverte par un plan de prévention des inondations",
-            f"{', '.join(plans[:2])} : {advice}",
-        )
     return _scored(
-        90 if listed else 60,
+        35,
         "Risques",
-        "Zone inondable répertoriée" if listed else "Territoire à risque important d'inondation",
-        f"Secteur signalé par les inventaires nationaux : {advice}",
+        "Commune exposée au risque d'inondation",
+        "Le risque est recensé pour la commune, sans indiquer si cette adresse est concernée : "
+        "l'état des risques fourni par le vendeur le précise.",
+        local=False,
     )
 
 
@@ -105,7 +127,7 @@ def _industrial_past(data: Data) -> _Scored | None:
 def _cavity(data: Data) -> _Scored | None:
     cavities = data.get("cavites") or {}
     nearest = _number((cavities.get("plus_proche") or {}).get("distance_m"))
-    if nearest is None:
+    if nearest is None or nearest > _CAVITY_NEAR_M:
         return None
     return _scored(
         65,
@@ -116,8 +138,10 @@ def _cavity(data: Data) -> _Scored | None:
     )
 
 
-def _heritage(data: Data) -> _Scored | None:
-    if not (data.get("monument_historique") or {}).get("dans_perimetre"):
+def _heritage(sources: Sources) -> _Scored | None:
+    """Abords de monument historique, d'après le bâtiment ou la servitude relevée au point."""
+    building = _data(sources, "batiment").get("monument_historique") or {}
+    if not building.get("dans_perimetre") and not _has_easement(sources, "AC1"):
         return None
     return _scored(
         40,
@@ -175,6 +199,7 @@ def _radon(data: Data) -> _Scored | None:
         "Risques",
         "Radon : potentiel maximal",
         "Commune en catégorie 3 sur 3 : aération quotidienne et mesure en hiver recommandées.",
+        local=False,
     )
 
 
@@ -235,6 +260,7 @@ def _crime_alert(data: Data) -> _Scored | None:
         "Cambriolages nettement au-dessus du département",
         f"{_fr(rates[0])} pour 1 000 habitants dans la commune, contre {_fr(rates[1])} dans "
         "le département.",
+        local=False,
     )
 
 
@@ -254,6 +280,7 @@ def _tax_alert(data: Data) -> _Scored | None:
         "Taxe foncière élevée pour le département",
         f"Taux de {_fr(rates[0])} %, contre {_fr(rates[1])} % pour la commune médiane du "
         "département.",
+        local=False,
     )
 
 
@@ -266,6 +293,7 @@ def _vacancy(data: Data) -> _Scored | None:
         "Marché locatif",
         f"{round(share)} % de logements vacants dans le quartier",
         "Vacance élevée : la mise en location ou la revente peut prendre plus de temps.",
+        local=False,
     )
 
 
@@ -277,6 +305,7 @@ def _rent_control(data: Data) -> _Scored | None:
         "Marché locatif",
         "Loyers encadrés",
         "Le loyer est plafonné par un loyer de référence : intégrez-le au calcul du rendement.",
+        local=False,
     )
 
 
@@ -289,6 +318,7 @@ def _low_fibre(data: Data) -> _Scored | None:
         "Connexion",
         f"Fibre : {round(share)} % seulement des locaux de la commune",
         "Déploiement incomplet : vérifiez l'éligibilité de l'adresse avant d'acheter.",
+        local=False,
     )
 
 
@@ -359,6 +389,7 @@ def _crime_strength(data: Data) -> _Scored | None:
         "Cambriolages nettement sous la moyenne du département",
         f"{_fr(rates[0])} pour 1 000 habitants dans la commune, contre {_fr(rates[1])} dans "
         "le département.",
+        local=False,
     )
 
 
@@ -372,6 +403,7 @@ def _tax_strength(data: Data) -> _Scored | None:
         "Taxe foncière modérée pour le département",
         f"Taux de {_fr(rates[0])} %, contre {_fr(rates[1])} % pour la commune médiane du "
         "département.",
+        local=False,
     )
 
 
@@ -384,6 +416,7 @@ def _fibre(data: Data) -> _Scored | None:
         "Connexion",
         "Commune presque entièrement fibrée",
         f"{round(share)} % des locaux sont raccordables à la fibre.",
+        local=False,
     )
 
 
@@ -406,12 +439,10 @@ def _schools(data: Data) -> _Scored | None:
 
 
 _ALERTS: tuple[tuple[str, Rule], ...] = (
-    ("georisques", _flood),
     ("georisques", _seveso),
     ("georisques", _clay),
     ("georisques", _cavity),
     ("georisques", _industrial_past),
-    ("batiment", _heritage),
     ("georisques", _radon),
     ("bruit", _noise_alert),
     ("permis_construire", _overlook),
@@ -435,11 +466,27 @@ _STRENGTHS: tuple[tuple[str, Rule], ...] = (
 )
 
 
-def _yield_strength(sources: Mapping[str, SourceResult]) -> _Scored | None:
-    """Rendement brut : loyer de la commune rapporté au prix médian des ventes voisines."""
+def _flat_market(dvf: Data) -> Data:
+    """Ventes d'appartements : les 24 derniers mois s'ils suffisent, sinon les cinq ans."""
+    recent = ((dvf.get("recent") or {}).get("par_type") or {}).get("appartement") or {}
+    if (_number(recent.get("nb_ventes")) or 0) >= _MIN_SALES_FOR_YIELD:
+        return recent
+    flats: Data = (dvf.get("par_type") or {}).get("appartement") or {}
+    return flats
+
+
+def _yield_strength(sources: Sources) -> _Scored | None:
+    """Rendement brut : loyer d'appartement de la commune sur prix des appartements voisins.
+
+    Le loyer de référence étant celui des appartements, il n'est rapporté qu'à des ventes
+    d'appartements : sans elles, aucun rendement n'est avancé.
+    """
     rent = _number(_data(sources, "loyers").get("loyer_m2_charges_comprises"))
-    price = _number(_data(sources, "dvf").get("prix_m2_median"))
-    if rent is None or not price:
+    flats = _flat_market(_data(sources, "dvf"))
+    price = _number(flats.get("prix_m2_median"))
+    sales = _number(flats.get("nb_ventes")) or 0
+    # Une poignée de ventes ne fait pas un prix de marché (quartier pavillonnaire).
+    if rent is None or not price or sales < _MIN_SALES_FOR_YIELD:
         return None
     gross = 100 * rent * _MONTHS / price
     if gross < _GOOD_YIELD_PCT:
@@ -448,26 +495,45 @@ def _yield_strength(sources: Mapping[str, SourceResult]) -> _Scored | None:
         60,
         "Rendement",
         f"Rendement locatif brut estimé à {_fr(gross)} %",
-        "Loyer d'annonce de la commune rapporté au prix médian des ventes voisines, avant "
-        "charges et taxe foncière.",
+        "Loyer d'annonce des appartements de la commune rapporté au prix médian des "
+        "appartements vendus à proximité, avant charges et taxe foncière.",
+        local=False,
     )
 
 
-def _data(sources: Mapping[str, SourceResult], name: str) -> Data:
+def _data(sources: Sources, name: str) -> Data:
     result = sources.get(name)
     return result.data if result is not None and isinstance(result.data, dict) else {}
 
 
 def _top(scored: list[_Scored]) -> list[Finding]:
-    # Tri stable : à poids égal, l'ordre des règles départage.
-    ranked = sorted(scored, key=lambda item: -item.weight)
-    return [item.finding for item in ranked[:_MAX_FINDINGS]]
+    """Constats retenus : ceux de l'adresse d'abord, en variant les thèmes si possible."""
+    # Tri stable : à rang égal, l'ordre des règles départage.
+    ranked = sorted(scored, key=lambda item: (not item.local, -item.weight))
+    kept: list[_Scored] = []
+    for item in ranked:
+        if all(item.finding.theme != other.finding.theme for other in kept):
+            kept.append(item)
+    kept = kept[:_MAX_FINDINGS]
+    # La diversité prime, mais une place libre n'est jamais laissée vide : elle revient au
+    # constat suivant, même si son thème est déjà représenté.
+    for item in ranked:
+        if len(kept) >= _MAX_FINDINGS:
+            break
+        if item not in kept:
+            kept.append(item)
+    return [item.finding for item in sorted(kept, key=ranked.index)]
 
 
-def build_synthesis(sources: Mapping[str, SourceResult]) -> Synthesis:
+def build_synthesis(sources: Sources) -> Synthesis:
     """Les trois alertes et les trois points forts les plus marquants du rapport."""
     alerts = [found for name, rule in _ALERTS if (found := rule(_data(sources, name)))]
+    alerts += [found for cross in _CROSS_ALERTS if (found := cross(sources))]
     strengths = [found for name, rule in _STRENGTHS if (found := rule(_data(sources, name)))]
-    if (gross := _yield_strength(sources)) is not None:
-        strengths.append(gross)
+    strengths += [found for cross in _CROSS_STRENGTHS if (found := cross(sources))]
     return Synthesis(alertes=_top(alerts), points_forts=_top(strengths))
+
+
+# Règles lisant plusieurs sources à la fois.
+_CROSS_ALERTS: tuple[CrossRule, ...] = (_prevention_plan, _flood_in_commune, _heritage)
+_CROSS_STRENGTHS: tuple[CrossRule, ...] = (_yield_strength,)

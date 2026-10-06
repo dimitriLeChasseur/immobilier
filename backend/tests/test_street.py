@@ -127,8 +127,13 @@ async def test_resolver_ignores_addresses_and_survives_an_outage() -> None:
     assert street is not None
     assert http.calls[0][1].endswith("/lookup/49007_7050")
 
+    # Une panne est signalée : elle ne doit pas passer pour « ce n'est pas une voie ».
     down = BanStreetResolver(FakeHttp({"ban_lookup": SourceError("timeout")}))  # type: ignore[arg-type]
-    assert await down.resolve("49007_7050", *CENTER) is None
+    with pytest.raises(SourceError):
+        await down.resolve("49007_7050", *CENTER)
+    unknown = SourceError("not_found", "404", transient=False)
+    gone = BanStreetResolver(FakeHttp({"ban_lookup": unknown}))  # type: ignore[arg-type]
+    assert await gone.resolve("49007_7050", *CENTER) is None
 
 
 def sale(mutation: str, code: str, price: float, number: int = 12) -> dict[str, Any]:

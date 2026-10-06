@@ -271,9 +271,12 @@ async def test_georisques_adds_plans_industrial_past_and_cavities() -> None:
     assert data["mouvements_terrain"] == {"rayon_m": 500, "nb_evenements": 0}
 
     synthesis = build_synthesis({"georisques": SourceResult(status="ok", data=data)})
-    titles = [item.titre for item in synthesis.alertes]
-    assert titles[0] == "Commune couverte par un plan de prévention des inondations"
-    assert any(title.startswith("Cavité souterraine à") for title in titles)
+    # Les constats propres à l'adresse passent devant ceux de la commune (radon, inondation).
+    assert [item.titre for item in synthesis.alertes] == [
+        "Cavité souterraine à 102 m",
+        "Ancien site industriel à 35 m",
+        "Radon : potentiel maximal",
+    ]
 
 
 def test_heritage_perimeter_and_building_label_feed_the_synthesis() -> None:

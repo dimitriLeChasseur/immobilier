@@ -55,6 +55,9 @@ class Location(BaseModel):
     adresse_id: str | None = None
     # Présent quand l'audit porte sur une voie entière plutôt que sur un point.
     rue: StreetInfo | None = None
+    # Vrai quand une voie était demandée mais n'a pas pu être vérifiée (service d'adresses
+    # indisponible) : l'analyse porte alors sur le point, et le rapport n'est pas conservé.
+    voie_non_verifiee: bool = False
 
 
 class SourceResult(BaseModel):

@@ -31,6 +31,8 @@ _ORS_MATRIX_URL = "https://api.openrouteservice.org/v2/matrix/foot-walking"
 ESTIMATED = "vol_d_oiseau"
 ROUTED = "itineraire_pieton"
 _RADIUS_M = 500
+# Catégorie dont les équipements sont dédoublonnés par nom (quais d'un même arrêt).
+_STOPS = "transports"
 _MAX_ELEMENTS = 400
 # Délai accordé au serveur Overpass, inférieur au délai client par instance.
 _SERVER_TIMEOUT_S = 4
@@ -96,7 +98,9 @@ class PoiProvider:
             pois = await self._overpass_pois(ctx)
         for poi in pois:
             categories[poi.pop("categorie")].append(poi)
-        summaries = {name: _summary(pois) for name, pois in categories.items()}
+        summaries = {
+            name: _summary(pois, by_name=name == _STOPS) for name, pois in categories.items()
+        }
         method = await self._refine_walking_times(ctx, summaries)
         for summary in summaries.values():
             if summary["plus_proche"] is not None:
@@ -211,6 +215,20 @@ def _to_poi(element: dict[str, Any], ctx: AuditContext) -> dict[str, Any] | None
     }
 
 
-def _summary(pois: list[dict[str, Any]]) -> dict[str, Any]:
+def _summary(pois: list[dict[str, Any]], *, by_name: bool = False) -> dict[str, Any]:
+    """Nombre d'équipements et le plus proche.
+
+    `by_name` : un arrêt de transport est cartographié quai par quai ; ceux qui portent le
+    même nom ne comptent que pour un.
+    """
     pois.sort(key=lambda poi: poi["distance_m"])
+    if by_name:
+        seen: set[str] = set()
+        distinct = []
+        for poi in pois:
+            name = str(poi.get("nom") or "").strip().casefold()
+            if not name or name not in seen:
+                distinct.append(poi)
+                seen.add(name)
+        pois = distinct
     return {"nb": len(pois), "plus_proche": pois[0] if pois else None}

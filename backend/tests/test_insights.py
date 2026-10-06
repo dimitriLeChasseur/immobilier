@@ -368,6 +368,29 @@ async def test_pois_come_from_the_local_reference_without_calling_overpass() -> 
     assert data["methode_temps"] == ESTIMATED
 
 
+async def test_platforms_of_the_same_stop_count_once() -> None:
+    def stop(name: str | None, distance: float) -> dict[str, Any]:
+        return {
+            "categorie": "transports",
+            "type": "bus_stop",
+            "nom": name,
+            "lon": -0.55,
+            "lat": 47.47,
+            "distance_m": distance,
+        }
+
+    rows = [stop("Ralliement", 80), stop("ralliement", 95), stop("Foch", 200), stop(None, 250)]
+    rows += [stop(None, 260), {**stop("Fournil", 60), "categorie": "commerces"}]
+    rows += [{**stop("Fournil", 300), "categorie": "commerces"}]
+    data = (await PoiProvider(FakeHttp({}), repository=PoiRepository(rows)).fetch(ANGERS)).data  # type: ignore[arg-type]
+
+    # Ralliement (deux quais), Foch, et deux arrêts sans nom, comptés séparément.
+    assert data["categories"]["transports"]["nb"] == 4
+    assert data["categories"]["transports"]["plus_proche"]["distance_m"] == 80
+    # Deux boulangeries d'une même enseigne restent deux commerces.
+    assert data["categories"]["commerces"]["nb"] == 2
+
+
 async def test_ingested_area_without_poi_is_an_answer_not_a_fallback() -> None:
     http = FakeHttp({})
     data = (await PoiProvider(http, repository=PoiRepository([])).fetch(ANGERS)).data  # type: ignore[arg-type]

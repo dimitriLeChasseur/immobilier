@@ -91,6 +91,9 @@ class _Plan:
     # Résultats repris du cache, et sources restant à interroger.
     reused: dict[str, SourceResult]
     pending: tuple[Provider, ...]
+    # Faux quand la voie demandée n'a pas pu être vérifiée : le rapport, calculé au point
+    # faute de mieux, ne doit pas être conservé à la place du rapport de la rue.
+    cacheable: bool = True
 
 
 class AuditService:
@@ -194,7 +197,10 @@ class AuditService:
             duration_ms=self._elapsed_ms(started),
             synthese=build_synthesis(sources),
         )
-        await self._write_cache(query, AuditReport(location=location, sources=sources, meta=meta))
+        if plan.cacheable:
+            await self._write_cache(
+                query, AuditReport(location=location, sources=sources, meta=meta)
+            )
         yield DoneEvent(meta)
 
     async def _plan(self, query: AuditQuery, cached: AuditReport | None) -> "_Plan":
@@ -203,7 +209,14 @@ class AuditService:
             location = await self._geocoder.reverse(query.lat, query.lon, query.ban_id)
             if location is None:
                 raise LocationNotFoundError
-            street = await self._resolve_street(query)
+            try:
+                street = await self._resolve_street(query)
+            except SourceError:
+                logger.warning(
+                    "Voie %s non vérifiable : analyse au point, non mise en cache", query.ban_id
+                )
+                unverified = location.model_copy(update={"voie_non_verifiee": True})
+                return _Plan(unverified, None, {}, self._providers, cacheable=False)
             if street is not None:
                 location = _street_location(location, street)
             return _Plan(location, street, {}, self._providers)
@@ -212,7 +225,10 @@ class AuditService:
         pending = tuple(p for p in self._providers if p.name not in reused)
         if not pending:
             return _Plan(cached.location, None, reused, ())
-        street = await self._resolve_street(query) if cached.location.rue is not None else None
+        try:
+            street = await self._resolve_street(query) if cached.location.rue is not None else None
+        except SourceError:
+            street = None
         if cached.location.rue is not None and street is None:
             # Voie momentanément introuvable : on ne mélange pas des sources calculées au
             # point avec un rapport de rue, le cache est servi tel quel.

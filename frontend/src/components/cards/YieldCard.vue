@@ -89,7 +89,8 @@ function onChargesInput(): void {
       <div>
         <StatTile label="Rendement brut" :value="formatPercent(gross)" />
         <p class="mt-2 text-xs text-brand-900/70">
-          Loyer d’annonce de la commune × 12, rapporté au prix médian des ventes voisines.
+          Loyer d’annonce des appartements de la commune × 12, rapporté au prix médian des
+          appartements vendus à proximité.
           <strong class="font-semibold">Avant</strong> taxe foncière, charges de copropriété, travaux
           et périodes sans locataire.
         </p>

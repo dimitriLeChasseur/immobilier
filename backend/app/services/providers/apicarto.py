@@ -110,10 +110,10 @@ class UrbanismeProvider:
         parts, missing = await gather_parts(
             {
                 "zones": self._layer("zone-urba", geom),
-                # Servitudes d'utilité publique (abords de monument historique, etc.) et
-                # prescriptions du document d'urbanisme : évaluées au point audité.
-                "servitudes": self._layer("assiette-sup-s", point_geojson(ctx)),
-                "prescriptions": self._layer("prescription-surf", point_geojson(ctx)),
+                # Servitudes d'utilité publique (abords de monument historique, plan de
+                # prévention…) et prescriptions : au point audité, ou le long de la voie.
+                "servitudes": self._layer("assiette-sup-s", geom),
+                "prescriptions": self._layer("prescription-surf", geom),
             }
         )
         zones = [

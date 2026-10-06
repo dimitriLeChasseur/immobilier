@@ -22,12 +22,17 @@ function toneForLevel(level: number, warnFrom: number, badFrom: number): Tone {
   return level >= warnFrom ? 'warn' : 'good'
 }
 
-function flood(data: GeorisquesData): Verdict {
+function flood(data: GeorisquesData, inPreventionPlan: boolean): Verdict {
+  // Seul constat établi à l'adresse : la servitude d'un plan de prévention couvre le point.
+  if (inPreventionPlan) {
+    return { value: 'Adresse dans le périmètre d’un plan de prévention des risques', tone: 'bad' }
+  }
   if (!data.inondation) return UNKNOWN
   return data.inondation.concerne
-    ? {
-        value: `Zone inondable (${data.inondation.atlas_zones_inondables.join(', ')})`,
-        tone: 'bad',
+    ? // Constat communal : l'atlas ne dit pas si l'adresse elle-même est exposée.
+      {
+        value: `Commune concernée par un atlas des zones inondables (${data.inondation.atlas_zones_inondables.join(', ')})`,
+        tone: 'warn',
       }
     : // Neutre, pas vert : l'atlas ne couvre ni les PPRI ni les remontées de nappe.
       { value: 'Non répertorié dans l’atlas des zones inondables', tone: 'neutral' }
@@ -54,10 +59,28 @@ function radon(data: GeorisquesData): Verdict {
 }
 
 /** Verdict de chaque risque ; la recommandation est celle calculée par le serveur. */
-export function riskIndicators(data: GeorisquesData): RiskIndicator[] {
+/** Vrai si une servitude de plan de prévention des risques naturels (PM1) couvre le point audité. */
+export function inPreventionPlan(zoning: { servitudes?: unknown } | null | undefined): boolean {
+  const easements = zoning?.servitudes
+  // En aperçu gratuit, le serveur remplace la liste par une chaîne : rien n'est alors affirmé.
+  return Array.isArray(easements) && easements.some((item: { code?: unknown }) => item.code === 'PM1')
+}
+
+const PREVENTION_PLAN_ADVICE =
+  'Le règlement du plan peut limiter les travaux et peser sur l’assurance : demandez l’état des risques au vendeur.'
+
+/**
+ * Verdict par risque. `preventionPlan` vient de l'urbanisme : c'est le seul signal d'inondation
+ * propre à l'adresse, les autres valant pour toute la commune.
+ */
+export function riskIndicators(data: GeorisquesData, preventionPlan = false): RiskIndicator[] {
   const advice = data.recommandations ?? {}
   return [
-    { label: 'Inondation', ...flood(data), advice: advice.inondation },
+    {
+      label: 'Inondation et risques naturels réglementés',
+      ...flood(data, preventionPlan),
+      advice: preventionPlan ? PREVENTION_PLAN_ADVICE : advice.inondation,
+    },
     { label: 'Retrait-gonflement des argiles', ...clay(data), advice: advice.argiles },
     { label: 'Sismicité', ...seismic(data), advice: advice.sismicite },
     { label: 'Radon', ...radon(data), advice: advice.radon },

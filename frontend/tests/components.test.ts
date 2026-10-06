@@ -63,7 +63,7 @@ describe('RisksCard', () => {
       },
     })
     const text = card.text()
-    expect(text).toContain('Zone inondable (La Loire)')
+    expect(text).toContain('Commune concernée par un atlas des zones inondables (La Loire)')
     expect(text).toContain('Exposition moyenne')
     expect(text).toContain('Sol sensible : recherchez des fissures')
     expect(text).toContain('Zone 2 - faible')

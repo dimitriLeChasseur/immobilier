@@ -119,13 +119,17 @@ class BanStreetResolver:
         """Voie désignée par `ban_id` si elle passe bien par le point demandé.
 
         L'identifiant vient du navigateur : il ne sert qu'à choisir le périmètre de
-        l'analyse, et seulement s'il est cohérent avec les coordonnées. En cas d'échec,
-        l'audit se rabat sur l'analyse au point.
+        l'analyse, et seulement s'il est cohérent avec les coordonnées.
+
+        Lève SourceError si la BAN ne répond pas : l'appelant sait alors que la voie n'a
+        pas pu être vérifiée, ce qui n'est pas la même chose qu'une voie inexistante.
         """
         if not is_street_id(ban_id):
             return None
         try:
             payload = await self._http.get_json("ban_lookup", f"{_LOOKUP_URL}/{ban_id}")
-        except SourceError:
-            return None
+        except SourceError as exc:
+            if exc.kind == "not_found":
+                return None
+            raise
         return parse_street(payload, lat, lon)

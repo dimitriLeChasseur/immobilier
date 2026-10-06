@@ -334,3 +334,40 @@ async def test_street_identifier_switches_the_audit_to_street_mode() -> None:
     assert address.location.rue is None
     assert address.location.label == "8 Rue de Rivoli"
     assert probe.contexts[1].street is None
+
+
+class FlakyStreets:
+    """Échoue comme une BAN indisponible au premier appel, répond ensuite."""
+
+    def __init__(self) -> None:
+        self.calls = 0
+
+    async def resolve(self, ban_id: str, lat: float, lon: float) -> Street | None:
+        self.calls += 1
+        if self.calls == 1:
+            raise SourceError("timeout", "ban_lookup")
+        return Street(id=ban_id, name="Rue Saint-Aubin", points=((-0.554, 47.47), (-0.551, 47.468)))
+
+
+async def test_unverified_street_is_audited_at_the_point_but_never_cached() -> None:
+    cache = MemoryCache()
+    streets = FlakyStreets()
+    service = AuditService(
+        geocoder=FakeGeocoder(),
+        streets=streets,
+        providers=[ContextProbe()],
+        cache=cache,
+        policy=POLICY,
+    )
+    query = AuditQuery(lat=47.469, lon=-0.5529, ban_id="49007_7050")
+
+    degraded = await service.get_report(query)
+    assert degraded.location.rue is None
+    assert cache.entries == {}
+
+    # La demande suivante retente la voie au lieu de resservir le rapport « au point ».
+    repaired = await service.get_report(query)
+    assert repaired.location.rue is not None
+    assert not repaired.meta.cached
+    assert len(cache.entries) == 1
+    assert (await service.get_report(query)).meta.cached

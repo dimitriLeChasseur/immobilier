@@ -2,6 +2,8 @@
 import { computed, ref } from 'vue'
 
 import { SOURCE_INFO } from '../lib/sources'
+import { flatPrice } from '../lib/format'
+import { inPreventionPlan } from '../lib/insights'
 import { isLocked, teaserHook } from '../lib/teaser'
 import type { SourceDataMap, SourceName, SourceResult, SourceResults } from '../types/audit'
 import AirCard from './cards/AirCard.vue'
@@ -60,7 +62,9 @@ function numeric(value: unknown): number | null {
 }
 
 const rentPerM2 = computed(() => numeric(props.sources.loyers?.data?.loyer_m2_charges_comprises))
-const pricePerM2 = computed(() => numeric(props.sources.dvf?.data?.prix_m2_median))
+// Le loyer de référence est celui des appartements : il se rapporte au prix des appartements
+// vendus à proximité, et non à une médiane mêlant maisons et appartements.
+const pricePerM2 = computed(() => numeric(flatPrice(props.sources.dvf?.data)))
 const yieldLocked = computed(() => isLocked(props.sources.loyers?.data) || isLocked(props.sources.dvf?.data))
 // Surface et charges partagées entre le bloc copropriété et le simulateur de rendement.
 const surfaceM2 = ref(DEFAULT_SURFACE_M2)
@@ -68,6 +72,7 @@ const condoCharges = ref<number | null>(null)
 const propertyTaxRate = computed(() => numeric(props.sources.taxe_fonciere?.data?.taux_tfb_total))
 // Montant calculé par le simulateur de taxe foncière, repris par le calcul de rendement.
 const estimatedPropertyTax = ref<number | null>(null)
+const preventionPlan = computed(() => inPreventionPlan(props.sources.urbanisme?.data))
 const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
 </script>
 
@@ -121,7 +126,7 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
       <h2 id="section-risks" class="mb-4 text-lg font-semibold text-slate-900">Risques et urbanisme</h2>
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <SourceCard class="lg:col-span-2" v-bind="card('georisques')">
-          <template #default="{ data }"><RisksCard :data="data" /></template>
+          <template #default="{ data }"><RisksCard :data="data" :prevention-plan="preventionPlan" /></template>
         </SourceCard>
         <SourceCard v-bind="card('permis_construire', true)">
           <template #default="{ data }"><PermitsCard :data="data" /></template>
