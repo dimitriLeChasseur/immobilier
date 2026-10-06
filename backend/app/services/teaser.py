@@ -8,7 +8,7 @@ conservées pour que l'interface garde sa structure.
 from collections.abc import Callable
 from typing import Any
 
-from app.schemas.audit import AuditReport, ReportMeta, SourceResult
+from app.schemas.audit import AuditReport, Finding, ReportMeta, SourceResult, Synthesis
 
 LOCKED = "***LOCKED***"
 
@@ -87,8 +87,19 @@ def mask_result(source: str, result: SourceResult) -> SourceResult:
     return result.model_copy(update={"data": mask_data(source, result.data)})
 
 
+def _mask_findings(findings: list[Finding]) -> list[Finding]:
+    """Le nombre de constats et leur thème servent d'accroche ; leur contenu est réservé."""
+    return [Finding(theme=item.theme, titre=LOCKED, detail=LOCKED) for item in findings]
+
+
 def mask_meta(meta: ReportMeta) -> ReportMeta:
-    return meta.model_copy(update={"access": "teaser"})
+    synthesis = meta.synthese
+    if synthesis is not None:
+        synthesis = Synthesis(
+            alertes=_mask_findings(synthesis.alertes),
+            points_forts=_mask_findings(synthesis.points_forts),
+        )
+    return meta.model_copy(update={"access": "teaser", "synthese": synthesis})
 
 
 def mask_report(report: AuditReport) -> AuditReport:

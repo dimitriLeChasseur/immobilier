@@ -25,6 +25,18 @@ export interface AuditLocation {
   rue?: { id: string; nom: string; nb_numeros: number; longueur_m: number; points: [number, number][] } | null
 }
 
+/** Constat de la synthèse ; en aperçu gratuit, `titre` et `detail` valent "***LOCKED***". */
+export interface Finding {
+  theme: string
+  titre: string
+  detail: string
+}
+
+export interface ReportSynthesis {
+  alertes: Finding[]
+  points_forts: Finding[]
+}
+
 export interface ReportMeta {
   generated_at: string
   cached: boolean
@@ -35,6 +47,8 @@ export interface ReportMeta {
   failed_sources?: string[]
   report_version: number
   duration_ms: number
+  /** Alertes et points forts les plus marquants ; absent des rapports antérieurs à la v7. */
+  synthese?: ReportSynthesis | null
 }
 
 /** Adresse choisie dans l'autocomplétion BAN. */
@@ -184,6 +198,8 @@ export interface DelinquanceData {
     est_diffuse: boolean
     nombre: number | null
     taux_pour_mille: number | null
+    /** Taux pour 1 000 hab. du département, de la France et de la commune l'année précédente. */
+    reperes?: { departement: number | null; national: number | null; annee_precedente: number | null }
   }[]
 }
 
@@ -194,11 +210,20 @@ export interface TaxeFonciereData {
   taux_tfb_epci: number
   taux_tfb_total: number
   taux_teom: number | null
+  /** Taux global médian des communes du département et de France. */
+  reperes?: { mediane_departement: number | null; mediane_nationale: number | null }
 }
 
 export interface EcolesData {
   rayon_m: number
   ips_moyen: number | null
+  /** IPS moyen par niveau, avec les moyennes du département et de France. */
+  par_type?: Partial<
+    Record<
+      'ecole' | 'college' | 'lycee',
+      { nb: number; ips_moyen: number; moyenne_departement: number | null; moyenne_nationale: number | null }
+    >
+  >
   etablissements: {
     uai: string
     nom: string

@@ -48,6 +48,11 @@ def walking_minutes(distance_m: float) -> int:
     return max(1, round(distance_m * _WALK_DETOUR_FACTOR / _WALK_SPEED_M_PER_MIN))
 
 
+def departement_code(citycode: str) -> str:
+    """Code du département d'une commune (trois caractères outre-mer : 971, 974…)."""
+    return citycode[:3] if citycode.startswith("97") else citycode[:2]
+
+
 def commune_codes(citycode: str) -> list[str]:
     """Codes INSEE à interroger : le code fourni puis, pour Paris/Lyon/Marseille, la commune."""
     for prefix, parent in _ARRONDISSEMENT_PREFIXES.items():

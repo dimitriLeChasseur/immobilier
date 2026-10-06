@@ -3,6 +3,7 @@
 from typing import Any
 
 from app.core.errors import NoDataError, RepositoryError, SourceError
+from app.core.geo import departement_code
 from app.repositories.reference import ReferenceRepository
 from app.services.providers.base import AuditContext, ProviderData
 
@@ -14,6 +15,24 @@ _PERMIT_LIMIT = 25
 # Un projet d'au moins ce nombre de niveaux à proximité est signalé comme vis-à-vis potentiel.
 _OVERLOOK_MIN_LEVELS = 3
 _OVERLOOK_RADIUS_M = 60
+
+
+def _ips_by_kind(
+    rows: list[dict[str, Any]], benchmarks: dict[str, dict[str, float]]
+) -> dict[str, dict[str, Any]]:
+    by_kind: dict[str, list[float]] = {}
+    for row in rows:
+        if row.get("ips") is not None:
+            by_kind.setdefault(str(row["type_etablissement"]), []).append(float(row["ips"]))
+    return {
+        kind: {
+            "nb": len(scores),
+            "ips_moyen": round(sum(scores) / len(scores), 1),
+            "moyenne_departement": benchmarks.get(kind, {}).get("departement"),
+            "moyenne_nationale": benchmarks.get(kind, {}).get("national"),
+        }
+        for kind, scores in sorted(by_kind.items())
+    }
 
 
 def _unavailable(exc: RepositoryError) -> SourceError:
@@ -33,7 +52,31 @@ class CrimeProvider:
             raise _unavailable(exc) from exc
         if not rows:
             raise NoDataError
-        return ProviderData(data={"annee": rows[0]["annee"], "indicateurs": rows})
+        year = int(rows[0]["annee"])
+        await self._add_benchmarks(ctx, rows, year)
+        return ProviderData(data={"annee": year, "indicateurs": rows})
+
+    async def _add_benchmarks(
+        self, ctx: AuditContext, rows: list[dict[str, Any]], year: int
+    ) -> None:
+        """Ajoute à chaque indicateur ses repères : département, France, année précédente.
+
+        Les repères sont un complément : s'ils manquent, les chiffres de la commune restent.
+        """
+        try:
+            benchmarks = await self._repository.crime_benchmarks(
+                year, departement_code(ctx.citycode)
+            )
+            previous = await self._repository.crime_rates(ctx.commune_codes, year - 1)
+        except RepositoryError:
+            return
+        for row in rows:
+            name = row["indicateur"]
+            row["reperes"] = {
+                "departement": benchmarks.get(name, {}).get("departement"),
+                "national": benchmarks.get(name, {}).get("national"),
+                "annee_precedente": previous.get(name),
+            }
 
 
 class PropertyTaxProvider:
@@ -49,6 +92,16 @@ class PropertyTaxProvider:
             raise _unavailable(exc) from exc
         if row is None:
             raise NoDataError
+        try:
+            medians = await self._repository.property_tax_benchmarks(
+                int(row["annee"]), departement_code(ctx.citycode)
+            )
+        except RepositoryError:
+            medians = {}
+        row["reperes"] = {
+            "mediane_departement": medians.get("departement"),
+            "mediane_nationale": medians.get("national"),
+        }
         return ProviderData(data=row)
 
 
@@ -68,10 +121,16 @@ class SchoolsProvider:
         if not rows:
             raise NoDataError
         scores = [row["ips"] for row in rows if row.get("ips") is not None]
+        try:
+            benchmarks = await self._repository.ips_benchmarks(departement_code(ctx.citycode))
+        except RepositoryError:
+            benchmarks = {}
         return ProviderData(
             data={
                 "rayon_m": _SCHOOL_RADIUS_M,
                 "ips_moyen": round(sum(scores) / len(scores), 1) if scores else None,
+                # Un IPS d'école ne se compare pas à celui d'un lycée : moyenne par niveau.
+                "par_type": _ips_by_kind(rows, benchmarks),
                 "etablissements": rows,
             }
         )

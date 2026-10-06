@@ -8,12 +8,13 @@ import AddressSearch from '../components/AddressSearch.vue'
 import AuditDashboard from '../components/AuditDashboard.vue'
 import AuditStepper from '../components/AuditStepper.vue'
 import AuthModal from '../components/AuthModal.vue'
+import SynthesisPanel from '../components/SynthesisPanel.vue'
 import VisitChecklist from '../components/VisitChecklist.vue'
 import { useAccount } from '../composables/useAccount'
 import { useAudit } from '../composables/useAudit'
 import { useAuth } from '../composables/useAuth'
 import { clearPendingAudit, savePendingAudit } from '../lib/pending'
-import { buildReportSections, unavailableSources } from '../lib/report'
+import { buildReportSections, synthesisSections, unavailableSources } from '../lib/report'
 import { SOURCE_INFO } from '../lib/sources'
 import { UNLOCK_KEY } from '../lib/unlock'
 import { readTarget, writeTarget } from '../lib/url'
@@ -128,7 +129,7 @@ async function exportPdf(): Promise<void> {
     buildReportPdf({
       location: location.value,
       meta: meta.value,
-      sections: buildReportSections(sources.value),
+      sections: [...synthesisSections(meta.value?.synthese), ...buildReportSections(sources.value)],
       charts: collectCharts(),
       unavailable,
       checkedItems: checkedItems.value,
@@ -337,6 +338,7 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
             précis, antennes, bruit) sont réservés à l’audit complet, export PDF inclus.
           </p>
 
+          <SynthesisPanel v-if="meta?.synthese" class="mb-10" :synthesis="meta.synthese" />
           <AuditDashboard :sources="sources" :settled="settled" :street="Boolean(location?.rue)" />
           <VisitChecklist v-model="checkedItems" class="mt-10" />
         </template>

@@ -1,5 +1,6 @@
 """Accès aux référentiels statiques (SSMSI, DGFiP, IPS, SITADEL)."""
 
+import time
 from collections.abc import Sequence
 from datetime import date
 from decimal import Decimal
@@ -11,6 +12,7 @@ from app.repositories.db import db_errors
 
 # Les requêtes ci-dessous n'interpolent que des fragments SQL constants (jamais de donnée
 # utilisateur) : l'alerte S608 de ruff y est donc neutralisée.
+_BENCHMARK_TTL_S = 24 * 3600
 _POINT_GEOM = "ST_SetSRID(ST_MakePoint($1, $2), 4326)"
 _POINT_GEOG = f"{_POINT_GEOM}::geography"
 
@@ -21,6 +23,37 @@ _CRIME = """
     WHERE code_insee = $1
       AND annee = (SELECT max(annee) FROM insee_ssmsi WHERE code_insee = $1)
     ORDER BY indicateur
+"""
+
+# Taux pour 1 000 habitants à l'échelle d'un territoire, sur les seules communes dont la
+# donnée est diffusée (les autres, trop petites, n'ont ni nombre ni population exploitable).
+# $2 : préfixe de département, ou chaîne vide pour la France entière.
+_CRIME_BENCHMARK = """
+    SELECT indicateur,
+           1000.0 * sum(nombre) / nullif(sum(population), 0) AS taux_pour_mille
+    FROM insee_ssmsi
+    WHERE annee = $1 AND est_diffuse AND left(code_insee, length($2)) = $2
+    GROUP BY indicateur
+"""
+
+_CRIME_YEAR = """
+    SELECT indicateur, taux_pour_mille
+    FROM insee_ssmsi
+    WHERE code_insee = $1 AND annee = $2 AND est_diffuse
+"""
+
+_PROPERTY_TAX_BENCHMARK = """
+    SELECT percentile_cont(0.5) WITHIN GROUP (ORDER BY taux_tfb_total) AS mediane
+    FROM insee_dgfip
+    WHERE annee = $1 AND left(code_insee, length($2)) = $2
+"""
+
+_IPS_BENCHMARK = """
+    SELECT type_etablissement, avg(ips) AS ips_moyen
+    FROM geo_ips_ecoles
+    WHERE rentree_scolaire >= (SELECT max(rentree_scolaire) FROM geo_ips_ecoles) - 1
+      AND left(code_insee, length($1)) = $1
+    GROUP BY type_etablissement
 """
 
 _PROPERTY_TAX = """
@@ -139,6 +172,16 @@ class ReferenceRepository(Protocol):
 
     async def property_tax(self, codes: list[str]) -> dict[str, Any] | None: ...
 
+    async def crime_benchmarks(self, year: int, departement: str) -> dict[str, dict[str, float]]:
+        """Taux pour 1 000 hab. par indicateur : {indicateur: {departement, national}}."""
+        ...
+
+    async def crime_rates(self, codes: list[str], year: int) -> dict[str, float]: ...
+
+    async def property_tax_benchmarks(self, year: int, departement: str) -> dict[str, float]: ...
+
+    async def ips_benchmarks(self, departement: str) -> dict[str, dict[str, float]]: ...
+
     async def schools_nearby(
         self, lat: float, lon: float, radius_m: int, limit: int
     ) -> list[dict[str, Any]]: ...
@@ -179,6 +222,7 @@ def _jsonable(record: asyncpg.Record) -> dict[str, Any]:
 class PostgresReferenceRepository:
     def __init__(self, pool: asyncpg.Pool) -> None:
         self._pool = pool
+        self._benchmarks: dict[tuple[Any, ...], tuple[float, list[asyncpg.Record]]] = {}
 
     async def crime_indicators(self, codes: list[str]) -> list[dict[str, Any]]:
         for code in codes:
@@ -195,6 +239,53 @@ class PostgresReferenceRepository:
             if record is not None:
                 return _jsonable(record)
         return None
+
+    async def _memo(self, key: tuple[Any, ...], query: str, *args: Any) -> list[asyncpg.Record]:
+        """Agrégat de territoire, gardé en mémoire : il ne change qu'à une réingestion."""
+        cached = self._benchmarks.get(key)
+        if cached is not None and time.monotonic() - cached[0] < _BENCHMARK_TTL_S:
+            return cached[1]
+        async with db_errors():
+            records: list[asyncpg.Record] = await self._pool.fetch(query, *args)
+        self._benchmarks[key] = (time.monotonic(), records)
+        return records
+
+    async def crime_benchmarks(self, year: int, departement: str) -> dict[str, dict[str, float]]:
+        benchmarks: dict[str, dict[str, float]] = {}
+        for scope, prefix in (("departement", departement), ("national", "")):
+            for record in await self._memo(("crime", year, prefix), _CRIME_BENCHMARK, year, prefix):
+                if record["taux_pour_mille"] is not None:
+                    rate = round(float(record["taux_pour_mille"]), 2)
+                    benchmarks.setdefault(record["indicateur"], {})[scope] = rate
+        return benchmarks
+
+    async def crime_rates(self, codes: list[str], year: int) -> dict[str, float]:
+        for code in codes:
+            async with db_errors():
+                records = await self._pool.fetch(_CRIME_YEAR, code, year)
+            if records:
+                return {
+                    record["indicateur"]: float(record["taux_pour_mille"])
+                    for record in records
+                    if record["taux_pour_mille"] is not None
+                }
+        return {}
+
+    async def property_tax_benchmarks(self, year: int, departement: str) -> dict[str, float]:
+        medians: dict[str, float] = {}
+        for scope, prefix in (("departement", departement), ("national", "")):
+            records = await self._memo(("tax", year, prefix), _PROPERTY_TAX_BENCHMARK, year, prefix)
+            if records and records[0]["mediane"] is not None:
+                medians[scope] = round(float(records[0]["mediane"]), 2)
+        return medians
+
+    async def ips_benchmarks(self, departement: str) -> dict[str, dict[str, float]]:
+        benchmarks: dict[str, dict[str, float]] = {}
+        for scope, prefix in (("departement", departement), ("national", "")):
+            for record in await self._memo(("ips", prefix), _IPS_BENCHMARK, prefix):
+                average = round(float(record["ips_moyen"]), 1)
+                benchmarks.setdefault(record["type_etablissement"], {})[scope] = average
+        return benchmarks
 
     async def schools_nearby(
         self, lat: float, lon: float, radius_m: int, limit: int

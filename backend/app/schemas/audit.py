@@ -68,6 +68,19 @@ class SourceResult(BaseModel):
     duration_ms: int = 0
 
 
+class Finding(BaseModel):
+    """Constat de la synthèse ; en version restreinte, seul le thème reste lisible."""
+
+    theme: str
+    titre: str
+    detail: str
+
+
+class Synthesis(BaseModel):
+    alertes: list[Finding] = []
+    points_forts: list[Finding] = []
+
+
 class ReportMeta(BaseModel):
     generated_at: datetime
     cached: bool = False
@@ -79,6 +92,8 @@ class ReportMeta(BaseModel):
     access: Literal["full", "teaser"] = "full"
     report_version: int
     duration_ms: int
+    # Alertes et points forts les plus marquants ; absent des rapports antérieurs à la v7.
+    synthese: Synthesis | None = None
 
 
 class AuditReport(BaseModel):

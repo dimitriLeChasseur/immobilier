@@ -22,6 +22,7 @@ from app.schemas.audit import (
 from app.services.geocoding import Geocoder
 from app.services.providers.base import AuditContext, Provider
 from app.services.street import Street, StreetResolver
+from app.services.synthesis import build_synthesis
 
 logger = logging.getLogger(__name__)
 
@@ -180,6 +181,7 @@ class AuditService:
             failed_sources=failed,
             report_version=self._policy.report_version,
             duration_ms=self._elapsed_ms(started),
+            synthese=build_synthesis(sources),
         )
         await self._write_cache(query, AuditReport(location=location, sources=sources, meta=meta))
         yield DoneEvent(meta)

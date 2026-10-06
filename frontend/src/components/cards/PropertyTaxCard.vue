@@ -30,6 +30,10 @@ watch(estimate, (value) => emit('estimate', value ? Math.round(value.propertyTax
     :value="formatPercent(data.taux_tfb_total, 2)"
     :hint="`${data.libelle_commune}, ${data.annee}`"
   />
+  <p v-if="data.reperes?.mediane_departement" class="mt-2 text-xs text-slate-500">
+    Commune médiane du département : {{ formatPercent(data.reperes.mediane_departement, 2)
+    }}<template v-if="data.reperes.mediane_nationale"> · de France : {{ formatPercent(data.reperes.mediane_nationale, 2) }}</template>
+  </p>
   <dl class="mt-3 space-y-1 text-sm">
     <div class="flex justify-between">
       <dt class="text-slate-500">Part communale</dt>

@@ -1,5 +1,6 @@
 import type {
   BruitData,
+  ReportSynthesis,
   ConnectiviteData,
   DelinquanceData,
   DvfData,
@@ -77,7 +78,12 @@ function priceRows(dvf: DvfData | null | undefined): Rows {
 function taxRows(tax: TaxeFonciereData | null | undefined): Rows {
   if (!tax) return []
   return [
-    [`Taxe foncière ${tax.annee}, taux global`, formatPercent(tax.taux_tfb_total, 2)],
+    [
+      `Taxe foncière ${tax.annee}, taux global`,
+      tax.reperes?.mediane_departement
+        ? `${formatPercent(tax.taux_tfb_total, 2)} (commune médiane du département : ${formatPercent(tax.reperes.mediane_departement, 2)})`
+        : formatPercent(tax.taux_tfb_total, 2),
+    ],
     ['Taxe d’ordures ménagères', formatPercent(tax.taux_teom, 2)],
   ]
 }
@@ -209,7 +215,8 @@ function burglaryRow(crime: DelinquanceData | null | undefined): Rows {
   return [
     [
       `Cambriolages de logement (${crime.annee})`,
-      `${formatInteger(burglaries.nombre)}, soit ${formatDecimal(burglaries.taux_pour_mille)} pour 1 000 hab.`,
+      `${formatInteger(burglaries.nombre)}, soit ${formatDecimal(burglaries.taux_pour_mille)} pour 1 000 hab.` +
+        (burglaries.reperes?.departement == null ? '' : ` (département : ${formatDecimal(burglaries.reperes.departement)})`),
     ],
   ]
 }
@@ -291,7 +298,7 @@ function neighbourhood(sources: SourceResults): ReportSection {
       ]
     : []
   const schoolRows: Rows = schools
-    ? [['IPS moyen des établissements proches', formatDecimal(schools.ips_moyen)]]
+    ? schoolAverages(schools)
     : []
   return {
     title: 'Vie de quartier',
@@ -309,6 +316,33 @@ function neighbourhood(sources: SourceResults): ReportSection {
 }
 
 /** Contenu textuel du rapport, indépendant du support (PDF, tests). */
+const SCHOOL_LEVELS = [
+  ['ecole', 'écoles'],
+  ['college', 'collèges'],
+  ['lycee', 'lycées'],
+] as const
+
+/** IPS moyen par niveau face à la moyenne nationale ; à défaut, la moyenne tous niveaux. */
+function schoolAverages(schools: EcolesData): Rows {
+  const rows = SCHOOL_LEVELS.flatMap(([id, label]): Rows => {
+    const stats = schools.par_type?.[id]
+    if (!stats) return []
+    const reference = stats.moyenne_nationale === null ? '' : ` (France : ${formatDecimal(stats.moyenne_nationale)})`
+    return [[`IPS moyen des ${label} proches`, `${formatDecimal(stats.ips_moyen)}${reference}`]]
+  })
+  return rows.length ? rows : [['IPS moyen des établissements proches', formatDecimal(schools.ips_moyen)]]
+}
+
+/** Synthèse en tête du PDF : une ligne par constat, alertes d'abord. */
+export function synthesisSections(synthesis: ReportSynthesis | null | undefined): ReportSection[] {
+  if (!synthesis) return []
+  const rows: Rows = [
+    ...synthesis.alertes.map((item): [string, string] => [`Attention · ${item.theme}`, `${item.titre}. ${item.detail}`]),
+    ...synthesis.points_forts.map((item): [string, string] => [`Point fort · ${item.theme}`, `${item.titre}. ${item.detail}`]),
+  ]
+  return rows.length ? [{ title: 'L’essentiel', rows }] : []
+}
+
 export function buildReportSections(sources: SourceResults): ReportSection[] {
   return [market, risks, planning, environment, neighbourhood]
     .map((build) => build(sources))
