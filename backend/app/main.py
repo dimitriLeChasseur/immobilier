@@ -8,11 +8,13 @@ import aiohttp
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import audit, health
-from app.container import build_audit_service
+from app.api.routers import audit, billing, health
+from app.container import build_audit_service, build_billing_service
 from app.core.config import get_settings
 from app.core.rate_limit import SlidingWindowRateLimiter
+from app.repositories.billing import PostgresBillingRepository
 from app.repositories.db import create_pool
+from app.repositories.entitlements import PostgresEntitlementRepository
 
 
 @asynccontextmanager
@@ -25,6 +27,11 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     )
     app.state.db_pool = pool
     app.state.audit_service = build_audit_service(settings, pool, session)
+    app.state.entitlements = PostgresEntitlementRepository(pool)
+    app.state.billing_repository = PostgresBillingRepository(pool)
+    app.state.billing_service = build_billing_service(
+        settings, app.state.billing_repository, session
+    )
     app.state.rate_limiter = SlidingWindowRateLimiter(
         settings.rate_limit_requests, settings.rate_limit_window_s
     )
@@ -51,11 +58,12 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.cors_allowed_origins,
         allow_credentials=False,
-        allow_methods=["GET"],
+        allow_methods=["GET", "POST"],
         allow_headers=["Authorization", "Content-Type"],
     )
     app.include_router(health.router)
     app.include_router(audit.router)
+    app.include_router(billing.router)
     return app
 
 

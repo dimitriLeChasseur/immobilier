@@ -6,7 +6,7 @@ function withoutTrailingSlashes(url: string): string {
   return url.slice(0, end)
 }
 
-const API_URL = withoutTrailingSlashes(import.meta.env.VITE_API_URL ?? 'http://localhost')
+export const API_URL = withoutTrailingSlashes(import.meta.env.VITE_API_URL ?? 'http://localhost')
 
 export interface AuditTarget {
   lat: number
@@ -21,7 +21,14 @@ export interface AuditStreamHandlers {
   onError: (message: string) => void
 }
 
+export interface SseEvent {
+  event: string
+  data: string
+}
+
 const CONNECTION_ERROR = "Impossible de joindre le service d'audit. Vérifiez votre connexion et réessayez."
+const SESSION_ERROR = 'Votre session a expiré. Reconnectez-vous pour relancer l’audit.'
+const HTTP_UNAUTHORIZED = 401
 
 function streamUrl(target: AuditTarget): string {
   const url = new URL(`${API_URL}/api/v1/audit/stream`)
@@ -31,9 +38,29 @@ function streamUrl(target: AuditTarget): string {
   return url.toString()
 }
 
-function parse<T>(event: Event): T | null {
+/**
+ * Découpe un tampon de flux Server-Sent Events en évènements complets.
+ * Renvoie aussi le reliquat (évènement encore incomplet) à garder pour le prochain morceau.
+ */
+export function parseSseBuffer(buffer: string): { events: SseEvent[]; rest: string } {
+  const blocks = buffer.split('\n\n')
+  const rest = blocks.pop() ?? ''
+  const events: SseEvent[] = []
+  for (const block of blocks) {
+    let event = 'message'
+    const data: string[] = []
+    for (const line of block.split('\n')) {
+      if (line.startsWith('event:')) event = line.slice(6).trim()
+      else if (line.startsWith('data:')) data.push(line.slice(5).trimStart())
+    }
+    if (data.length) events.push({ event, data: data.join('\n') })
+  }
+  return { events, rest }
+}
+
+function parseJson<T>(text: string): T | null {
   try {
-    return JSON.parse((event as MessageEvent<string>).data) as T
+    return JSON.parse(text) as T
   } catch {
     return null
   }
@@ -47,39 +74,64 @@ export async function fetchSourceNames(signal?: AbortSignal): Promise<SourceName
   return payload.sources
 }
 
-/**
- * Ouvre le flux d'audit (Server-Sent Events). Renvoie la fonction d'annulation.
- * Le flux est fermé dès `done` ou `error` : EventSource ne doit pas se reconnecter,
- * sous peine de relancer un audit complet.
- */
-export function openAuditStream(target: AuditTarget, handlers: AuditStreamHandlers): () => void {
-  const source = new EventSource(streamUrl(target))
-  let finished = false
-  const close = (): void => {
-    finished = true
-    source.close()
-  }
-
-  source.addEventListener('location', (event) => {
-    const location = parse<AuditLocation>(event)
+/** Traite un évènement ; renvoie vrai quand le flux est terminé (`done` ou `error`). */
+function dispatch({ event, data }: SseEvent, handlers: AuditStreamHandlers): boolean {
+  if (event === 'location') {
+    const location = parseJson<AuditLocation>(data)
     if (location) handlers.onLocation(location)
-  })
-  source.addEventListener('source', (event) => {
-    const payload = parse<{ name: SourceName; result: SourceResult }>(event)
+  } else if (event === 'source') {
+    const payload = parseJson<{ name: SourceName; result: SourceResult }>(data)
     if (payload) handlers.onSource(payload.name, payload.result)
-  })
-  source.addEventListener('done', (event) => {
-    const meta = parse<ReportMeta>(event)
-    close()
+  } else if (event === 'done') {
+    const meta = parseJson<ReportMeta>(data)
     if (meta) handlers.onDone(meta)
-  })
-  // `error` : soit un évènement métier émis par le serveur (avec données), soit une coupure réseau.
-  source.addEventListener('error', (event) => {
-    if (finished) return
-    const payload = 'data' in event ? parse<{ detail?: string }>(event) : null
-    close()
-    handlers.onError(payload?.detail ?? CONNECTION_ERROR)
-  })
+    else handlers.onError(CONNECTION_ERROR)
+    return true
+  } else if (event === 'error') {
+    handlers.onError(parseJson<{ detail?: string }>(data)?.detail ?? CONNECTION_ERROR)
+    return true
+  }
+  return false
+}
 
-  return close
+async function consume(response: Response, handlers: AuditStreamHandlers): Promise<void> {
+  if (!response.ok || !response.body) {
+    handlers.onError(response.status === HTTP_UNAUTHORIZED ? SESSION_ERROR : CONNECTION_ERROR)
+    return
+  }
+  const reader = response.body.getReader()
+  const decoder = new TextDecoder()
+  let buffer = ''
+  for (;;) {
+    const { done, value } = await reader.read()
+    if (done) break
+    const parsed = parseSseBuffer(buffer + decoder.decode(value, { stream: true }))
+    buffer = parsed.rest
+    if (parsed.events.some((event) => dispatch(event, handlers))) return
+  }
+  // Flux coupé avant l'évènement final.
+  handlers.onError(CONNECTION_ERROR)
+}
+
+/**
+ * Ouvre le flux d'audit (Server-Sent Events lus avec fetch) et renvoie la fonction d'annulation.
+ * fetch remplace EventSource pour pouvoir transmettre le jeton de session en en-tête : sans
+ * jeton, ou sans achat de l'adresse, le serveur renvoie la version « teaser » du rapport.
+ */
+export function openAuditStream(
+  target: AuditTarget,
+  handlers: AuditStreamHandlers,
+  accessToken?: string | null,
+): () => void {
+  const controller = new AbortController()
+  const headers: Record<string, string> = { Accept: 'text/event-stream' }
+  if (accessToken) headers.Authorization = `Bearer ${accessToken}`
+
+  fetch(streamUrl(target), { headers, signal: controller.signal })
+    .then((response) => consume(response, handlers))
+    .catch(() => {
+      if (!controller.signal.aborted) handlers.onError(CONNECTION_ERROR)
+    })
+
+  return () => controller.abort()
 }

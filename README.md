@@ -39,6 +39,12 @@ Principes à connaître avant d'intervenir :
 - **Dégradation gracieuse.** Chaque source a un délai de 9 s et son coupe-circuit. Une source en
   échec ne bloque jamais le rapport : il sort marqué `is_partial`, avec la liste
   `failed_sources`. Overpass est interrogé sur trois serveurs successifs.
+- **Modèle « teaser ».** Sans achat de l'adresse, l'API renvoie le rapport avec les valeurs
+  réservées remplacées par `"***LOCKED***"` (`backend/app/services/teaser.py`, liste blanche
+  par source : tout nouveau champ est masqué par défaut). Le masquage est fait côté serveur ;
+  le flou du frontend n'est qu'un habillage. L'accès complet exige un jeton de session Supabase
+  valide et une ligne dans `immo.audit_entitlements` pour cette adresse. Cette table sera
+  alimentée par le paiement (Stripe, à venir) ; d'ici là, un droit s'ouvre à la main en SQL.
 - **Cache.** Un rapport complet est conservé 7 jours, un rapport partiel 15 minutes. Changer le
   format du rapport impose d'incrémenter `REPORT_VERSION`.
 - **Sécurité des données.** Les tables vivent dans le schéma `immo`, non exposé par PostgREST,
@@ -90,7 +96,11 @@ secrets. Le fichier `.env` n'est jamais versionné.
 | `DATA_DIR` | Répertoire des données Postgres | `./data` | `/srv/immo` |
 | `DB_HOST_PORT` | Port Postgres sur `127.0.0.1` | `5433` | `5433` |
 | `POSTGRES_PASSWORD`, `IMMO_APP_DB_PASSWORD`, `JWT_SECRET`, `ANON_KEY`, `SERVICE_ROLE_KEY`, `PG_META_CRYPTO_KEY`, `SONAR_DB_PASSWORD` | Secrets | générés | générés sur le serveur, jamais copiés depuis le poste de développement |
+| `GOOGLE_ENABLED`, `GOOGLE_CLIENT_ID`, `GOOGLE_SECRET` | Connexion « Continuer avec Google » ; URI de redirection à déclarer chez Google : `<PUBLIC_URL>/auth/v1/callback` | désactivé | identifiants Google Cloud |
+| `ADDITIONAL_REDIRECT_URLS` | Adresses de retour autorisées après connexion | `http://localhost:5173/**` | `https://<frontend>/**` |
 | `ORS_API_KEY` | Clé OpenRouteService : temps de marche sur itinéraire piéton. Vide = estimation à vol d'oiseau × 1,3 | facultatif | facultatif |
+| `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` | Clés Stripe (voir « Paiement Stripe »). Vides = paiement fermé (503) | facultatif | requis |
+| `STRIPE_PRO_TAX_RATE_ID` | Taux de TVA Stripe (`txr_...`) ajouté au prix HT de l'offre Pro | facultatif | recommandé |
 | `ENABLE_EMAIL_AUTOCONFIRM`, `SMTP_*` | Confirmation des comptes par e-mail | autoconfirmation | à configurer avant d'ouvrir l'inscription |
 | `SONAR_ADMIN_PASSWORD`, `SONAR_TOKEN` | Écrits par `scripts/sonar-setup.sh` | — | — |
 
@@ -98,7 +108,9 @@ Réglages du backend, facultatifs (valeurs par défaut dans `backend/app/core/co
 `HTTP_TIMEOUT_S` (9), `PROVIDER_DEADLINE_S` (20), `REPORT_VERSION` (5), `CACHE_TTL_HOURS` (168),
 `CACHE_PARTIAL_TTL_MINUTES` (15), `RATE_LIMIT_REQUESTS` (30 par minute et par IP).
 
-Frontend (`frontend/.env`) : `VITE_API_URL`, l'URL publique de l'API.
+Frontend (`frontend/.env`) : `VITE_API_URL`, l'URL publique de l'API, et
+`VITE_SUPABASE_ANON_KEY`, la clé publique `ANON_KEY` du `.env` racine (nécessaire à la création
+de compte ; ce n'est pas un secret).
 
 ## Données ingérées
 
@@ -124,6 +136,52 @@ main.
 
 Options : `--metropole angers`, `--source ddt49-route`. Le script sort en erreur (code 1) si une
 source échoue, sans effacer les données déjà chargées.
+
+## Paiement Stripe et connexion Google
+
+### Stripe
+
+Le navigateur n'ouvre jamais un droit : il demande une session de paiement
+(`POST /api/v1/checkout`, prix fixé côté serveur), puis Stripe confirme l'achat au backend
+par un évènement signé (`POST /api/v1/stripe/webhook`). Seul cet évènement crée le droit sur
+l'adresse, les crédits du pack ou l'abonnement. Sans clés, ces routes répondent 503.
+
+| Offre | Montant débité | Effet |
+| --- | --- | --- |
+| `unit` | 4,99 € | débloque l'adresse |
+| `pack` | 24,99 € | débloque l'adresse + 9 crédits (10 crédits sans adresse) |
+| `pro` | 49,00 € / mois | toutes les adresses tant que l'abonnement est actif |
+
+Mise en route en local (mode test, aucun débit réel) :
+
+1. Dans le tableau de bord Stripe, mode **Test** : *Developers > API keys*, copier la clé
+   secrète `sk_test_...` dans `STRIPE_SECRET_KEY` (fichier `.env`).
+2. Installer la [CLI Stripe](https://docs.stripe.com/stripe-cli), puis :
+   ```bash
+   stripe login
+   stripe listen --all-snapshot --forward-to localhost/api/v1/stripe/webhook
+   ```
+   La commande affiche un secret `whsec_...` : le copier dans `STRIPE_WEBHOOK_SECRET`.
+   Ne pas utiliser `--all-thin` : ce mode ne transmet pas `checkout.session.completed`.
+3. `docker compose up -d backend`, puis payer avec la carte de test `4242 4242 4242 4242`
+   (date future, CVC quelconque).
+
+En production : créer le webhook dans *Developers > Webhooks* vers
+`<PUBLIC_URL>/api/v1/stripe/webhook` avec les évènements `checkout.session.completed`,
+`checkout.session.async_payment_succeeded`, `customer.subscription.updated` et
+`customer.subscription.deleted`, et activer le portail client (*Settings > Billing > Customer
+portal*) qui sert à la résiliation de l'offre Pro.
+
+### Google
+
+1. [Google Cloud Console](https://console.cloud.google.com/) : créer un projet, configurer
+   l'écran de consentement OAuth (type *Externe*, champs d'application `email` et `profile`).
+2. *Identifiants > Créer des identifiants > ID client OAuth*, type *Application Web* :
+   - origine JavaScript autorisée : l'adresse du frontend (`http://localhost:5173` en local) ;
+   - URI de redirection autorisé : `<PUBLIC_URL>/auth/v1/callback`
+     (`http://localhost/auth/v1/callback` en local).
+3. Dans `.env` : `GOOGLE_ENABLED=true`, `GOOGLE_CLIENT_ID`, `GOOGLE_SECRET`, puis
+   `docker compose up -d auth`.
 
 ## Tests et qualité
 
@@ -159,8 +217,8 @@ inférieure à 5 %, complexité par fonction inférieure à 15, typage strict de
 UFW pour les ports qu'il publie : ne jamais publier un port interne sans le préfixe
 `127.0.0.1:` dans `docker-compose.yml`.
 
-`deploy/Caddyfile` n'expose que l'API FastAPI en HTTPS. Les routes Supabase (`/auth/v1`,
-`/rest/v1`) y sont commentées : elles seront à rouvrir avec la connexion utilisateur.
+`deploy/Caddyfile` expose en HTTPS l'API FastAPI et l'authentification Supabase (`/auth/v1`).
+PostgREST (`/rest/v1`) reste interne.
 
 ### Frontend sur Cloudflare Pages
 
@@ -177,8 +235,9 @@ politique de sécurité du contenu bloquera les appels.
 
 ## Limites connues
 
-- **Connexion utilisateur absente.** L'audit est public, limité en débit. Supabase Auth tourne
-  mais le frontend n'a pas d'écran de connexion.
+- **Paiement non branché.** Les boutons de la grille tarifaire (`/tarifs`) ne font que tracer
+  « Redirection Stripe » ; aucun droit n'est créé automatiquement.
+- **Connexion Google non testée**, faute d'identifiants OAuth.
 - **Limitation de débit en mémoire** : valable pour un seul processus backend.
 - **Transports et commerces** : dépend des serveurs publics Overpass, souvent saturés.
 - **Bruit** : Maine-et-Loire (route et fer) et Loire-Atlantique (fer) seulement.

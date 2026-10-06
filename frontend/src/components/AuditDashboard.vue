@@ -2,6 +2,7 @@
 import { computed, ref } from 'vue'
 
 import { SOURCE_INFO } from '../lib/sources'
+import { isLocked, teaserHook } from '../lib/teaser'
 import type { SourceDataMap, SourceName, SourceResult, SourceResults } from '../types/audit'
 import AirCard from './cards/AirCard.vue'
 import CondoCard from './cards/CondoCard.vue'
@@ -44,12 +45,24 @@ function resultOf<K extends SourceName>(name: K): SourceResult<SourceDataMap[K]>
   return props.sources[name] ?? (props.settled ? NEVER_ANSWERED : undefined)
 }
 
-const rentPerM2 = computed(() => props.sources.loyers?.data?.loyer_m2_charges_comprises ?? null)
-const pricePerM2 = computed(() => props.sources.dvf?.data?.prix_m2_median ?? null)
+/** Propriétés d'une carte : titre, résultat, et accroche si le serveur a masqué ses données. */
+function card<K extends SourceName>(name: K, compact = false) {
+  const result = resultOf(name)
+  return { ...SOURCE_INFO[name], result, compact, hook: teaserHook(name, result?.data) }
+}
+
+// Une valeur masquée par le serveur (chaîne) n'est pas un nombre : le calcul est alors verrouillé.
+function numeric(value: unknown): number | null {
+  return typeof value === 'number' ? value : null
+}
+
+const rentPerM2 = computed(() => numeric(props.sources.loyers?.data?.loyer_m2_charges_comprises))
+const pricePerM2 = computed(() => numeric(props.sources.dvf?.data?.prix_m2_median))
+const yieldLocked = computed(() => isLocked(props.sources.loyers?.data) || isLocked(props.sources.dvf?.data))
 // Surface et charges partagées entre le bloc copropriété et le simulateur de rendement.
 const surfaceM2 = ref(DEFAULT_SURFACE_M2)
 const condoCharges = ref<number | null>(null)
-const propertyTaxRate = computed(() => props.sources.taxe_fonciere?.data?.taux_tfb_total ?? null)
+const propertyTaxRate = computed(() => numeric(props.sources.taxe_fonciere?.data?.taux_tfb_total))
 // Montant calculé par le simulateur de taxe foncière, repris par le calcul de rendement.
 const estimatedPropertyTax = ref<number | null>(null)
 const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
@@ -60,7 +73,7 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
     <section aria-labelledby="section-market">
       <h2 id="section-market" class="mb-4 text-lg font-semibold text-slate-900">Marché immobilier</h2>
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <SourceCard class="lg:col-span-3" v-bind="SOURCE_INFO.dvf" :result="resultOf('dvf')">
+        <SourceCard class="lg:col-span-3" v-bind="card('dvf')">
           <template #default="{ data }"><DvfCard :data="data" /></template>
           <template #skeleton>
             <span class="grid grid-cols-1 gap-6 lg:grid-cols-2">
@@ -74,15 +87,15 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
             </span>
           </template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.loyers" :result="resultOf('loyers')">
+        <SourceCard v-bind="card('loyers', true)">
           <template #default="{ data }"><RentCard :data="data" /></template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.taxe_fonciere" :result="resultOf('taxe_fonciere')">
+        <SourceCard v-bind="card('taxe_fonciere', true)">
           <template #default="{ data }">
             <PropertyTaxCard :data="data" @estimate="estimatedPropertyTax = $event" />
           </template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.copropriete" :result="resultOf('copropriete')">
+        <SourceCard v-bind="card('copropriete', true)">
           <template #default="{ data }">
             <CondoCard :data="data" :surface-m2="surfaceM2" @charges="condoCharges = $event" />
           </template>
@@ -91,6 +104,7 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
           v-model:surface="surfaceM2"
           class="lg:col-span-3"
           :loading="yieldPending"
+          :locked="yieldLocked"
           :rent-per-m2="rentPerM2"
           :price-per-m2="pricePerM2"
           :condo-charges-estimate="condoCharges"
@@ -103,16 +117,16 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
     <section aria-labelledby="section-risks">
       <h2 id="section-risks" class="mb-4 text-lg font-semibold text-slate-900">Risques et urbanisme</h2>
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <SourceCard class="lg:col-span-2" v-bind="SOURCE_INFO.georisques" :result="resultOf('georisques')">
+        <SourceCard class="lg:col-span-2" v-bind="card('georisques')">
           <template #default="{ data }"><RisksCard :data="data" /></template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.permis_construire" :result="resultOf('permis_construire')">
+        <SourceCard v-bind="card('permis_construire', true)">
           <template #default="{ data }"><PermitsCard :data="data" /></template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.cadastre" :result="resultOf('cadastre')">
+        <SourceCard v-bind="card('cadastre', true)">
           <template #default="{ data }"><ParcelCard :data="data" /></template>
         </SourceCard>
-        <SourceCard class="lg:col-span-2" v-bind="SOURCE_INFO.urbanisme" :result="resultOf('urbanisme')">
+        <SourceCard class="lg:col-span-2" v-bind="card('urbanisme')">
           <template #default="{ data }"><ZoningCard :data="data" /></template>
         </SourceCard>
       </div>
@@ -121,16 +135,16 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
     <section aria-labelledby="section-environment">
       <h2 id="section-environment" class="mb-4 text-lg font-semibold text-slate-900">Énergie et environnement</h2>
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <SourceCard v-bind="SOURCE_INFO.dpe" :result="resultOf('dpe')">
+        <SourceCard v-bind="card('dpe', true)">
           <template #default="{ data }"><EnergyCard :data="data" /></template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.ensoleillement" :result="resultOf('ensoleillement')">
+        <SourceCard v-bind="card('ensoleillement', true)">
           <template #default="{ data }"><SunlightCard :data="data" /></template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.qualite_air" :result="resultOf('qualite_air')">
+        <SourceCard v-bind="card('qualite_air', true)">
           <template #default="{ data }"><AirCard :data="data" /></template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.bruit" :result="resultOf('bruit')">
+        <SourceCard v-bind="card('bruit', true)">
           <template #default="{ data }"><NoiseCard :data="data" /></template>
         </SourceCard>
       </div>
@@ -139,22 +153,22 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
     <section aria-labelledby="section-neighbourhood">
       <h2 id="section-neighbourhood" class="mb-4 text-lg font-semibold text-slate-900">Vie de quartier</h2>
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
-        <SourceCard v-bind="SOURCE_INFO.proximite" :result="resultOf('proximite')">
+        <SourceCard v-bind="card('proximite', true)">
           <template #default="{ data }"><NearbyCard :data="data" /></template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.ecoles" :result="resultOf('ecoles')">
+        <SourceCard v-bind="card('ecoles', true)">
           <template #default="{ data }"><SchoolsCard :data="data" /></template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.delinquance" :result="resultOf('delinquance')">
+        <SourceCard v-bind="card('delinquance', true)">
           <template #default="{ data }"><CrimeCard :data="data" /></template>
         </SourceCard>
-        <SourceCard class="lg:col-span-2" v-bind="SOURCE_INFO.marche_locatif" :result="resultOf('marche_locatif')">
+        <SourceCard class="lg:col-span-2" v-bind="card('marche_locatif')">
           <template #default="{ data }"><RentalMarketCard :data="data" /></template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.connectivite" :result="resultOf('connectivite')">
+        <SourceCard v-bind="card('connectivite', true)">
           <template #default="{ data }"><ConnectivityCard :data="data" /></template>
         </SourceCard>
-        <SourceCard v-bind="SOURCE_INFO.reseau_mobile" :result="resultOf('reseau_mobile')">
+        <SourceCard v-bind="card('reseau_mobile', true)">
           <template #default="{ data }"><MobileNetworkCard :data="data" /></template>
         </SourceCard>
       </div>

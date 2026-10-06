@@ -7,10 +7,11 @@ from typing import Annotated, Any
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 from fastapi.responses import StreamingResponse
 
-from app.api.deps import AuditServiceDep, enforce_rate_limit
+from app.api.deps import AuditServiceDep, FullAccessDep, enforce_rate_limit
 from app.core.errors import LocationNotFoundError, SourceError
 from app.schemas.audit import AuditQuery, AuditReport
 from app.services.audit_service import AuditService, DoneEvent, LocationEvent
+from app.services.teaser import mask_meta, mask_report, mask_result
 
 router = APIRouter(prefix="/api/v1", tags=["audit"])
 
@@ -31,10 +32,13 @@ async def list_sources(service: AuditServiceDep) -> dict[str, list[str]]:
     dependencies=[Depends(enforce_rate_limit)],
     responses={404: {"description": "Hors couverture"}, 429: {"description": "Débit dépassé"}},
 )
-async def get_audit(query: AuditQueryDep, service: AuditServiceDep) -> AuditReport:
-    """Rapport d'audit complet en une seule réponse JSON."""
+async def get_audit(
+    query: AuditQueryDep, service: AuditServiceDep, full_access: FullAccessDep
+) -> AuditReport:
+    """Rapport d'audit en une seule réponse JSON ; version « teaser » sans droit d'accès."""
     try:
-        return await service.get_report(query)
+        report = await service.get_report(query)
+        return report if full_access else mask_report(report)
     except LocationNotFoundError as exc:
         raise HTTPException(status.HTTP_404_NOT_FOUND, _NOT_FOUND_DETAIL) from exc
     except SourceError as exc:
@@ -42,10 +46,12 @@ async def get_audit(query: AuditQueryDep, service: AuditServiceDep) -> AuditRepo
 
 
 @router.get("/audit/stream", dependencies=[Depends(enforce_rate_limit)])
-async def stream_audit(query: AuditQueryDep, service: AuditServiceDep) -> StreamingResponse:
+async def stream_audit(
+    query: AuditQueryDep, service: AuditServiceDep, full_access: FullAccessDep
+) -> StreamingResponse:
     """Même rapport, émis source par source : `location`, `source`…, puis `done` ou `error`."""
     return StreamingResponse(
-        _sse_events(service, query),
+        _sse_events(service, query, full_access),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-cache", "X-Accel-Buffering": "no"},
     )
@@ -55,17 +61,20 @@ def _sse(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
-async def _sse_events(service: AuditService, query: AuditQuery) -> AsyncIterator[str]:
+async def _sse_events(
+    service: AuditService, query: AuditQuery, full_access: bool
+) -> AsyncIterator[str]:
     try:
         async for event in service.stream(query):
             if isinstance(event, LocationEvent):
                 yield _sse("location", event.location.model_dump(mode="json"))
             elif isinstance(event, DoneEvent):
-                yield _sse("done", event.meta.model_dump(mode="json"))
+                meta = event.meta if full_access else mask_meta(event.meta)
+                yield _sse("done", meta.model_dump(mode="json"))
             else:
-                yield _sse(
-                    "source", {"name": event.name, "result": event.result.model_dump(mode="json")}
-                )
+                # Le masquage a lieu avant la sérialisation : la valeur ne quitte pas le serveur.
+                result = event.result if full_access else mask_result(event.name, event.result)
+                yield _sse("source", {"name": event.name, "result": result.model_dump(mode="json")})
     except LocationNotFoundError:
         yield _sse("error", {"code": "location_not_found", "detail": _NOT_FOUND_DETAIL})
     except SourceError:

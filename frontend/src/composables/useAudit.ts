@@ -63,7 +63,7 @@ export function useAudit(dependencies: Partial<AuditDependencies> = {}) {
     cancelStream = undefined
   }
 
-  function start(target: AuditTarget): void {
+  function start(target: AuditTarget, accessToken?: string | null): void {
     cancel()
     phase.value = 'loading'
     location.value = null
@@ -86,7 +86,7 @@ export function useAudit(dependencies: Partial<AuditDependencies> = {}) {
         errorMessage.value = message
         phase.value = 'error'
       },
-    })
+    }, accessToken)
   }
 
   function reset(): void {

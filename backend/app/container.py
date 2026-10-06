@@ -4,12 +4,15 @@ from datetime import timedelta
 
 import aiohttp
 import asyncpg
+from pydantic import SecretStr
 
 from app.core.config import Settings
 from app.core.http import HttpClient
+from app.repositories.billing import BillingRepository
 from app.repositories.reference import PostgresReferenceRepository
 from app.repositories.report_cache import PostgresReportCache
 from app.services.audit_service import AuditPolicy, AuditService
+from app.services.billing import BillingService
 from app.services.geocoding import BanGeocoder
 from app.services.providers.apicarto import CadastreProvider, UrbanismeProvider
 from app.services.providers.base import Provider
@@ -79,4 +82,27 @@ def build_audit_service(
             cache_partial_ttl=timedelta(minutes=settings.cache_partial_ttl_minutes),
             provider_deadline_s=settings.provider_deadline_s,
         ),
+    )
+
+
+def build_billing_service(
+    settings: Settings, repository: BillingRepository, session: aiohttp.ClientSession
+) -> BillingService:
+    def secret(value: SecretStr | None) -> str | None:
+        return value.get_secret_value() if value else None
+
+    return BillingService(
+        # Client dédié : son coupe-circuit est indépendant de ceux des sources d'audit.
+        http=HttpClient(
+            session,
+            timeout_s=settings.http_timeout_s,
+            failure_threshold=settings.breaker_failure_threshold,
+            reset_after_s=settings.breaker_reset_after_s,
+        ),
+        repository=repository,
+        secret_key=secret(settings.stripe_secret_key),
+        webhook_secret=secret(settings.stripe_webhook_secret),
+        api_url=settings.stripe_api_url,
+        site_url=settings.site_url,
+        pro_tax_rate_id=settings.stripe_pro_tax_rate_id,
     )

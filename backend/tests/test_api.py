@@ -8,7 +8,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.deps import get_audit_service, get_rate_limiter
+from app.api.deps import get_audit_service, get_entitlements, get_rate_limiter
 from app.api.routers import audit
 from app.core.errors import LocationNotFoundError
 from app.core.rate_limit import SlidingWindowRateLimiter
@@ -19,6 +19,11 @@ LOCATION = Location(lat=48.86, lon=2.33, label="Paris", citycode="75101")
 META = ReportMeta(
     generated_at=datetime(2026, 1, 1, tzinfo=UTC), is_partial=False, report_version=1, duration_ms=5
 )
+
+
+class NoEntitlements:
+    async def has_access(self, user_id: str, lat: float, lon: float) -> bool:
+        return False
 
 
 class StubService:
@@ -55,6 +60,7 @@ def client(service: StubService) -> Iterator[TestClient]:
     limiter = SlidingWindowRateLimiter(limit=3, window_s=60)
     app.dependency_overrides[get_audit_service] = lambda: service
     app.dependency_overrides[get_rate_limiter] = lambda: limiter
+    app.dependency_overrides[get_entitlements] = lambda: NoEntitlements()
     with TestClient(app) as test_client:
         yield test_client
 

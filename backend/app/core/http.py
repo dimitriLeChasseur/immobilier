@@ -80,13 +80,21 @@ class HttpClient:
         return await self._request(source, "GET", url, params=params)
 
     async def post_form_json(
-        self, source: str, url: str, *, data: Mapping[str, str], timeout_s: float | None = None
+        self,
+        source: str,
+        url: str,
+        *,
+        data: Mapping[str, str],
+        timeout_s: float | None = None,
+        headers: Mapping[str, str] | None = None,
     ) -> Any:
         """POST d'un formulaire renvoyant le JSON décodé.
 
         `timeout_s` raccourcit le délai de cet appel, pour enchaîner plusieurs serveurs de repli.
         """
-        return await self._request(source, "POST", url, timeout_s=timeout_s, data=data)
+        return await self._request(
+            source, "POST", url, timeout_s=timeout_s, data=data, headers=headers
+        )
 
     async def post_json(
         self, source: str, url: str, *, payload: Any, headers: Mapping[str, str] | None = None

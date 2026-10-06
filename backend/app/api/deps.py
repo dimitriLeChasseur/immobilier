@@ -1,12 +1,22 @@
 """Dépendances FastAPI (injection par Depends)."""
 
+import logging
 import math
 from typing import Annotated
 
-from fastapi import Depends, HTTPException, Request, status
+from fastapi import Depends, Header, HTTPException, Query, Request, status
 
+from app.core.config import get_settings
+from app.core.errors import RepositoryError
 from app.core.rate_limit import SlidingWindowRateLimiter
+from app.core.security import AuthenticatedUser, InvalidTokenError, decode_access_token
+from app.repositories.billing import BillingRepository
+from app.repositories.entitlements import EntitlementRepository
+from app.schemas.audit import AuditQuery
 from app.services.audit_service import AuditService
+from app.services.billing import BillingService
+
+logger = logging.getLogger(__name__)
 
 
 def get_audit_service(request: Request) -> AuditService:
@@ -34,4 +44,76 @@ def enforce_rate_limit(
         )
 
 
+def get_entitlements(request: Request) -> EntitlementRepository:
+    repository: EntitlementRepository = request.app.state.entitlements
+    return repository
+
+
+def get_current_user(
+    authorization: Annotated[str | None, Header()] = None,
+) -> AuthenticatedUser | None:
+    """Utilisateur connecté, ou None pour un visiteur anonyme.
+
+    Un jeton présent mais invalide ou expiré est refusé (401) plutôt qu'ignoré : le client
+    doit le renouveler, et non recevoir en silence la version restreinte.
+    """
+    if authorization is None:
+        return None
+    scheme, _, token = authorization.partition(" ")
+    if scheme.lower() != "bearer" or not token:
+        raise _unauthorized()
+    try:
+        return decode_access_token(token, get_settings().supabase_jwt_secret.get_secret_value())
+    except InvalidTokenError as exc:
+        raise _unauthorized() from exc
+
+
+def _unauthorized() -> HTTPException:
+    return HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Session invalide ou expirée, reconnectez-vous.",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+
+
+async def has_full_access(
+    query: Annotated[AuditQuery, Query()],
+    user: Annotated[AuthenticatedUser | None, Depends(get_current_user)],
+    entitlements: Annotated[EntitlementRepository, Depends(get_entitlements)],
+) -> bool:
+    """Vrai si l'utilisateur a acheté l'audit complet de cette adresse.
+
+    Refus par défaut : sans utilisateur, sans droit, ou si la vérification échoue.
+    """
+    if user is None:
+        return False
+    try:
+        return await entitlements.has_access(user.id, query.lat, query.lon)
+    except RepositoryError:
+        logger.warning("Vérification des droits impossible : accès restreint par défaut")
+        return False
+
+
+def require_user(
+    user: Annotated[AuthenticatedUser | None, Depends(get_current_user)],
+) -> AuthenticatedUser:
+    if user is None:
+        raise _unauthorized()
+    return user
+
+
+def get_billing_service(request: Request) -> BillingService:
+    service: BillingService = request.app.state.billing_service
+    return service
+
+
+def get_billing_repository(request: Request) -> BillingRepository:
+    repository: BillingRepository = request.app.state.billing_repository
+    return repository
+
+
 AuditServiceDep = Annotated[AuditService, Depends(get_audit_service)]
+RequiredUserDep = Annotated[AuthenticatedUser, Depends(require_user)]
+BillingServiceDep = Annotated[BillingService, Depends(get_billing_service)]
+BillingRepositoryDep = Annotated[BillingRepository, Depends(get_billing_repository)]
+FullAccessDep = Annotated[bool, Depends(has_full_access)]

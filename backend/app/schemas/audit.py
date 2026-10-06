@@ -59,6 +59,8 @@ class ReportMeta(BaseModel):
     is_partial: bool
     # Noms des sources concernées, pour que l'interface dise précisément ce qui manque.
     failed_sources: list[str] = Field(default_factory=list)
+    # "teaser" : valeurs sensibles remplacées par "***LOCKED***" ; "full" : rapport complet.
+    access: Literal["full", "teaser"] = "full"
     report_version: int
     duration_ms: int
 

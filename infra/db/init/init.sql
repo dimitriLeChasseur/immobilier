@@ -252,6 +252,53 @@ CREATE INDEX IF NOT EXISTS geo_bruit_lden_geom_gist
 CREATE INDEX IF NOT EXISTS geo_bruit_lden_source_idx
     ON immo.geo_bruit_lden (source_id);
 
+-- Droits d'accès aux audits complets : une ligne par utilisateur et par adresse achetée.
+-- Alimentée après paiement (intégration Stripe à venir) ; sans ligne, l'API ne renvoie
+-- que la version « teaser » du rapport.
+CREATE TABLE IF NOT EXISTS immo.audit_entitlements (
+    user_id     uuid        NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+    -- Même clé spatiale que le cache : geohash de précision 9 du point audité.
+    geohash     text        NOT NULL,
+    origin      text        NOT NULL,
+    label       text,
+    granted_at  timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT audit_entitlements_pkey PRIMARY KEY (user_id, geohash),
+    CONSTRAINT audit_entitlements_origin_check
+        CHECK (origin IN ('unit', 'pack', 'subscription', 'admin')),
+    CONSTRAINT audit_entitlements_geohash_check CHECK (char_length(geohash) = 9)
+);
+
+-- Crédits d'audit restants (Pack Investisseur) : un crédit débloque une adresse.
+CREATE TABLE IF NOT EXISTS immo.user_credits (
+    user_id     uuid        NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+    credits     integer     NOT NULL DEFAULT 0,
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT user_credits_pkey PRIMARY KEY (user_id),
+    CONSTRAINT user_credits_non_negative CHECK (credits >= 0)
+);
+
+-- Abonnement Pro : accès à toutes les adresses tant qu'il est actif.
+CREATE TABLE IF NOT EXISTS immo.user_subscriptions (
+    user_id                 uuid        NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+    stripe_customer_id      text,
+    stripe_subscription_id  text        NOT NULL,
+    status                  text        NOT NULL,
+    current_period_end      timestamptz,
+    -- Date de l'évènement Stripe appliqué : un évènement plus ancien, livré en retard, est ignoré.
+    last_event_at           timestamptz NOT NULL DEFAULT now(),
+    updated_at              timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT user_subscriptions_pkey PRIMARY KEY (user_id),
+    CONSTRAINT user_subscriptions_stripe_id_key UNIQUE (stripe_subscription_id)
+);
+
+-- Évènements Stripe déjà traités : Stripe peut livrer deux fois le même évènement.
+CREATE TABLE IF NOT EXISTS immo.stripe_events (
+    event_id     text        NOT NULL,
+    type         text        NOT NULL,
+    received_at  timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT stripe_events_pkey PRIMARY KEY (event_id)
+);
+
 -- ----------------------------------------------------------------------------
 -- 4. Sécurité — RLS, privilèges et policies
 -- ----------------------------------------------------------------------------
@@ -272,7 +319,8 @@ DECLARE
 BEGIN
     FOREACH tbl IN ARRAY ARRAY[
         'api_reports_cache', 'insee_ssmsi', 'insee_dgfip', 'geo_ips_ecoles', 'geo_sitadel',
-        'insee_iris_logement', 'arcep_connectivite', 'geo_bruit_lden'
+        'insee_iris_logement', 'arcep_connectivite', 'geo_bruit_lden', 'audit_entitlements',
+        'user_credits', 'user_subscriptions', 'stripe_events'
     ]
     LOOP
         EXECUTE format('ALTER TABLE immo.%I OWNER TO postgres', tbl);

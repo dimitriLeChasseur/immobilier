@@ -2,13 +2,19 @@
 import { computed } from 'vue'
 
 import { FAILURE_LABELS, isFailure } from '../lib/sources'
+import { isLocked } from '../lib/teaser'
 import type { SourceResult } from '../types/audit'
+import LockedTeaser from './LockedTeaser.vue'
 
 const props = defineProps<{
   title: string
   emptyText: string
   /** Absent tant que la source n'a pas répondu. */
   result?: SourceResult<T>
+  /** Phrase d'accroche affichée quand le serveur a masqué les données de cette source. */
+  hook?: string
+  /** Carte étroite : bouton de déblocage court. */
+  compact?: boolean
 }>()
 
 defineSlots<{
@@ -18,6 +24,7 @@ defineSlots<{
 
 const failureLabel = computed(() => (props.result ? FAILURE_LABELS[props.result.status] : undefined))
 const hasData = computed(() => props.result?.data != null && !isFailure(props.result.status))
+const locked = computed(() => hasData.value && isLocked(props.result?.data))
 </script>
 
 <template>
@@ -51,6 +58,8 @@ const hasData = computed(() => props.result?.data != null && !isFailure(props.re
         <span class="skeleton block h-3 w-3/5"></span>
       </slot>
     </output>
+
+    <LockedTeaser v-else-if="locked" :hook="hook ?? 'Analyse réalisée pour cette adresse'" :compact="compact" />
 
     <slot v-else-if="hasData" :data="result.data as T" />
 

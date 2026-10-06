@@ -25,6 +25,8 @@ export interface ReportMeta {
   generated_at: string
   cached: boolean
   is_partial: boolean
+  /** "teaser" : le serveur a remplacé les valeurs réservées par "***LOCKED***". */
+  access?: 'full' | 'teaser'
   /** Sources n'ayant pas (entièrement) répondu ; absent des rapports mis en cache avant la v2. */
   failed_sources?: string[]
   report_version: number

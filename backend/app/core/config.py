@@ -35,6 +35,15 @@ class Settings(BaseSettings):
     rate_limit_requests: int = Field(default=30, ge=1)
     rate_limit_window_s: float = Field(default=60.0, gt=0)
 
+    # Paiement Stripe. Sans clé, les routes de paiement répondent 503 et rien n'est facturé.
+    stripe_secret_key: SecretStr | None = None
+    stripe_webhook_secret: SecretStr | None = None
+    stripe_api_url: str = "https://api.stripe.com"
+    # Taux de TVA Stripe (txr_...) appliqué en sus du prix de l'abonnement Pro, affiché HT.
+    stripe_pro_tax_rate_id: str | None = None
+    # Adresse du frontend : seules destinations de retour possibles après paiement.
+    site_url: str = "http://localhost:5173"
+
     # OpenRouteService : temps de marche réels si la clé est fournie, estimation sinon.
     ors_api_key: SecretStr | None = None
 

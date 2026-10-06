@@ -62,3 +62,9 @@
 .audit-progress::-moz-progress-bar {
   @apply rounded-full bg-brand-600;
 }
+
+/* Contenu réservé aux audits achetés : valeurs factices rendues illisibles. */
+.locked-blur {
+  filter: blur(6px);
+  pointer-events: none;
+}

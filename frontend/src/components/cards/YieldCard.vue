@@ -2,10 +2,13 @@
 import { computed, ref, watch } from 'vue'
 
 import { formatEuros, formatPercent, grossYield, netYield } from '../../lib/format'
+import LockedTeaser from '../LockedTeaser.vue'
 import StatTile from '../StatTile.vue'
 
 const props = defineProps<{
   loading: boolean
+  /** Prix ou loyer masqués par le serveur : le rendement n'est pas calculable côté client. */
+  locked?: boolean
   rentPerM2: number | null
   pricePerM2: number | null
   /** Charges annuelles issues du bloc copropriété ; reprises tant que le champ n'est pas modifié. */
@@ -70,7 +73,9 @@ function onChargesInput(): void {
   <section class="rounded-2xl border border-brand-100 bg-brand-50 p-5">
     <h3 class="mb-4 text-sm font-semibold text-brand-900">Rendement locatif</h3>
 
-    <output v-if="loading && gross === null" class="block">
+    <LockedTeaser v-if="locked" hook="Rendement brut et net calculés pour cette adresse" />
+
+    <output v-else-if="loading && gross === null" class="block">
       <span class="sr-only">Calcul du rendement</span>
       <span class="skeleton mb-3 block h-8 w-2/5"></span>
       <span class="skeleton block h-3 w-4/5"></span>
