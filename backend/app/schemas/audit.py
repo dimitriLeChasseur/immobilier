@@ -66,6 +66,8 @@ class SourceResult(BaseModel):
     missing: list[str] = Field(default_factory=list)
     error: str | None = None
     duration_ms: int = 0
+    # Date d'interrogation de la source : chaque source a sa propre durée de validité en cache.
+    fetched_at: datetime | None = None
 
 
 class Finding(BaseModel):

@@ -30,6 +30,7 @@ class Settings(BaseSettings):
     report_version: int = Field(default=7, ge=1, le=32767)
     cache_ttl_hours: int = Field(default=168, ge=1)
     cache_partial_ttl_minutes: int = Field(default=15, ge=1)
+    air_quality_ttl_hours: int = Field(default=12, ge=1)
 
     # Limitation de débit (par adresse IP)
     rate_limit_requests: int = Field(default=30, ge=1)

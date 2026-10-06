@@ -8,7 +8,6 @@ from app.core.http import HttpClient
 from app.services.providers.base import AuditContext, ProviderData, as_rows
 
 _BASE_URL = "https://apicarto.ign.fr/api"
-_SOURCE = "apicarto"
 
 # Points de la voie transmis à l'API pour retrouver les zones qu'elle traverse.
 _STREET_SAMPLES = 12
@@ -33,7 +32,9 @@ class CadastreProvider:
             # Une voie n'a pas de parcelle : le centre de la rue tombe sur le domaine public.
             raise NoDataError
         payload = await self._http.get_json(
-            _SOURCE, f"{_BASE_URL}/cadastre/parcelle", params={"geom": point_geojson(ctx)}
+            "apicarto_parcelle",
+            f"{_BASE_URL}/cadastre/parcelle",
+            params={"geom": point_geojson(ctx)},
         )
         parcels = feature_properties(payload)
         if not parcels:
@@ -65,7 +66,7 @@ class UrbanismeProvider:
             else point_geojson(ctx)
         )
         payload = await self._http.get_json(
-            _SOURCE, f"{_BASE_URL}/gpu/zone-urba", params={"geom": geom}
+            "apicarto_gpu", f"{_BASE_URL}/gpu/zone-urba", params={"geom": geom}
         )
         zones = [
             {

@@ -3,8 +3,8 @@
 import asyncio
 import logging
 import time
-from collections.abc import AsyncIterator, Callable, Sequence
-from dataclasses import dataclass
+from collections.abc import AsyncIterator, Callable, Mapping, Sequence
+from dataclasses import dataclass, field
 from datetime import UTC, datetime, timedelta
 
 from app.core.errors import LocationNotFoundError, NoDataError, RepositoryError, SourceError
@@ -57,8 +57,11 @@ AuditEvent = LocationEvent | SourceEvent | DoneEvent
 class AuditPolicy:
     report_version: int
     cache_ttl: timedelta
+    # Délai avant de réinterroger une source en échec ou incomplète.
     cache_partial_ttl: timedelta
     provider_deadline_s: float
+    # Durée de validité propre à certaines sources (ex. indice de l'air du jour).
+    source_ttls: Mapping[str, timedelta] = field(default_factory=dict)
 
 
 _MAP_POINTS = 60
@@ -79,6 +82,15 @@ def _street_location(location: Location, street: Street) -> Location:
             ),
         }
     )
+
+
+@dataclass(frozen=True, slots=True)
+class _Plan:
+    location: Location
+    street: Street | None
+    # Résultats repris du cache, et sources restant à interroger.
+    reused: dict[str, SourceResult]
+    pending: tuple[Provider, ...]
 
 
 class AuditService:
@@ -121,13 +133,18 @@ class AuditService:
         return AuditReport(location=location, sources=ordered, meta=meta)
 
     async def stream(self, query: AuditQuery) -> AsyncIterator[AuditEvent]:
-        """Émet la localisation, puis chaque source dès qu'elle répond, puis les métadonnées."""
+        """Émet la localisation, puis chaque source dès qu'elle répond, puis les métadonnées.
+
+        Les sources encore valides en cache sont reprises telles quelles ; seules celles qui
+        ont échoué ou sont périmées sont réinterrogées.
+        """
         started = self._monotonic()
         cached = await self._read_cache(query)
-        if cached is not None:
-            yield LocationEvent(cached.location)
-            for name, result in cached.sources.items():
-                yield SourceEvent(name, result)
+        plan = await self._plan(query, cached)
+        yield LocationEvent(plan.location)
+        for name, result in plan.reused.items():
+            yield SourceEvent(name, result)
+        if cached is not None and not plan.pending:
             yield DoneEvent(
                 cached.meta.model_copy(
                     update={"cached": True, "duration_ms": self._elapsed_ms(started)}
@@ -135,24 +152,17 @@ class AuditService:
             )
             return
 
-        location = await self._geocoder.reverse(query.lat, query.lon, query.ban_id)
-        if location is None:
-            raise LocationNotFoundError
-        street = await self._resolve_street(query)
-        if street is not None:
-            location = _street_location(location, street)
-        yield LocationEvent(location)
-
+        location = plan.location
         context = AuditContext(
             lat=location.lat,
             lon=location.lon,
             citycode=location.citycode,
             postcode=location.postcode,
             region=location.region,
-            street=street,
+            street=plan.street,
         )
-        sources: dict[str, SourceResult] = {}
-        tasks = [asyncio.create_task(self._run_provider(p, context)) for p in self._providers]
+        sources: dict[str, SourceResult] = dict(plan.reused)
+        tasks = [asyncio.create_task(self._run_provider(p, context)) for p in plan.pending]
         try:
             for completed in asyncio.as_completed(tasks):
                 name, result = await completed
@@ -185,6 +195,43 @@ class AuditService:
         )
         await self._write_cache(query, AuditReport(location=location, sources=sources, meta=meta))
         yield DoneEvent(meta)
+
+    async def _plan(self, query: AuditQuery, cached: AuditReport | None) -> "_Plan":
+        """Localisation de l'audit et partage des sources entre reprise du cache et appel."""
+        if cached is None:
+            location = await self._geocoder.reverse(query.lat, query.lon, query.ban_id)
+            if location is None:
+                raise LocationNotFoundError
+            street = await self._resolve_street(query)
+            if street is not None:
+                location = _street_location(location, street)
+            return _Plan(location, street, {}, self._providers)
+
+        reused = self._still_valid(cached)
+        pending = tuple(p for p in self._providers if p.name not in reused)
+        if not pending:
+            return _Plan(cached.location, None, reused, ())
+        street = await self._resolve_street(query) if cached.location.rue is not None else None
+        if cached.location.rue is not None and street is None:
+            # Voie momentanément introuvable : on ne mélange pas des sources calculées au
+            # point avec un rapport de rue, le cache est servi tel quel.
+            return _Plan(cached.location, None, dict(cached.sources), ())
+        return _Plan(cached.location, street, reused, pending)
+
+    def _still_valid(self, cached: AuditReport) -> dict[str, SourceResult]:
+        """Sources du cache encore utilisables : ni périmées, ni en échec trop ancien."""
+        now = datetime.now(UTC)
+        valid: dict[str, SourceResult] = {}
+        for name, result in cached.sources.items():
+            retry_soon = result.status in FAILED_STATUSES or result.status == "partial"
+            ttl = (
+                self._policy.cache_partial_ttl
+                if retry_soon
+                else self._policy.source_ttls.get(name, self._policy.cache_ttl)
+            )
+            if now - (result.fetched_at or cached.meta.generated_at) < ttl:
+                valid[name] = result
+        return valid
 
     async def _resolve_street(self, query: AuditQuery) -> Street | None:
         if self._streets is None:
@@ -225,6 +272,7 @@ class AuditService:
                 status="error", error=SourceError("invalid_response").public_message
             )
         result.duration_ms = self._elapsed_ms(started)
+        result.fetched_at = datetime.now(UTC)
         return provider.name, result
 
     async def _read_cache(self, query: AuditQuery) -> AuditReport | None:
@@ -245,7 +293,8 @@ class AuditService:
             return None
 
     async def _write_cache(self, query: AuditQuery, report: AuditReport) -> None:
-        ttl = self._policy.cache_partial_ttl if report.meta.is_partial else self._policy.cache_ttl
+        # La fraîcheur se juge source par source à la lecture : l'entrée vit la durée maximale.
+        ttl = self._policy.cache_ttl
         try:
             await self._cache.put(
                 lat=query.lat,

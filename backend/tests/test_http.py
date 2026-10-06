@@ -35,6 +35,25 @@ async def _status(request: web.Request) -> web.Response:
     return web.Response(status=int(request.match_info["code"]), text="<html>erreur</html>")
 
 
+HITS: dict[str, int] = {}
+
+
+async def _flaky(request: web.Request) -> web.Response:
+    """Échoue en 502 à la première demande, répond ensuite."""
+    HITS["flaky"] = HITS.get("flaky", 0) + 1
+    if HITS["flaky"] == 1:
+        return web.Response(status=502)
+    return web.json_response({"essai": HITS["flaky"]})
+
+
+async def _counted(request: web.Request) -> web.Response:
+    key = request.match_info["key"]
+    HITS[key] = HITS.get(key, 0) + 1
+    if key == "lent":
+        await asyncio.sleep(1)
+    return web.Response(status=404 if key == "absent" else 503)
+
+
 async def _html(_: web.Request) -> web.Response:
     return web.Response(text="<html>pas du JSON</html>")
 
@@ -50,8 +69,12 @@ async def server() -> AsyncIterator[TestServer]:
             web.get("/slow", _slow),
             web.get("/status/{code}", _status),
             web.get("/html", _html),
+            web.get("/flaky", _flaky),
+            web.post("/flaky", _flaky),
+            web.get("/counted/{key}", _counted),
         ]
     )
+    HITS.clear()
     test_server = TestServer(app)
     await test_server.start_server()
     try:
@@ -131,3 +154,37 @@ async def test_per_call_timeout_overrides_the_default(server: TestServer) -> Non
         with pytest.raises(SourceError) as error:
             await patient._request("s", "GET", url, timeout_s=0.05)
         assert error.value.kind == "timeout"
+
+
+async def test_a_brief_server_error_is_retried_once(client: HttpClient, server: TestServer) -> None:
+    assert await client.get_json("flaky", str(server.make_url("/flaky"))) == {"essai": 2}
+    # Le second essai a réussi : l'incident ne compte pas pour le coupe-circuit.
+    HITS.clear()
+    assert await client.get_json("flaky", str(server.make_url("/flaky"))) == {"essai": 2}
+
+
+async def test_a_lasting_server_error_fails_after_exactly_two_attempts(
+    client: HttpClient, server: TestServer
+) -> None:
+    with pytest.raises(SourceError) as error:
+        await client.get_json("panne", str(server.make_url("/counted/panne")))
+    assert error.value.kind == "http_error"
+    assert HITS["panne"] == 2
+
+
+async def test_writes_missing_resources_and_timeouts_are_never_retried(
+    client: HttpClient, server: TestServer
+) -> None:
+    with pytest.raises(SourceError):
+        await client.post_json("ecriture", str(server.make_url("/flaky")), payload={})
+    assert HITS["flaky"] == 1
+
+    with pytest.raises(SourceError) as missing:
+        await client.get_json("absent", str(server.make_url("/counted/absent")))
+    assert missing.value.kind == "not_found"
+    assert HITS["absent"] == 1
+
+    with pytest.raises(SourceError) as slow:
+        await client.get_json("lent", str(server.make_url("/counted/lent")))
+    assert slow.value.kind == "timeout"
+    assert HITS["lent"] == 1

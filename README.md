@@ -39,6 +39,10 @@ Principes à connaître avant d'intervenir :
 - **Dégradation gracieuse.** Chaque source a un délai de 9 s et son coupe-circuit. Une source en
   échec ne bloque jamais le rapport : il sort marqué `is_partial`, avec la liste
   `failed_sources`.
+- **Cache par source.** Un rapport reste en base sept jours, mais sa fraîcheur se juge source
+  par source : une source en échec ou incomplète est réinterrogée seule après 15 minutes,
+  l'indice de l'air après 12 heures ; les autres sont reprises du cache. Une lecture qui
+  échoue vite sur une erreur passagère (502, connexion coupée) est rejouée une fois.
 - **Modèle « teaser ».** Sans achat de l'adresse, l'API renvoie le rapport avec les valeurs
   réservées remplacées par `"***LOCKED***"` (`backend/app/services/teaser.py`, liste blanche
   par source : tout nouveau champ est masqué par défaut). Le masquage est fait côté serveur ;
@@ -151,6 +155,18 @@ main.
 
 Options : `--metropole angers`, `--source ddt49-route`. Le script sort en erreur (code 1) si une
 source échoue, sans effacer les données déjà chargées.
+
+### Test de fumée
+
+Les tests unitaires simulent toutes les API. Pour détecter une source arrêtée, déplacée ou
+dont la réponse a changé de forme, un test interroge les vraies sources sur une adresse et
+une rue de référence, sans passer par le cache :
+
+```bash
+docker compose exec -T backend python -m app.smoke   # code de retour 1 en cas d'anomalie
+# crontab -e, sur le VPS : chaque nuit à 3 h
+0 3 * * * cd /opt/project-immobilier && docker compose exec -T backend python -m app.smoke >> /var/log/immo-smoke.log 2>&1
+```
 
 ## Paiement Stripe et connexion Google
 

@@ -113,7 +113,9 @@ class DvfProvider:
 
     async def _sections(self, ctx: AuditContext, area: dict[str, Any]) -> list[tuple[str, str]]:
         polygon = json.dumps(area, separators=(",", ":"))
-        payload = await self._http.get_json("apicarto", _FEUILLE_URL, params={"geom": polygon})
+        payload = await self._http.get_json(
+            "apicarto_feuille", _FEUILLE_URL, params={"geom": polygon}
+        )
         distances: dict[tuple[str, str], float] = {}
         for feature in as_rows(payload, "features"):
             section = _section_key(feature.get("properties") or {})

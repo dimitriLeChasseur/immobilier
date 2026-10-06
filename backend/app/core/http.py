@@ -1,5 +1,6 @@
 """Client HTTP asynchrone : timeout strict, circuit-breaker par source, erreurs typées."""
 
+import asyncio
 import json
 import time
 from collections.abc import Callable, Mapping
@@ -17,6 +18,9 @@ _HTTP_NOT_FOUND = 404
 _HTTP_TOO_MANY_REQUESTS = 429
 _HTTP_SERVER_ERROR = 500
 _HTTP_CLIENT_ERROR = 400
+# Relance d'une lecture : seulement si l'échec est arrivé vite, après une courte pause.
+_RETRY_WITHIN_S = 2.0
+_RETRY_DELAY_S = 0.3
 
 
 class CircuitBreaker:
@@ -68,8 +72,10 @@ class HttpClient:
         timeout_s: float,
         failure_threshold: int,
         reset_after_s: float,
+        clock: Callable[[], float] = time.monotonic,
     ) -> None:
         self._session = session
+        self._clock = clock
         self._timeout = aiohttp.ClientTimeout(total=timeout_s)
         self._failure_threshold = failure_threshold
         self._reset_after_s = reset_after_s
@@ -116,21 +122,50 @@ class HttpClient:
         breaker = self._breaker(source)
         if not breaker.allow():
             raise SourceError("circuit_open", source)
+        started = self._clock()
         try:
-            async with self._session.request(method, url, timeout=timeout, **kwargs) as response:
-                payload = await _decode(response)
-        except TimeoutError as exc:
-            breaker.record_failure()
-            raise SourceError("timeout", source) from exc
-        except aiohttp.ClientError as exc:
-            breaker.record_failure()
-            raise SourceError("http_error", type(exc).__name__) from exc
+            try:
+                payload = await self._send(source, method, url, timeout, kwargs)
+            except SourceError as exc:
+                if not self._worth_retrying(method, exc, started):
+                    raise
+                # Incident bref (502, connexion coupée) : un second essai suffit le plus souvent.
+                await asyncio.sleep(_RETRY_DELAY_S)
+                payload = await self._send(source, method, url, timeout, kwargs)
         except SourceError as exc:
             if exc.transient:
                 breaker.record_failure()
             raise
         breaker.record_success()
         return payload
+
+    def _worth_retrying(self, method: str, error: SourceError, started: float) -> bool:
+        """Un seul nouvel essai, pour une lecture qui a échoué vite sur une erreur passagère.
+
+        Un délai dépassé n'est pas rejoué : la source a déjà consommé son temps de réponse.
+        """
+        return (
+            method == "GET"
+            and error.transient
+            and error.kind == "http_error"
+            and self._clock() - started < _RETRY_WITHIN_S
+        )
+
+    async def _send(
+        self,
+        source: str,
+        method: str,
+        url: str,
+        limit: aiohttp.ClientTimeout,
+        kwargs: dict[str, Any],
+    ) -> Any:
+        try:
+            async with self._session.request(method, url, timeout=limit, **kwargs) as response:
+                return await _decode(response)
+        except TimeoutError as exc:
+            raise SourceError("timeout", source) from exc
+        except aiohttp.ClientError as exc:
+            raise SourceError("http_error", type(exc).__name__) from exc
 
 
 async def _decode(response: aiohttp.ClientResponse) -> Any:

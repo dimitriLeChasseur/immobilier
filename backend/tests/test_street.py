@@ -163,7 +163,7 @@ CTX = AuditContext(lat=CENTER[0], lon=CENTER[1], citycode="49007", street=STREET
 
 async def test_dvf_reports_the_street_and_compares_it_with_its_surroundings() -> None:
     rows = [sale("a", "7050", 150_000), sale("b", "7050", 170_000, 14), sale("c", "1234", 250_000)]
-    http = FakeHttp({"apicarto": FEUILLES, "dvf": {"mutations": rows}})
+    http = FakeHttp({"apicarto_feuille": FEUILLES, "dvf": {"mutations": rows}})
     data = (await DvfProvider(http).fetch(CTX)).data  # type: ignore[arg-type]
 
     assert data["perimetre"] == "rue"
@@ -183,7 +183,9 @@ async def test_dvf_reports_the_street_and_compares_it_with_its_surroundings() ->
 
 
 async def test_dvf_falls_back_to_the_radius_when_the_street_has_no_sale() -> None:
-    http = FakeHttp({"apicarto": FEUILLES, "dvf": {"mutations": [sale("c", "1234", 250_000)]}})
+    http = FakeHttp(
+        {"apicarto_feuille": FEUILLES, "dvf": {"mutations": [sale("c", "1234", 250_000)]}}
+    )
     data = (await DvfProvider(http).fetch(CTX)).data  # type: ignore[arg-type]
     assert data["perimetre"] == "rayon"
     assert data["rayon_m"] == 300

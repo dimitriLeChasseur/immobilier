@@ -10,7 +10,7 @@ from app.core.config import Settings
 from app.core.http import HttpClient
 from app.repositories.billing import BillingRepository
 from app.repositories.reference import PostgresReferenceRepository
-from app.repositories.report_cache import PostgresReportCache
+from app.repositories.report_cache import PostgresReportCache, ReportCache
 from app.services.audit_service import AuditPolicy, AuditService
 from app.services.billing import BillingService
 from app.services.geocoding import BanGeocoder
@@ -39,7 +39,10 @@ from app.services.street import BanStreetResolver
 
 
 def build_audit_service(
-    settings: Settings, pool: asyncpg.Pool, session: aiohttp.ClientSession
+    settings: Settings,
+    pool: asyncpg.Pool,
+    session: aiohttp.ClientSession,
+    cache: ReportCache | None = None,
 ) -> AuditService:
     http = HttpClient(
         session,
@@ -77,12 +80,14 @@ def build_audit_service(
         geocoder=BanGeocoder(http),
         streets=BanStreetResolver(http),
         providers=providers,
-        cache=PostgresReportCache(pool),
+        cache=cache or PostgresReportCache(pool),
         policy=AuditPolicy(
             report_version=settings.report_version,
             cache_ttl=timedelta(hours=settings.cache_ttl_hours),
             cache_partial_ttl=timedelta(minutes=settings.cache_partial_ttl_minutes),
             provider_deadline_s=settings.provider_deadline_s,
+            # L'indice de l'air est celui du jour : il ne vaut pas sept jours.
+            source_ttls={"qualite_air": timedelta(hours=settings.air_quality_ttl_hours)},
         ),
     )
 

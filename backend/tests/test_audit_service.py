@@ -1,7 +1,7 @@
 """Orchestrateur : statuts, cache, flux. Dépendances remplacées par des doublures."""
 
 import asyncio
-from datetime import timedelta
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -149,11 +149,100 @@ async def test_complete_report_is_cached_and_second_call_skips_the_pipeline() ->
     assert geocoder.calls == 1
 
 
-async def test_partial_report_gets_short_ttl() -> None:
+class CountingProvider:
+    """Source dont le résultat change à chaque appel, pour repérer les réinterrogations."""
+
+    def __init__(self, name: str, outcomes: list[Any]) -> None:
+        self.name = name
+        self._outcomes = outcomes
+        self.calls = 0
+
+    async def fetch(self, ctx: AuditContext) -> ProviderData:
+        outcome = self._outcomes[min(self.calls, len(self._outcomes) - 1)]
+        self.calls += 1
+        if isinstance(outcome, Exception):
+            raise outcome
+        return ProviderData(data=outcome)
+
+
+def age_cache(cache: MemoryCache, source: str, age: timedelta) -> None:
+    """Vieillit une source du rapport en cache, comme si le temps avait passé."""
+    payload = next(iter(cache.entries.values()))
+    payload["sources"][source]["fetched_at"] = (datetime.now(UTC) - age).isoformat()
+
+
+async def test_only_the_failed_source_is_fetched_again_once_its_retry_delay_has_passed() -> None:
     cache = MemoryCache()
-    service = make_service([FakeProvider("a", SourceError("timeout"))], cache)
+    healthy = CountingProvider("saine", [{"x": 1}])
+    flaky = CountingProvider("fragile", [SourceError("timeout"), {"y": 2}])
+    geocoder = FakeGeocoder()
+    service = make_service([healthy, flaky], cache, geocoder)
+
+    first = await service.get_report(QUERY)
+    assert first.meta.is_partial
+    # L'entrée vit la durée longue : la fraîcheur se juge source par source.
+    assert cache.ttls == [timedelta(days=7)]
+
+    # Dans le quart d'heure : rien n'est rejoué, pour ne pas marteler une source en panne.
+    soon = await service.get_report(QUERY)
+    assert soon.meta.cached and soon.meta.is_partial
+    assert (healthy.calls, flaky.calls) == (1, 1)
+
+    age_cache(cache, "fragile", timedelta(minutes=16))
+    repaired = await service.get_report(QUERY)
+    assert (healthy.calls, flaky.calls) == (1, 2)
+    assert repaired.sources["fragile"].data == {"y": 2}
+    assert repaired.sources["saine"] == first.sources["saine"]
+    assert not repaired.meta.is_partial
+    assert not repaired.meta.cached
+    assert geocoder.calls == 1
+    assert list(repaired.sources) == ["saine", "fragile"]
+
+    again = await service.get_report(QUERY)
+    assert again.meta.cached
+    assert flaky.calls == 2
+
+
+async def test_each_source_expires_on_its_own_schedule() -> None:
+    cache = MemoryCache()
+    air = CountingProvider("qualite_air", [{"indice": 3}, {"indice": 1}])
+    prices = CountingProvider("dvf", [{"prix": 3750}])
+    policy = AuditPolicy(
+        report_version=1,
+        cache_ttl=timedelta(days=7),
+        cache_partial_ttl=timedelta(minutes=15),
+        provider_deadline_s=0.05,
+        source_ttls={"qualite_air": timedelta(hours=12)},
+    )
+    service = AuditService(
+        geocoder=FakeGeocoder(), providers=[prices, air], cache=cache, policy=policy
+    )
     await service.get_report(QUERY)
-    assert cache.ttls == [timedelta(minutes=15)]
+    age_cache(cache, "qualite_air", timedelta(hours=13))
+    age_cache(cache, "dvf", timedelta(hours=13))
+
+    report = await service.get_report(QUERY)
+    assert (prices.calls, air.calls) == (1, 2)
+    assert report.sources["qualite_air"].data == {"indice": 1}
+
+    age_cache(cache, "dvf", timedelta(days=8))
+    await service.get_report(QUERY)
+    assert prices.calls == 2
+
+
+async def test_entries_cached_before_per_source_dates_use_the_report_date() -> None:
+    cache = MemoryCache()
+    provider = CountingProvider("a", [{"x": 1}])
+    service = make_service([provider], cache)
+    await service.get_report(QUERY)
+    payload = next(iter(cache.entries.values()))
+    del payload["sources"]["a"]["fetched_at"]
+
+    await service.get_report(QUERY)
+    assert provider.calls == 1
+    payload["meta"]["generated_at"] = (datetime.now(UTC) - timedelta(days=8)).isoformat()
+    await service.get_report(QUERY)
+    assert provider.calls == 2
 
 
 async def test_cache_outage_does_not_block_the_audit() -> None:

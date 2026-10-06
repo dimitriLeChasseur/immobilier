@@ -8,6 +8,8 @@ export interface SourceResult<T = unknown> {
   missing: string[]
   error: string | null
   duration_ms: number
+  /** Date d'interrogation de la source (chaque source a sa durée de validité en cache). */
+  fetched_at?: string | null
 }
 
 export interface AuditLocation {
