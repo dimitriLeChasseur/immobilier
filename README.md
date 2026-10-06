@@ -38,7 +38,7 @@ Principes à connaître avant d'intervenir :
 
 - **Dégradation gracieuse.** Chaque source a un délai de 9 s et son coupe-circuit. Une source en
   échec ne bloque jamais le rapport : il sort marqué `is_partial`, avec la liste
-  `failed_sources`. Overpass est interrogé sur trois serveurs successifs.
+  `failed_sources`.
 - **Modèle « teaser ».** Sans achat de l'adresse, l'API renvoie le rapport avec les valeurs
   réservées remplacées par `"***LOCKED***"` (`backend/app/services/teaser.py`, liste blanche
   par source : tout nouveau champ est masqué par défaut). Le masquage est fait côté serveur ;
@@ -121,6 +121,21 @@ de compte ; ce n'est pas un secret).
 
 L'ingestion est idempotente et vide le cache des rapports à la fin. Un jeu ou un département peut
 être rechargé seul : `python -m app.ingestion sitadel --departements 49,75`.
+
+### Points d'intérêt OpenStreetMap
+
+Le bloc « Transports et commerces à pied » lit la table `immo.geo_osm_poi`, et non plus les
+serveurs publics Overpass (saturés : une requête sur deux y échouait). Overpass ne sert que de
+secours pour un secteur non ingéré.
+
+```bash
+uv run scripts/ingest_osm_poi.py                           # France entière (~5 Go téléchargés)
+uv run scripts/ingest_osm_poi.py --region pays-de-la-loire # une région Geofabrik
+# crontab -e, sur le VPS : le 3 de chaque mois à 4 h
+0 4 3 * * cd /opt/project-immobilier && uv run scripts/ingest_osm_poi.py >> /var/log/immo-osm.log 2>&1
+```
+
+Données © les contributeurs d'OpenStreetMap (ODbL), extraits fournis par Geofabrik.
 
 ### Tâche planifiée du bruit Lden
 
@@ -237,9 +252,9 @@ politique de sécurité du contenu bloquera les appels.
 
 - **Paiement non branché.** Les boutons de la grille tarifaire (`/tarifs`) ne font que tracer
   « Redirection Stripe » ; aucun droit n'est créé automatiquement.
-- **Connexion Google non testée**, faute d'identifiants OAuth.
 - **Limitation de débit en mémoire** : valable pour un seul processus backend.
-- **Transports et commerces** : dépend des serveurs publics Overpass, souvent saturés.
+- **Transports et commerces** : données OpenStreetMap figées à la date de la dernière ingestion
+  (tâche mensuelle à planifier sur le VPS).
 - **Bruit** : Maine-et-Loire (route et fer) et Loire-Atlantique (fer) seulement.
 - **Encadrement des loyers** : liste codée en dur d'après service-public.gouv.fr (vérifiée le
   1er août 2026), dans `backend/app/services/providers/rental_rules.py` ; à relire à chaque

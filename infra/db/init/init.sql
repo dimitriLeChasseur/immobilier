@@ -252,6 +252,31 @@ CREATE INDEX IF NOT EXISTS geo_bruit_lden_geom_gist
 CREATE INDEX IF NOT EXISTS geo_bruit_lden_source_idx
     ON immo.geo_bruit_lden (source_id);
 
+-- Points d'intérêt OpenStreetMap (transports, commerces, santé, écoles, parcs), ingérés par
+-- scripts/ingest_osm_poi.py depuis les extraits Geofabrik : évite de dépendre, à chaque audit,
+-- des serveurs publics Overpass.
+CREATE TABLE IF NOT EXISTS immo.geo_osm_poi (
+    -- 'n' (nœud), 'w' (chemin) ou 'r' (relation)
+    osm_type     char(1)     NOT NULL,
+    osm_id       bigint      NOT NULL,
+    categorie    text        NOT NULL,
+    type         text        NOT NULL,
+    nom          text,
+    -- Extrait d'origine : sert à purger les objets disparus lors d'une réingestion.
+    source       text        NOT NULL,
+    -- Point pour un nœud ; sommets du contour (MultiPoint) pour un chemin ou une relation, afin
+    -- qu'un parc soit « à portée » dès que son bord l'est, et non son centre.
+    geom         extensions.geometry(Geometry, 4326) NOT NULL,
+    imported_at  timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT geo_osm_poi_pkey PRIMARY KEY (osm_type, osm_id),
+    CONSTRAINT geo_osm_poi_type_check CHECK (osm_type IN ('n', 'w', 'r'))
+);
+
+CREATE INDEX IF NOT EXISTS geo_osm_poi_geog_gist
+    ON immo.geo_osm_poi USING gist ((geom::extensions.geography));
+CREATE INDEX IF NOT EXISTS geo_osm_poi_source_idx
+    ON immo.geo_osm_poi (source);
+
 -- Droits d'accès aux audits complets : une ligne par utilisateur et par adresse achetée.
 -- Alimentée après paiement (intégration Stripe à venir) ; sans ligne, l'API ne renvoie
 -- que la version « teaser » du rapport.
@@ -319,7 +344,8 @@ DECLARE
 BEGIN
     FOREACH tbl IN ARRAY ARRAY[
         'api_reports_cache', 'insee_ssmsi', 'insee_dgfip', 'geo_ips_ecoles', 'geo_sitadel',
-        'insee_iris_logement', 'arcep_connectivite', 'geo_bruit_lden', 'audit_entitlements',
+        'insee_iris_logement', 'arcep_connectivite', 'geo_bruit_lden', 'geo_osm_poi',
+        'audit_entitlements',
         'user_credits', 'user_subscriptions', 'stripe_events'
     ]
     LOOP

@@ -1,4 +1,7 @@
-"""Overpass (OpenStreetMap) : transports, commerces et services accessibles à pied.
+"""OpenStreetMap : transports, commerces et services accessibles à pied.
+
+Les points d'intérêt viennent du référentiel local (scripts/ingest_osm_poi.py). Les serveurs
+publics Overpass, souvent saturés, ne servent que de secours pour un secteur non ingéré.
 
 Les temps de marche sont estimés à partir de la distance à vol d'oiseau ; un calcul
 d'isochrones réel (OpenRouteService) nécessite une clé d'API.
@@ -7,17 +10,18 @@ d'isochrones réel (OpenRouteService) nécessite une clé d'API.
 import logging
 from typing import Any
 
-from app.core.errors import SourceError
+from app.core.errors import RepositoryError, SourceError
 from app.core.geo import haversine_m, walking_minutes
 from app.core.http import HttpClient
+from app.repositories.reference import ReferenceRepository
 from app.services.providers.base import AuditContext, ProviderData, as_rows, to_float
 
 logger = logging.getLogger(__name__)
 
-# Instances publiques interrogées tour à tour : la principale est souvent saturée (504).
+# Instances publiques interrogées tour à tour : chacune est régulièrement saturée (504).
 OVERPASS_ENDPOINTS: tuple[str, ...] = (
     "https://overpass-api.de/api/interpreter",
-    "https://overpass.kumi.systems/api/interpreter",
+    "https://z.overpass-api.de/api/interpreter",
     "https://lz4.overpass-api.de/api/interpreter",
 )
 # Délai par instance : trois essais doivent tenir dans le garde-fou global de la source.
@@ -70,8 +74,15 @@ def classify(tags: dict[str, Any]) -> tuple[str, str] | None:
 class PoiProvider:
     name = "proximite"
 
-    def __init__(self, http: HttpClient, *, ors_api_key: str | None = None) -> None:
+    def __init__(
+        self,
+        http: HttpClient,
+        *,
+        repository: ReferenceRepository | None = None,
+        ors_api_key: str | None = None,
+    ) -> None:
         self._http = http
+        self._repository = repository
         # Sans clé, les temps de marche restent estimés à vol d'oiseau (détour de 30 %).
         self._ors_api_key = ors_api_key or None
         # Rang de la dernière instance Overpass ayant répondu : évite de réessayer à chaque
@@ -79,12 +90,12 @@ class PoiProvider:
         self._preferred_endpoint = 0
 
     async def fetch(self, ctx: AuditContext) -> ProviderData:
-        payload = await self._query_overpass(build_query(ctx.lat, ctx.lon))
         categories: dict[str, list[dict[str, Any]]] = {name: [] for name in _CATEGORIES}
-        for element in as_rows(payload, "elements"):
-            poi = _to_poi(element, ctx)
-            if poi is not None:
-                categories[poi.pop("categorie")].append(poi)
+        pois = await self._local_pois(ctx)
+        if pois is None:
+            pois = await self._overpass_pois(ctx)
+        for poi in pois:
+            categories[poi.pop("categorie")].append(poi)
         summaries = {name: _summary(pois) for name, pois in categories.items()}
         method = await self._refine_walking_times(ctx, summaries)
         for summary in summaries.values():
@@ -93,6 +104,36 @@ class PoiProvider:
         return ProviderData(
             data={"rayon_m": _RADIUS_M, "methode_temps": method, "categories": summaries}
         )
+
+    async def _local_pois(self, ctx: AuditContext) -> list[dict[str, Any]] | None:
+        """Points du référentiel local ; None s'il ne couvre pas ce secteur ou ne répond pas."""
+        if self._repository is None:
+            return None
+        try:
+            rows = await self._repository.pois_nearby(ctx.lat, ctx.lon, _RADIUS_M, _MAX_ELEMENTS)
+        except RepositoryError:
+            logger.warning("Référentiel des points d'intérêt indisponible : essai d'Overpass")
+            return None
+        if rows is None:
+            return None
+        # Une liste vide est une réponse : secteur ingéré, aucun équipement à portée.
+        return [
+            {
+                "categorie": row["categorie"],
+                "type": row["type"],
+                "nom": row["nom"],
+                "distance_m": round(row["distance_m"]),
+                "marche_min": walking_minutes(row["distance_m"]),
+                "position": [row["lon"], row["lat"]],
+            }
+            for row in rows
+            if row["categorie"] in _CATEGORIES
+        ]
+
+    async def _overpass_pois(self, ctx: AuditContext) -> list[dict[str, Any]]:
+        payload = await self._query_overpass(build_query(ctx.lat, ctx.lon))
+        pois = (_to_poi(element, ctx) for element in as_rows(payload, "elements"))
+        return [poi for poi in pois if poi is not None]
 
     async def _query_overpass(self, query: str) -> Any:
         """Interroge les instances l'une après l'autre jusqu'à la première réponse.

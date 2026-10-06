@@ -89,6 +89,26 @@ _NOISE_COVERAGE = f"""
 """  # noqa: S608
 
 
+_POIS = f"""
+    SELECT categorie, type, nom,
+           ST_X(ST_ClosestPoint(geom, {_POINT_GEOM})) AS lon,
+           ST_Y(ST_ClosestPoint(geom, {_POINT_GEOM})) AS lat,
+           ST_Distance(geom::geography, {_POINT_GEOG}) AS distance_m
+    FROM geo_osm_poi
+    WHERE ST_DWithin(geom::geography, {_POINT_GEOG}, $3)
+    ORDER BY distance_m
+    LIMIT $4
+"""  # noqa: S608
+
+_POI_COVERAGE = f"""
+    SELECT EXISTS (
+        SELECT 1 FROM geo_osm_poi WHERE ST_DWithin(geom::geography, {_POINT_GEOG}, $3)
+    )
+"""  # noqa: S608
+
+# Un territoire est considéré comme ingéré si un point d'intérêt existe à moins de 20 km.
+_POI_COVERAGE_M = 20_000
+
 # Un territoire est considéré comme cartographié si une zone de bruit existe à ~10 km.
 _NOISE_COVERAGE_DEG = 0.1
 
@@ -111,6 +131,10 @@ class ReferenceRepository(Protocol):
     async def connectivity(self, codes: list[str]) -> dict[str, Any] | None: ...
 
     async def noise_levels(self, lat: float, lon: float) -> list[dict[str, Any]] | None: ...
+
+    async def pois_nearby(
+        self, lat: float, lon: float, radius_m: int, limit: int
+    ) -> list[dict[str, Any]] | None: ...
 
 
 def _jsonable(record: asyncpg.Record) -> dict[str, Any]:
@@ -181,4 +205,15 @@ class PostgresReferenceRepository:
             if records:
                 return [_jsonable(record) for record in records]
             covered = await self._pool.fetchval(_NOISE_COVERAGE, lon, lat, _NOISE_COVERAGE_DEG)
+        return [] if covered else None
+
+    async def pois_nearby(
+        self, lat: float, lon: float, radius_m: int, limit: int
+    ) -> list[dict[str, Any]] | None:
+        """Points d'intérêt par distance croissante ; None si le secteur n'est pas ingéré."""
+        async with db_errors():
+            records = await self._pool.fetch(_POIS, lon, lat, radius_m, limit)
+            if records:
+                return [_jsonable(record) for record in records]
+            covered = await self._pool.fetchval(_POI_COVERAGE, lon, lat, _POI_COVERAGE_M)
         return [] if covered else None

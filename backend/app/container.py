@@ -54,7 +54,7 @@ def build_audit_service(
         UrbanismeProvider(http),
         DvfProvider(http),
         DpeProvider(http),
-        PoiProvider(http, ors_api_key=ors_key),
+        PoiProvider(http, repository=reference, ors_api_key=ors_key),
         AirQualityProvider(http),
         SunlightProvider(http),
         RentsProvider(

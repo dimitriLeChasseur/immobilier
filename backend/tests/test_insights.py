@@ -4,7 +4,7 @@ from typing import Any
 
 import pytest
 
-from app.core.errors import NoDataError, SourceError
+from app.core.errors import NoDataError, RepositoryError, SourceError
 from app.services import insights
 from app.services.providers.base import AuditContext
 from app.services.providers.environment import AirQualityProvider
@@ -268,6 +268,89 @@ async def test_overpass_reports_the_failure_when_every_endpoint_is_down() -> Non
         await provider.fetch(ANGERS)
     assert error.value.kind == "timeout"
     assert len(http.calls) == 3
+
+
+class PoiRepository:
+    def __init__(self, rows: list[dict[str, Any]] | None | Exception) -> None:
+        self._rows = rows
+        self.calls: list[tuple[float, float, int, int]] = []
+
+    async def pois_nearby(
+        self, lat: float, lon: float, radius_m: int, limit: int
+    ) -> list[dict[str, Any]] | None:
+        self.calls.append((lat, lon, radius_m, limit))
+        if isinstance(self._rows, Exception):
+            raise self._rows
+        return self._rows
+
+
+LOCAL_POIS: list[dict[str, Any]] = [
+    {
+        "categorie": "commerces",
+        "type": "bakery",
+        "nom": "Fournil",
+        "lon": -0.55,
+        "lat": 47.47,
+        "distance_m": 99.6,
+    },
+    {
+        "categorie": "transports",
+        "type": "bus_stop",
+        "nom": "Ralliement",
+        "lon": -0.551,
+        "lat": 47.472,
+        "distance_m": 180.2,
+    },
+    {
+        "categorie": "transports",
+        "type": "tram_stop",
+        "nom": None,
+        "lon": -0.552,
+        "lat": 47.473,
+        "distance_m": 320.0,
+    },
+]
+
+
+async def test_pois_come_from_the_local_reference_without_calling_overpass() -> None:
+    http = FakeHttp({})
+    repository = PoiRepository([dict(row) for row in LOCAL_POIS])
+    data = (await PoiProvider(http, repository=repository).fetch(ANGERS)).data  # type: ignore[arg-type]
+
+    assert http.calls == []
+    assert repository.calls == [(ANGERS.lat, ANGERS.lon, 500, 400)]
+    assert data["categories"]["transports"] == {
+        "nb": 2,
+        "plus_proche": {
+            "type": "bus_stop",
+            "nom": "Ralliement",
+            "distance_m": 180,
+            "marche_min": 3,
+        },
+    }
+    assert data["categories"]["commerces"]["plus_proche"]["distance_m"] == 100
+    assert data["categories"]["sante"] == {"nb": 0, "plus_proche": None}
+    assert data["methode_temps"] == ESTIMATED
+
+
+async def test_ingested_area_without_poi_is_an_answer_not_a_fallback() -> None:
+    http = FakeHttp({})
+    data = (await PoiProvider(http, repository=PoiRepository([])).fetch(ANGERS)).data  # type: ignore[arg-type]
+
+    assert http.calls == []
+    assert all(summary["nb"] == 0 for summary in data["categories"].values())
+
+
+@pytest.mark.parametrize("rows", [None, RepositoryError("base indisponible")])
+async def test_overpass_is_the_fallback_for_an_area_not_ingested(
+    rows: None | Exception,
+) -> None:
+    http = FakeHttp({"overpass_1": OVERPASS})
+    provider = PoiProvider(http, repository=PoiRepository(rows))  # type: ignore[arg-type]
+    data = (await provider.fetch(ANGERS)).data
+
+    assert [source for source, _ in http.calls] == ["overpass_1"]
+    assert data["categories"]["commerces"]["nb"] == 1
 
 
 def atmo(
