@@ -16,27 +16,41 @@ const ANGERS: CommuneProfile = {
   delinquance: { annee: 2025, cambriolages: { valeur: 1.69, departement: 1.97, national: 3.27 }, annee_precedente: 2.29 },
   ecoles: { ecole: { nb: 52, ips_moyen: 105.7, moyenne_nationale: 104.8 } },
   part_fibre_pct: 97.3,
+  loyers: { appartement: 14.6, t1_t2: 16.6 },
   logement: { annee: 2022, logements: 92383, part_locataires_pct: 66.3, part_proprietaires_pct: 32.4, part_vacants_pct: 6 },
 }
 
 describe('fiche communale', () => {
   it('compose titre, description et chiffres comparés', () => {
     const page = communePage(ANGERS)
-    expect(page.title).toBe('Immobilier à Angers (49) : taxe foncière, sécurité, écoles | Audit Immobilier')
+    expect(page.title).toBe('Immobilier à Angers (49) : loyers, taxe foncière, sécurité, écoles | Audit Immobilier')
     expect(page.description).toContain('Angers')
     expect(page.description.length).toBeLessThan(260)
     expect(page.sections.map((section) => section.heading)).toEqual([
+      'Loyers d’annonce',
       'Fiscalité locale',
       'Sécurité',
       'Établissements scolaires',
       'Logement et connexion',
     ])
-    const [tax, crime, schools] = page.sections
-    expect(tax?.facts[0]?.value.replace(/\s/g, ' ')).toBe('56,65 %')
-    expect(tax?.facts[0]?.note?.replace(/\s/g, ' ')).toBe('Commune médiane du département : 46,57 % · France : 40,33 %')
-    expect(crime?.facts[0]?.value.replace(/\s/g, ' ')).toBe('1,7 pour 1 000 habitants, en baisse sur un an')
-    expect(crime?.facts[0]?.note).toBe('Maine-et-Loire : 2,0 · France : 3,3')
-    expect(schools?.facts[0]?.label).toBe('Écoles (52)')
+  })
+
+  it('donne chaque chiffre avec son repère', () => {
+    // Premier fait de chaque rubrique, espaces insécables ramenés à des espaces simples.
+    const first = (heading: string) => {
+      const fact = communePage(ANGERS).sections.find((section) => section.heading === heading)?.facts[0]
+      return [fact?.label, fact?.value, fact?.note].map((text) => text?.replace(/\s/g, ' '))
+    }
+    expect(first('Loyers d’annonce')).toEqual(['Appartement', '14,6 €/m² par mois, charges comprises', undefined])
+    expect(first('Fiscalité locale').slice(1)).toEqual([
+      '56,65 %',
+      'Commune médiane du département : 46,57 % · France : 40,33 %',
+    ])
+    expect(first('Sécurité').slice(1)).toEqual([
+      '1,7 pour 1 000 habitants, en baisse sur un an',
+      'Maine-et-Loire : 2,0 · France : 3,3',
+    ])
+    expect(first('Établissements scolaires')[0]).toBe('Écoles (52)')
   })
 
   it('omet les rubriques sans donnée plutôt que d’afficher des vides', () => {
@@ -46,6 +60,7 @@ describe('fiche communale', () => {
       delinquance: null,
       ecoles: {},
       logement: null,
+      loyers: {},
       part_fibre_pct: null,
       population: null,
     })

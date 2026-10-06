@@ -7,11 +7,12 @@ l'indexation des mutations par les moteurs de recherche.
 
 import re
 import unicodedata
+from collections.abc import Mapping
 from dataclasses import dataclass
 from typing import Any, Protocol
 
 from app.core.errors import SourceError
-from app.core.geo import commune_codes, departement_code
+from app.core.geo import commune_codes, commune_prefix, departement_code
 from app.core.http import HttpClient
 from app.schemas.commune import (
     Benchmark,
@@ -21,8 +22,10 @@ from app.schemas.commune import (
     CommuneTax,
     SchoolLevel,
 )
+from app.services.providers.base import as_rows, gather_parts, to_float
 
 _GEO_URL = "https://geo.api.gouv.fr/communes"
+_TABULAR_URL = "https://tabular-api.data.gouv.fr/api/resources"
 _FIELDS = "nom,code,population,departement,codesPostaux,centre"
 _CODE = re.compile(r"^[0-9][0-9AB][0-9]{3}$")
 _SLUG_NOISE = re.compile(r"[^a-z0-9]+")
@@ -97,6 +100,56 @@ class CommuneRepository(Protocol):
     async def connectivity(self, codes: list[str]) -> dict[str, Any] | None: ...
 
 
+class RentLookup(Protocol):
+    async def rents(self, codes: list[str]) -> dict[str, float]:
+        """Loyer au m² par type de bien (« appartement », « t1_t2 », « t3_plus », « maison »)."""
+        ...
+
+
+class TabularRents:
+    """Loyers lus commune par commune dans l'API tabulaire de data.gouv.fr."""
+
+    def __init__(self, http: HttpClient, resources: Mapping[str, str]) -> None:
+        self._http = http
+        self._resources = dict(resources)
+
+    async def rents(self, codes: list[str]) -> dict[str, float]:
+        try:
+            rows, _ = await gather_parts(
+                {kind: self._rent(resource, codes) for kind, resource in self._resources.items()}
+            )
+        except SourceError:
+            # Complément de la fiche : son absence ne la rend pas indisponible.
+            return {}
+        return {kind: rent for kind, rent in rows.items() if rent is not None}
+
+    async def _rent(self, resource: str, codes: list[str]) -> float | None:
+        for code in codes:
+            payload = await self._http.get_json(
+                "data_gouv_tabular",
+                f"{_TABULAR_URL}/{resource}/data/",
+                params={"INSEE_C__exact": code, "page_size": 1},
+            )
+            for row in as_rows(payload, "data"):
+                rent = to_float(row.get("loypredm2"))
+                if rent is not None:
+                    return round(rent, 1)
+        return None
+
+
+class StaticRents:
+    """Loyers chargés une fois pour toutes (export en masse des fiches)."""
+
+    def __init__(self, by_commune: Mapping[str, Mapping[str, float]]) -> None:
+        self._by_commune = by_commune
+
+    async def rents(self, codes: list[str]) -> dict[str, float]:
+        for code in codes:
+            if code in self._by_commune:
+                return dict(self._by_commune[code])
+        return {}
+
+
 def _share(part: Any, total: Any) -> float | None:
     if not isinstance(part, int | float) or not isinstance(total, int | float) or not total:
         return None
@@ -104,9 +157,15 @@ def _share(part: Any, total: Any) -> float | None:
 
 
 class CommuneService:
-    def __init__(self, http: HttpClient, repository: CommuneRepository) -> None:
+    def __init__(
+        self,
+        http: HttpClient,
+        repository: CommuneRepository,
+        rents: RentLookup | None = None,
+    ) -> None:
         self._http = http
         self._repository = repository
+        self._rents = rents
 
     async def identity(self, code: str) -> CommuneIdentity | None:
         """Commune désignée par ce code INSEE, None si elle n'existe pas."""
@@ -144,11 +203,12 @@ class CommuneService:
             centre=identity.centre,
             taxe_fonciere=await self._tax(codes, departement),
             delinquance=await self._crime(codes, departement),
-            ecoles=await self._schools(identity.code, departement),
+            ecoles=await self._schools(commune_prefix(identity.code), departement),
             part_fibre_pct=_share(
                 (connectivity or {}).get("eligibles_fibre"), (connectivity or {}).get("nb_locaux")
             ),
-            logement=await self._housing(identity.code),
+            logement=await self._housing(commune_prefix(identity.code)),
+            loyers=await self._rents.rents(codes) if self._rents is not None else {},
         )
 
     async def _tax(self, codes: list[str], departement: str) -> CommuneTax | None:

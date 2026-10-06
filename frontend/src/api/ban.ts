@@ -6,18 +6,36 @@ const MAX_RESULTS = 6
 
 interface BanFeature {
   geometry?: { coordinates?: unknown }
-  properties?: { id?: unknown; label?: unknown; context?: unknown; type?: unknown }
+  properties?: {
+    id?: unknown
+    label?: unknown
+    context?: unknown
+    type?: unknown
+    citycode?: unknown
+    name?: unknown
+  }
 }
 
 function toSuggestion(feature: BanFeature): AddressSuggestion | null {
   const coordinates = feature.geometry?.coordinates
-  const { id, label, context, type } = feature.properties ?? {}
+  const { id, label, context, type, citycode, name } = feature.properties ?? {}
   if (!Array.isArray(coordinates) || typeof id !== 'string' || typeof label !== 'string') {
     return null
   }
   const [lon, lat] = coordinates as unknown[]
   if (typeof lon !== 'number' || typeof lat !== 'number') return null
-  return { id, label, context: typeof context === 'string' ? context : '', lat, lon, street: type === 'street' }
+  const suggestion: AddressSuggestion = {
+    id,
+    label,
+    context: typeof context === 'string' ? context : '',
+    lat,
+    lon,
+    street: type === 'street',
+  }
+  if (type === 'municipality' && typeof citycode === 'string' && typeof name === 'string') {
+    suggestion.commune = { code: citycode, nom: name }
+  }
+  return suggestion
 }
 
 /** Suggestions d'adresses de la Base Adresse Nationale pour une saisie partielle. */

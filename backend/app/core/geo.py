@@ -53,6 +53,14 @@ def departement_code(citycode: str) -> str:
     return citycode[:3] if citycode.startswith("97") else citycode[:2]
 
 
+def commune_prefix(citycode: str) -> str:
+    """Préfixe des codes d'une commune : celui de ses arrondissements à Paris, Lyon, Marseille."""
+    for prefix, parent in _ARRONDISSEMENT_PREFIXES.items():
+        if citycode == parent:
+            return prefix
+    return citycode
+
+
 def commune_codes(citycode: str) -> list[str]:
     """Codes INSEE à interroger : le code fourni puis, pour Paris/Lyon/Marseille, la commune."""
     for prefix, parent in _ARRONDISSEMENT_PREFIXES.items():

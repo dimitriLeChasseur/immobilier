@@ -11,8 +11,17 @@ from app.api.deps import get_rate_limiter
 from app.api.routers import communes
 from app.api.routers.communes import get_commune_service
 from app.core.errors import SourceError
+from app.core.geo import commune_prefix
 from app.core.rate_limit import SlidingWindowRateLimiter
-from app.services.communes import CommuneService, code_from_slug, parse_identity, slugify
+from app.seo import parse_rents
+from app.services.communes import (
+    CommuneService,
+    StaticRents,
+    TabularRents,
+    code_from_slug,
+    parse_identity,
+    slugify,
+)
 
 ANGERS = {
     "nom": "Angers",
@@ -41,6 +50,13 @@ def test_slug_round_trip(name: str, code: str, slug: str) -> None:
 @pytest.mark.parametrize("slug", ["angers", "angers-4900", "angers-490071", "", "x-../etc"])
 def test_slug_without_a_commune_code_is_rejected(slug: str) -> None:
     assert code_from_slug(slug) is None
+
+
+def test_arrondissement_cities_are_queried_by_their_arrondissement_prefix() -> None:
+    assert [commune_prefix(code) for code in ("75056", "69123", "13055")] == ["751", "6938", "132"]
+    assert commune_prefix("49007") == "49007"
+    # Un arrondissement n'est pas la commune entière.
+    assert commune_prefix("75101") == "75101"
 
 
 def test_identity_parsing_tolerates_missing_optional_fields() -> None:
@@ -200,3 +216,31 @@ def test_route_rejects_malformed_codes_and_reports_unknown_or_unreachable() -> N
 
     down = next(make_client(FakeHttp(SourceError("timeout"))))
     assert down.get("/api/v1/communes/49007").status_code == 503
+
+
+async def test_rents_join_the_profile_and_their_absence_is_harmless() -> None:
+    rents = StaticRents({"49007": {"appartement": 14.6, "t1_t2": 16.6}})
+    service = CommuneService(FakeHttp(ANGERS), Repository(), rents)  # type: ignore[arg-type]
+    identity = await service.identity("49007")
+    assert identity is not None
+    assert (await service.profile(identity)).loyers == {"appartement": 14.6, "t1_t2": 16.6}
+    assert await rents.rents(["99999"]) == {}
+
+    class Tabular:
+        async def get_json(self, source: str, url: str, *, params: Any = None) -> Any:
+            if "maisons" in url:
+                raise SourceError("timeout")
+            return {"data": [{"loypredm2": 14.5737 if "apparts" in url else None}]}
+
+    live = TabularRents(Tabular(), {"appartement": "apparts", "maison": "maisons", "t1_t2": "vide"})  # type: ignore[arg-type]
+    assert await live.rents(["49007"]) == {"appartement": 14.6}
+
+
+def test_bulk_rent_file_uses_semicolons_and_decimal_commas() -> None:
+    content = (
+        b'"id_zone";"INSEE_C";"LIBGEO";"loypredm2"\r\n'
+        b'"1";"49007";"Angers";14,5737\r\n'
+        b'"2";"05066";"La Haute-Beaume";9,7576\r\n'
+        b'"3";"00000";"Sans valeur";\r\n'
+    )
+    assert parse_rents(content) == {"49007": 14.6, "05066": 9.8}

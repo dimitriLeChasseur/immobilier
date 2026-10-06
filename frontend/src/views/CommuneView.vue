@@ -95,7 +95,8 @@ watch([page, state], updateMeta, { immediate: true })
         </RouterLink>
       </div>
       <p class="mt-6 text-xs text-slate-500">
-        Sources : DGFiP, SSMSI, Éducation nationale, INSEE, ARCEP. Données publiques, sans valeur contractuelle.
+        Sources : carte des loyers (ANIL, ministère chargé du logement), DGFiP, SSMSI, Éducation nationale, INSEE,
+        ARCEP. Données publiques, sans valeur contractuelle.
       </p>
     </template>
 

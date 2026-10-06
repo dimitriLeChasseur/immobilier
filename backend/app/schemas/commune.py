@@ -53,4 +53,6 @@ class CommuneProfile(BaseModel):
     delinquance: CommuneCrime | None = None
     ecoles: dict[str, SchoolLevel] = {}
     part_fibre_pct: float | None = None
+    # Loyers d'annonce au m², charges comprises, par type de bien (carte des loyers).
+    loyers: dict[str, float] = {}
     logement: CommuneHousing | None = None

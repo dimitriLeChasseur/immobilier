@@ -13,7 +13,7 @@ from app.repositories.reference import PostgresReferenceRepository
 from app.repositories.report_cache import PostgresReportCache, ReportCache
 from app.services.audit_service import AuditPolicy, AuditService
 from app.services.billing import BillingService
-from app.services.communes import CommuneService
+from app.services.communes import CommuneService, TabularRents
 from app.services.geocoding import BanGeocoder
 from app.services.providers.apicarto import CadastreProvider, UrbanismeProvider
 from app.services.providers.base import Provider
@@ -134,4 +134,16 @@ def build_commune_service(
         failure_threshold=settings.breaker_failure_threshold,
         reset_after_s=settings.breaker_reset_after_s,
     )
-    return CommuneService(http, PostgresReferenceRepository(pool))
+    return CommuneService(
+        http, PostgresReferenceRepository(pool), TabularRents(http, rent_resources(settings))
+    )
+
+
+def rent_resources(settings: Settings) -> dict[str, str]:
+    """Ressources de la carte des loyers, par type de bien."""
+    return {
+        "appartement": settings.loyers_resource_id,
+        "t1_t2": settings.loyers_t1_t2_resource_id,
+        "t3_plus": settings.loyers_t3_plus_resource_id,
+        "maison": settings.loyers_maison_resource_id,
+    }

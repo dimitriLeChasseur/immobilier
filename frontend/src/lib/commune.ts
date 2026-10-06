@@ -23,6 +23,8 @@ export interface CommuneProfile {
   delinquance: { annee: number; cambriolages: Benchmark; annee_precedente: number | null } | null
   ecoles: Partial<Record<string, { nb: number; ips_moyen: number; moyenne_nationale: number | null }>>
   part_fibre_pct: number | null
+  /** Loyers d'annonce au m², charges comprises, par type de bien. */
+  loyers?: Partial<Record<string, number>>
   logement: {
     annee: number
     logements: number
@@ -86,6 +88,21 @@ function trend(current: number, previous: number | null): string {
   const change = (current - previous) / previous
   if (Math.abs(change) < TREND_THRESHOLD) return ', stable sur un an'
   return change > 0 ? ', en hausse sur un an' : ', en baisse sur un an'
+}
+
+const RENT_KINDS: [id: string, label: string][] = [
+  ['appartement', 'Appartement'],
+  ['t1_t2', 'Appartement de 1 ou 2 pièces'],
+  ['t3_plus', 'Appartement de 3 pièces et plus'],
+  ['maison', 'Maison'],
+]
+
+function rentSection(profile: CommuneProfile): CommuneSection | null {
+  const facts = RENT_KINDS.flatMap(([id, label]): CommuneFact[] => {
+    const rent = profile.loyers?.[id]
+    return typeof rent === 'number' ? [{ label, value: `${decimal(rent)} €/m² par mois, charges comprises` }] : []
+  })
+  return facts.length ? { heading: 'Loyers d’annonce', facts } : null
 }
 
 function taxSection(profile: CommuneProfile): CommuneSection | null {
@@ -156,13 +173,19 @@ function housingSection(profile: CommuneProfile): CommuneSection | null {
 /** Titre, description et contenu de la fiche d'une commune. */
 export function communePage(profile: CommuneProfile): CommunePage {
   const place = `${profile.nom} (${profile.departement_code})`
-  const sections = [taxSection(profile), crimeSection(profile), schoolSection(profile), housingSection(profile)].filter(
+  const sections = [
+    rentSection(profile),
+    taxSection(profile),
+    crimeSection(profile),
+    schoolSection(profile),
+    housingSection(profile),
+  ].filter(
     (section): section is CommuneSection => section !== null,
   )
   const topics = sections.map((section) => section.heading.toLowerCase()).join(', ')
   const population = profile.population === null ? '' : `, ${integer(profile.population)} habitants`
   return {
-    title: `Immobilier à ${place} : taxe foncière, sécurité, écoles | ${SITE_NAME}`,
+    title: `Immobilier à ${place} : loyers, taxe foncière, sécurité, écoles | ${SITE_NAME}`,
     description:
       `Chiffres clés pour acheter à ${profile.nom}${population} : ${topics || 'données publiques'}. ` +
       'Auditez ensuite une adresse précise : ventes voisines, risques, bâtiment.',
@@ -173,6 +196,17 @@ export function communePage(profile: CommuneProfile): CommunePage {
       'lancez un audit.',
     sections,
   }
+}
+
+/** Segment d'URL d'une commune : « angers-49007 » (même règle que le serveur). */
+export function communeSlug(name: string, code: string): string {
+  const plain = name
+    .normalize('NFKD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+  return `${plain}-${code.toLowerCase()}`
 }
 
 /** Code INSEE porté par un segment d'URL « angers-49007 », null s'il n'en a pas la forme. */

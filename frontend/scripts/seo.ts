@@ -110,7 +110,9 @@ function main(): void {
   write(join(DIST, 'communes.json'), JSON.stringify(links))
 
   // Un plan du site exige des adresses absolues : sans domaine configuré, il n'est pas produit.
-  const robots = ['User-agent: *', 'Allow: /']
+  // Le rapport d'une adresse (paramètre lat) contient des ventes DVF : exclu pour tous les
+  // robots, y compris ceux qui n'exécutent pas le script posant la balise noindex.
+  const robots = ['User-agent: *', 'Allow: /', 'Disallow: /*?lat=', 'Disallow: /*&lat=']
   if (base) {
     write(join(DIST, 'sitemap.xml'), sitemap(base, communes))
     robots.push(`Sitemap: ${base}/sitemap.xml`)

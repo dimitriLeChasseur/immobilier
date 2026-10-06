@@ -8,20 +8,58 @@ par commune et le plan du site. Les communes sont prises par population décrois
 
 import argparse
 import asyncio
+import csv
+import io
 import json
 import logging
 import sys
 
 import aiohttp
 
+from app.container import rent_resources
 from app.core.config import get_settings
 from app.core.http import HttpClient
 from app.repositories.db import create_pool
 from app.repositories.reference import PostgresReferenceRepository
-from app.services.communes import CommuneService
+from app.services.communes import CommuneService, StaticRents
 
 logger = logging.getLogger("seo")
 _DIRECTORY_TIMEOUT_S = 60.0
+_DATASET_URL = "https://www.data.gouv.fr/api/1/datasets/r"
+
+
+def parse_rents(content: bytes) -> dict[str, float]:
+    """Loyer au m² par code de commune, d'après un fichier de la carte des loyers.
+
+    Fichier séparé par des points-virgules, décimales à la virgule.
+    """
+    reader = csv.DictReader(io.StringIO(content.decode("utf-8", errors="replace")), delimiter=";")
+    rents: dict[str, float] = {}
+    for row in reader:
+        code, value = row.get("INSEE_C"), (row.get("loypredm2") or "").replace(",", ".")
+        try:
+            rents[str(code)] = round(float(value), 1)
+        except ValueError:
+            continue
+    return rents
+
+
+async def download_rents(
+    session: aiohttp.ClientSession, resources: dict[str, str]
+) -> dict[str, dict[str, float]]:
+    by_commune: dict[str, dict[str, float]] = {}
+    timeout = aiohttp.ClientTimeout(total=_DIRECTORY_TIMEOUT_S)
+    for kind, resource in resources.items():
+        try:
+            async with session.get(f"{_DATASET_URL}/{resource}", timeout=timeout) as response:
+                response.raise_for_status()
+                content = await response.read()
+        except (aiohttp.ClientError, TimeoutError):
+            logger.warning("Loyers « %s » indisponibles : fiches exportées sans cette valeur", kind)
+            continue
+        for code, rent in parse_rents(content).items():
+            by_commune.setdefault(code, {})[kind] = rent
+    return by_commune
 
 
 async def export(limit: int) -> list[dict[str, object]]:
@@ -35,7 +73,9 @@ async def export(limit: int) -> list[dict[str, object]]:
             failure_threshold=settings.breaker_failure_threshold,
             reset_after_s=settings.breaker_reset_after_s,
         )
-        service = CommuneService(http, PostgresReferenceRepository(pool))
+        # Quatre fichiers lus une fois, plutôt que quatre appels par commune.
+        rents = StaticRents(await download_rents(session, rent_resources(settings)))
+        service = CommuneService(http, PostgresReferenceRepository(pool), rents)
         communes = (await service.directory())[:limit]
         profiles = []
         for commune in communes:
