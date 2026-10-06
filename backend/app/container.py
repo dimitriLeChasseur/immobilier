@@ -35,6 +35,7 @@ from app.services.providers.reference import (
     PropertyTaxProvider,
     SchoolsProvider,
 )
+from app.services.street import BanStreetResolver
 
 
 def build_audit_service(
@@ -74,6 +75,7 @@ def build_audit_service(
     ]
     return AuditService(
         geocoder=BanGeocoder(http),
+        streets=BanStreetResolver(http),
         providers=providers,
         cache=PostgresReportCache(pool),
         policy=AuditPolicy(

@@ -111,7 +111,12 @@ function submit(): void {
         @mousedown.prevent="choose(suggestion)"
         @mousemove="activeIndex = index"
       >
-        <p class="text-sm font-medium text-slate-900">{{ suggestion.label }}</p>
+        <p class="text-sm font-medium text-slate-900">
+          {{ suggestion.label }}
+          <span v-if="suggestion.street" class="ml-1 rounded-full bg-brand-50 px-2 py-0.5 text-xs font-medium text-brand-900">
+            Rue entière
+          </span>
+        </p>
         <p class="text-xs text-slate-500">{{ suggestion.context }}</p>
       </li>
     </ul>

@@ -9,6 +9,7 @@ from typing import Any, Protocol
 
 from app.core.errors import SourceError
 from app.core.geo import commune_codes
+from app.services.street import Street
 
 logger = logging.getLogger(__name__)
 
@@ -22,6 +23,8 @@ class AuditContext:
     citycode: str
     postcode: str | None = None
     region: str | None = None
+    # Renseignée en mode « rue » : les sources qui le peuvent agrègent alors le long de la voie.
+    street: Street | None = None
 
     @property
     def commune_codes(self) -> list[str]:

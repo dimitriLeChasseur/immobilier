@@ -36,7 +36,7 @@ type Rows = [string, string][]
 
 function salesTable(dvf: DvfData): ReportSection['table'] {
   return {
-    head: ['Date', 'Bien', 'Prix', '€/m²', 'Distance'],
+    head: ['Date', 'Bien', 'Prix', '€/m²', dvf.perimetre === 'rue' ? 'N°' : 'Distance'],
     body: dvf.dernieres_ventes.map((sale) => [
       formatDate(sale.date),
       [capitalize(sale.type), `${formatInteger(sale.surface_m2)} m²`, sale.pieces ? `${sale.pieces} p.` : '']
@@ -44,15 +44,25 @@ function salesTable(dvf: DvfData): ReportSection['table'] {
         .join(', '),
       formatEuros(sale.prix),
       formatInteger(sale.prix_m2),
-      formatDistance(sale.distance_m),
+      dvf.perimetre === 'rue' ? String(sale.numero ?? '-') : formatDistance(sale.distance_m),
     ]),
   }
 }
 
 function priceRows(dvf: DvfData | null | undefined): Rows {
   if (!dvf) return []
+  const street = dvf.perimetre === 'rue'
+  const comparison: Rows = dvf.comparaison
+    ? [
+        [
+          'Écart avec le quartier',
+          `${dvf.comparaison.ecart_pct > 0 ? '+' : ''}${formatDecimal(dvf.comparaison.ecart_pct)} % (${formatPricePerM2(dvf.comparaison.prix_m2_median)} sur ${formatInteger(dvf.comparaison.nb_ventes)} ventes)`,
+        ],
+      ]
+    : []
   return [
-    ['Prix médian au m² (300 m)', formatPricePerM2(dvf.prix_m2_median)],
+    [street ? 'Prix médian au m² (ventes de la rue)' : `Prix médian au m² (${dvf.rayon_m ?? 300} m)`, formatPricePerM2(dvf.prix_m2_median)],
+    ...comparison,
     ['Ventes analysées', formatInteger(dvf.nb_ventes)],
     [
       'Moitié des ventes comprise entre',

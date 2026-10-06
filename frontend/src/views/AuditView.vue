@@ -236,12 +236,21 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
           <div class="mb-6 grid grid-cols-1 gap-4 lg:grid-cols-5">
             <div class="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-6 shadow-sm lg:col-span-2">
               <div>
-                <p class="text-xs font-medium tracking-wide text-brand-700 uppercase">Adresse auditée</p>
+                <p class="text-xs font-medium tracking-wide text-brand-700 uppercase">
+                  {{ location?.rue ? 'Rue auditée' : 'Adresse auditée' }}
+                </p>
                 <h1 v-if="location" class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
                   {{ location.label }}
                 </h1>
                 <output v-else class="skeleton mt-3 block h-8 w-4/5" aria-label="Recherche de l’adresse"></output>
-                <p v-if="location" class="mt-1 text-sm text-slate-500">Code INSEE {{ location.citycode }}</p>
+                <p v-if="location" class="mt-1 text-sm text-slate-500">
+                  Code INSEE {{ location.citycode }}<template v-if="location.rue">
+                    · {{ location.rue.nb_numeros }} numéros · environ {{ location.rue.longueur_m }} m</template>
+                </p>
+                <p v-if="location?.rue" class="mt-3 rounded-xl bg-brand-50 px-3 py-2 text-sm text-brand-900">
+                  Analyse de la rue entière : ventes et diagnostics énergie de ses numéros, zonages et
+                  bruit le long de la voie. Les autres blocs sont calculés depuis son milieu.
+                </p>
 
                 <AuditStepper
                   v-if="phase === 'loading'"
@@ -297,7 +306,13 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
             </div>
 
             <div class="lg:col-span-3">
-              <AuditMap v-if="location" :lat="location.lat" :lon="location.lon" :label="location.label" />
+              <AuditMap
+                v-if="location"
+                :lat="location.lat"
+                :lon="location.lon"
+                :label="location.label"
+                :street="location.rue?.points"
+              />
               <output v-else class="skeleton block h-72 w-full rounded-2xl lg:h-80" aria-label="Chargement de la carte"></output>
             </div>
           </div>
@@ -322,7 +337,7 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
             précis, antennes, bruit) sont réservés à l’audit complet, export PDF inclus.
           </p>
 
-          <AuditDashboard :sources="sources" :settled="settled" />
+          <AuditDashboard :sources="sources" :settled="settled" :street="Boolean(location?.rue)" />
           <VisitChecklist v-model="checkedItems" class="mt-10" />
         </template>
       </template>

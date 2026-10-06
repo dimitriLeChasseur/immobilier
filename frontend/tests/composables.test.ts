@@ -103,7 +103,7 @@ describe('searchAddresses', () => {
     vi.stubGlobal('fetch', fetchMock)
 
     expect(await searchAddresses('  1 rue x  ')).toEqual([
-      { id: '49007_1', label: '1 Rue X 49000 Angers', context: '49, Maine-et-Loire', lat: 47.47, lon: -0.55 },
+      { id: '49007_1', label: '1 Rue X 49000 Angers', context: '49, Maine-et-Loire', lat: 47.47, lon: -0.55, street: false },
     ])
     expect(String(fetchMock.mock.calls[0]?.[0])).toContain('q=1+rue+x')
   })

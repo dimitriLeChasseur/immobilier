@@ -3,7 +3,13 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
-const props = defineProps<{ lat: number; lon: number; label: string }>()
+const props = defineProps<{
+  lat: number
+  lon: number
+  label: string
+  /** Mode « rue » : [lon, lat] des numéros de la voie, tracés à la place du cercle. */
+  street?: [number, number][]
+}>()
 
 const DVF_RADIUS_M = 300
 const DEFAULT_ZOOM = 16
@@ -12,10 +18,23 @@ const container = ref<HTMLDivElement | null>(null)
 let map: L.Map | undefined
 let overlay: L.LayerGroup | undefined
 
+function drawStreet(points: [number, number][]): void {
+  if (!map || !overlay) return
+  const positions = points.map(([lon, lat]): L.LatLngTuple => [lat, lon])
+  for (const position of positions) {
+    L.circleMarker(position, { radius: 4, color: '#ffffff', weight: 1, fillColor: '#0f766e', fillOpacity: 0.9 }).addTo(overlay)
+  }
+  map.fitBounds(L.latLngBounds(positions), { padding: [24, 24], maxZoom: 18 })
+}
+
 function draw(): void {
   if (!map || !overlay) return
   const position: L.LatLngTuple = [props.lat, props.lon]
   overlay.clearLayers()
+  if (props.street?.length) {
+    drawStreet(props.street)
+    return
+  }
   L.circle(position, {
     radius: DVF_RADIUS_M,
     color: '#0d9488',
@@ -46,13 +65,19 @@ onMounted(() => {
   draw()
 })
 
-watch(() => [props.lat, props.lon], draw)
+watch(() => [props.lat, props.lon, props.street], draw)
 onBeforeUnmount(() => map?.remove())
 </script>
 
 <template>
   <figure class="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
     <div ref="container" class="h-72 w-full lg:h-full lg:min-h-80" role="application" :aria-label="`Carte centrée sur ${label}`"></div>
-    <figcaption class="sr-only">Le cercle représente le rayon de 300 m utilisé pour les prix de vente.</figcaption>
+    <figcaption class="sr-only">
+      {{
+        street?.length
+          ? 'Les points représentent les numéros de la rue analysée.'
+          : 'Le cercle représente le rayon de 300 m utilisé pour les prix de vente.'
+      }}
+    </figcaption>
   </figure>
 </template>

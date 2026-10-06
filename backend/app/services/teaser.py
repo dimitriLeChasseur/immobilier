@@ -16,7 +16,7 @@ LOCKED = "***LOCKED***"
 # celles qui seront ajoutées plus tard, est masquée par défaut.
 _CLEAR_KEYS: dict[str, frozenset[str]] = {
     # Accroches : prouvent que le quartier a bien été analysé, sans livrer le résultat.
-    "dvf": frozenset({"nb_ventes", "rayon_m", "sections_interrogees"}),
+    "dvf": frozenset({"nb_ventes", "rayon_m", "sections_interrogees", "perimetre", "rue"}),
     "qualite_air": frozenset(
         {
             "indice",
@@ -33,7 +33,9 @@ _CLEAR_KEYS: dict[str, frozenset[str]] = {
     "georisques": frozenset({"risques", "catastrophes_naturelles"}),
     "reseau_mobile": frozenset({"nb_sites", "rayon_m", "liste_tronquee"}),
     "permis_construire": frozenset({"nb_permis", "rayon_m"}),
-    "dpe": frozenset({"nb_dpe_total", "nb_dpe_analyses", "rayon_m", "rayon_effectif_m"}),
+    "dpe": frozenset(
+        {"nb_dpe_total", "nb_dpe_analyses", "rayon_m", "rayon_effectif_m", "perimetre"}
+    ),
     "proximite": frozenset({"rayon_m", "methode_temps"}),
     "ecoles": frozenset({"rayon_m"}),
     "loyers": frozenset({"type_bien", "nb_observations", "millesime", "niveau_prediction"}),

@@ -10,6 +10,9 @@ from app.services.providers.base import AuditContext, ProviderData, as_rows
 _BASE_URL = "https://apicarto.ign.fr/api"
 _SOURCE = "apicarto"
 
+# Points de la voie transmis à l'API pour retrouver les zones qu'elle traverse.
+_STREET_SAMPLES = 12
+
 
 def point_geojson(ctx: AuditContext) -> str:
     return json.dumps({"type": "Point", "coordinates": [ctx.lon, ctx.lat]})
@@ -26,6 +29,9 @@ class CadastreProvider:
         self._http = http
 
     async def fetch(self, ctx: AuditContext) -> ProviderData:
+        if ctx.street is not None:
+            # Une voie n'a pas de parcelle : le centre de la rue tombe sur le domaine public.
+            raise NoDataError
         payload = await self._http.get_json(
             _SOURCE, f"{_BASE_URL}/cadastre/parcelle", params={"geom": point_geojson(ctx)}
         )
@@ -52,8 +58,14 @@ class UrbanismeProvider:
         self._http = http
 
     async def fetch(self, ctx: AuditContext) -> ProviderData:
+        # En mode « rue », toutes les zones traversées par la voie sont listées.
+        geom = (
+            json.dumps(ctx.street.multipoint(_STREET_SAMPLES), separators=(",", ":"))
+            if ctx.street is not None
+            else point_geojson(ctx)
+        )
         payload = await self._http.get_json(
-            _SOURCE, f"{_BASE_URL}/gpu/zone-urba", params={"geom": point_geojson(ctx)}
+            _SOURCE, f"{_BASE_URL}/gpu/zone-urba", params={"geom": geom}
         )
         zones = [
             {
@@ -66,6 +78,8 @@ class UrbanismeProvider:
             }
             for zone in feature_properties(payload)
         ]
+        # Une même zone peut ressortir plusieurs fois (une par point de la voie).
+        zones = list({(zone["libelle"], zone["document"]): zone for zone in zones}.values())
         if not zones:
             # Commune sans document d'urbanisme publié sur le Géoportail de l'urbanisme.
             raise NoDataError

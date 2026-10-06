@@ -17,9 +17,11 @@ from app.schemas.audit import (
     ReportMeta,
     SourceResult,
     SourceStatus,
+    StreetInfo,
 )
 from app.services.geocoding import Geocoder
 from app.services.providers.base import AuditContext, Provider
+from app.services.street import Street, StreetResolver
 
 logger = logging.getLogger(__name__)
 
@@ -58,17 +60,39 @@ class AuditPolicy:
     provider_deadline_s: float
 
 
+_MAP_POINTS = 60
+
+
+def _street_location(location: Location, street: Street) -> Location:
+    """Localisation d'une voie : son nom remplace l'adresse la plus proche du point."""
+    place = " ".join(part for part in (location.postcode, location.city) if part)
+    return location.model_copy(
+        update={
+            "label": f"{street.name} {place}".strip(),
+            "rue": StreetInfo(
+                id=street.id,
+                nom=street.name,
+                nb_numeros=len(street.points),
+                longueur_m=street.length_m,
+                points=street.sample(_MAP_POINTS),
+            ),
+        }
+    )
+
+
 class AuditService:
     def __init__(
         self,
         *,
         geocoder: Geocoder,
+        streets: StreetResolver | None = None,
         providers: Sequence[Provider],
         cache: ReportCache,
         policy: AuditPolicy,
         monotonic: Callable[[], float] = time.monotonic,
     ) -> None:
         self._geocoder = geocoder
+        self._streets = streets
         self._providers = tuple(providers)
         self._cache = cache
         self._policy = policy
@@ -113,6 +137,9 @@ class AuditService:
         location = await self._geocoder.reverse(query.lat, query.lon, query.ban_id)
         if location is None:
             raise LocationNotFoundError
+        street = await self._resolve_street(query)
+        if street is not None:
+            location = _street_location(location, street)
         yield LocationEvent(location)
 
         context = AuditContext(
@@ -121,6 +148,7 @@ class AuditService:
             citycode=location.citycode,
             postcode=location.postcode,
             region=location.region,
+            street=street,
         )
         sources: dict[str, SourceResult] = {}
         tasks = [asyncio.create_task(self._run_provider(p, context)) for p in self._providers]
@@ -155,6 +183,11 @@ class AuditService:
         )
         await self._write_cache(query, AuditReport(location=location, sources=sources, meta=meta))
         yield DoneEvent(meta)
+
+    async def _resolve_street(self, query: AuditQuery) -> Street | None:
+        if self._streets is None:
+            return None
+        return await self._streets.resolve(query.ban_id, query.lat, query.lon)
 
     def _elapsed_ms(self, started: float) -> int:
         return round((self._monotonic() - started) * 1000)

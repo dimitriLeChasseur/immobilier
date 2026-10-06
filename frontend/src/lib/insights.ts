@@ -36,7 +36,9 @@ function flood(data: GeorisquesData): Verdict {
 function clay(data: GeorisquesData): Verdict {
   const level = Number(data.argiles?.code)
   if (!data.argiles?.exposition || !Number.isFinite(level)) return UNKNOWN
-  return { value: data.argiles.exposition, tone: toneForLevel(level, 2, 3) }
+  // En mode « rue », le niveau le plus fort rencontré le long de la voie est retenu.
+  const value = data.argiles.variable ? `${data.argiles.exposition} au plus fort, variable le long de la rue` : data.argiles.exposition
+  return { value, tone: toneForLevel(level, 2, 3) }
 }
 
 function seismic(data: GeorisquesData): Verdict {

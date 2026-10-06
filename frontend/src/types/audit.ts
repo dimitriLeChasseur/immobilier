@@ -21,6 +21,8 @@ export interface AuditLocation {
   ban_id: string
   /** Identifiant BAN de l'adresse la plus proche, résolu par le serveur. */
   adresse_id?: string | null
+  /** Présent quand l'audit porte sur une voie entière ; `points` : [lon, lat] de ses numéros. */
+  rue?: { id: string; nom: string; nb_numeros: number; longueur_m: number; points: [number, number][] } | null
 }
 
 export interface ReportMeta {
@@ -42,6 +44,8 @@ export interface AddressSuggestion {
   context: string
   lat: number
   lon: number
+  /** Vrai pour une voie entière : l'audit agrège alors le long de la rue. */
+  street?: boolean
 }
 
 // --- Données par source. Tout champ peut manquer si la source n'a répondu que partiellement.
@@ -49,7 +53,8 @@ export interface AddressSuggestion {
 export interface GeorisquesData {
   risques?: string[]
   inondation?: { concerne: boolean; atlas_zones_inondables: string[] }
-  argiles?: { code: string | null; exposition: string | null }
+  /** `variable` : en mode « rue », l'exposition change le long de la voie (la plus forte est donnée). */
+  argiles?: { code: string | null; exposition: string | null; variable?: boolean }
   sismicite?: { code: string | null; zone: string | null } | null
   radon?: { classe_potentiel: string | null } | null
   seveso?: {
@@ -89,11 +94,19 @@ export interface DvfSale {
   prix_m2: number
   type: string
   pieces: number | null
+  /** Numéro dans la voie. */
+  numero?: number | null
   distance_m: number
 }
 
 export interface DvfData {
-  rayon_m: number
+  /** « rue » : ventes de la voie auditée ; « rayon » (ou absent) : ventes autour du point. */
+  perimetre?: 'rue' | 'rayon'
+  rue?: string
+  /** Absent en mode « rue ». */
+  rayon_m?: number
+  /** Repère du mode « rue » : ventes de tout le secteur traversé. */
+  comparaison?: { perimetre: string; nb_ventes: number; prix_m2_median: number; ecart_pct: number }
   nb_ventes: number
   prix_m2_median: number
   dispersion: { min: number; q1: number; q3: number; max: number }
@@ -104,7 +117,12 @@ export interface DvfData {
 }
 
 export interface DpeData {
-  rayon_m: number
+  perimetre?: 'rue' | 'rayon'
+  rue?: string
+  /** Mode « rue » : synthèse par numéro de la voie. */
+  par_numero?: { numero: string; nb_dpe: number; etiquette_dominante: string | null; annee_construction: number | null }[]
+  /** Absent en mode « rue ». */
+  rayon_m?: number
   /** Distance du diagnostic analysé le plus lointain : l'échantillon est pris du plus proche au plus loin. */
   rayon_effectif_m?: number | null
   nb_dpe_total: number | null
@@ -254,6 +272,8 @@ export interface BruitData {
   indice: string
   /** Borne basse de la classe la plus forte ; null si le point est hors des zones cartographiées. */
   niveau_max_db: number | null
+  /** Mode « rue » : part des numéros de la voie situés en zone de bruit. */
+  part_rue_pct?: number
   sources: { infrastructure: 'route' | 'fer' | 'air' | 'industrie'; db_min: number; db_max: number | null }[]
   /** Types d'infrastructure dont la carte existe sur ce secteur ; absent des rapports antérieurs. */
   infrastructures_couvertes?: BruitData['sources'][number]['infrastructure'][]

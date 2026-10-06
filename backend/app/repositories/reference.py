@@ -1,5 +1,6 @@
 """Accès aux référentiels statiques (SSMSI, DGFiP, IPS, SITADEL)."""
 
+from collections.abc import Sequence
 from datetime import date
 from decimal import Decimal
 from typing import Any, Protocol
@@ -82,6 +83,24 @@ _NOISE_LEVELS = f"""
     ORDER BY db_min DESC
 """  # noqa: S608
 
+# $1, $2 : longitudes et latitudes des numéros d'une voie.
+_NOISE_ALONG = """
+    WITH numbers AS (
+        SELECT row_number() OVER () AS id, ST_SetSRID(ST_MakePoint(lon, lat), 4326) AS geom
+        FROM unnest($1::float8[], $2::float8[]) AS t(lon, lat)
+    ),
+    hits AS (
+        SELECT n.id, z.infrastructure, max(z.db_min) AS db_min
+        FROM numbers n JOIN geo_bruit_lden z ON ST_Intersects(z.geom, n.geom)
+        GROUP BY n.id, z.infrastructure
+    )
+    SELECT infrastructure, max(db_min) AS db_min, count(*) AS nb_points,
+           (SELECT count(DISTINCT id) FROM hits) AS nb_exposes
+    FROM hits
+    GROUP BY infrastructure
+    ORDER BY db_min DESC
+"""
+
 # Une carte routière ne dit rien du bruit ferroviaire : la couverture se mesure par type.
 _NOISE_COVERAGE = f"""
     SELECT DISTINCT infrastructure
@@ -135,6 +154,10 @@ class ReferenceRepository(Protocol):
     async def noise_levels(self, lat: float, lon: float) -> list[dict[str, Any]]: ...
 
     async def noise_coverage(self, lat: float, lon: float) -> list[str]: ...
+
+    async def noise_levels_along(
+        self, points: Sequence[tuple[float, float]]
+    ) -> list[dict[str, Any]]: ...
 
     async def pois_nearby(
         self, lat: float, lon: float, radius_m: int, limit: int
@@ -213,6 +236,18 @@ class PostgresReferenceRepository:
         async with db_errors():
             records = await self._pool.fetch(_NOISE_COVERAGE, lon, lat, _NOISE_COVERAGE_DEG)
         return [str(record["infrastructure"]) for record in records]
+
+    async def noise_levels_along(
+        self, points: Sequence[tuple[float, float]]
+    ) -> list[dict[str, Any]]:
+        """Classes de bruit rencontrées sur des points (lon, lat), la plus forte d'abord.
+
+        Chaque ligne porte `nb_exposes`, le nombre de points situés dans une zone de bruit.
+        """
+        lons, lats = [p[0] for p in points], [p[1] for p in points]
+        async with db_errors():
+            records = await self._pool.fetch(_NOISE_ALONG, lons, lats)
+        return [_jsonable(record) for record in records]
 
     async def pois_nearby(
         self, lat: float, lon: float, radius_m: int, limit: int

@@ -272,18 +272,33 @@ class NoiseProvider:
     def __init__(self, repository: ReferenceRepository) -> None:
         self._repository = repository
 
+    async def _levels(self, ctx: AuditContext) -> list[dict[str, Any]]:
+        """Classes de bruit au point, ou les plus fortes le long de la voie en mode « rue »."""
+        if ctx.street is not None:
+            return await self._repository.noise_levels_along(ctx.street.points)
+        return await self._repository.noise_levels(ctx.lat, ctx.lon)
+
     async def fetch(self, ctx: AuditContext) -> ProviderData:
         try:
             covered = await self._repository.noise_coverage(ctx.lat, ctx.lon)
-            levels = await self._repository.noise_levels(ctx.lat, ctx.lon) if covered else []
+            levels = await self._levels(ctx) if covered else []
         except RepositoryError as exc:
             raise SourceError("http_error", str(exc)) from exc
         if not covered:
             # Aucune carte ingérée pour ce territoire : on ne peut rien affirmer.
             raise NoDataError
         max_db = max((level["db_min"] for level in levels), default=None)
+        message = noise_message(max_db, covered)
+        street: dict[str, Any] = {}
+        if ctx.street is not None:
+            exposed = levels[0]["nb_exposes"] if levels else 0
+            share = round(100 * exposed / len(ctx.street.points))
+            street = {"perimetre": "rue", "part_rue_pct": share}
+            if levels:
+                message += f" {share} % des numéros de la rue sont en zone de bruit."
         return ProviderData(
             data={
+                **street,
                 "indice": "Lden",
                 "niveau_max_db": max_db,
                 "sources": [
@@ -297,6 +312,6 @@ class NoiseProvider:
                     for level in levels
                 ],
                 "infrastructures_couvertes": covered,
-                "message": noise_message(max_db, covered),
+                "message": message,
             }
         )

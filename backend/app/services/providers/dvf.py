@@ -22,12 +22,15 @@ from app.services.providers.base import (
     gather_parts,
     to_float,
 )
+from app.services.street import Street, normalize_street_name
 
 _FEUILLE_URL = "https://apicarto.ign.fr/api/cadastre/feuille"
 _MUTATIONS_URL = "https://app.dvf.etalab.gouv.fr/api/mutations3"
 _RADIUS_M = 300
 _MAX_SECTIONS = 12
 _LON_LAT = 2
+# Marge autour de l'emprise de la voie pour retrouver ses sections cadastrales.
+_STREET_MARGIN_M = 40
 _RECENT_SALES = 10
 _HOUSING = {"Appartement": "appartement", "Maison": "maison"}
 _IGNORED_LOCALS = {"Dépendance", "None", ""}
@@ -45,6 +48,8 @@ class Sale:
     kind: str
     distance_m: int
     rooms: int | None = None
+    # Numéro dans la voie, tel que publié par DVF.
+    number: int | None = None
 
     @property
     def price_m2(self) -> float:
@@ -58,7 +63,43 @@ class DvfProvider:
         self._http = http
 
     async def fetch(self, ctx: AuditContext) -> ProviderData:
-        sections = await self._sections(ctx)
+        if ctx.street is not None:
+            along_street = await self._fetch_street(ctx, ctx.street)
+            if along_street is not None:
+                return along_street
+            # Aucune vente enregistrée dans la voie : analyse au rayon, comme pour une adresse.
+        polygon = circle_polygon(ctx.lat, ctx.lon, _RADIUS_M)
+        rows, nb_sections, missing = await self._rows(ctx, polygon)
+        sales = build_sales(rows, ctx.lat, ctx.lon, _RADIUS_M)
+        if not sales:
+            raise NoDataError
+        summary = summarize(sales)
+        summary["perimetre"] = "rayon"
+        summary["rayon_m"] = _RADIUS_M
+        summary["sections_interrogees"] = nb_sections
+        return ProviderData(data=summary, missing=missing)
+
+    async def _fetch_street(self, ctx: AuditContext, street: Street) -> ProviderData | None:
+        """Ventes de la voie, comparées à celles des sections cadastrales qu'elle traverse."""
+        rows, nb_sections, missing = await self._rows(ctx, street.envelope(_STREET_MARGIN_M))
+        reach = street.length_m + _RADIUS_M
+        sales = build_sales(
+            [row for row in rows if _on_street(row, street)], ctx.lat, ctx.lon, reach
+        )
+        if not sales:
+            return None
+        summary = summarize(sales)
+        summary["perimetre"] = "rue"
+        summary["rue"] = street.name
+        summary["sections_interrogees"] = nb_sections
+        summary["comparaison"] = _comparison(summary, build_sales(rows, ctx.lat, ctx.lon, reach))
+        return ProviderData(data=summary, missing=missing)
+
+    async def _rows(
+        self, ctx: AuditContext, polygon: dict[str, Any]
+    ) -> tuple[list[dict[str, Any]], int, tuple[str, ...]]:
+        """Lignes DVF des sections recoupant l'emprise : (lignes, nb sections, échecs)."""
+        sections = await self._sections(ctx, polygon)
         if not sections:
             raise NoDataError
         by_section, missing = await gather_parts(
@@ -68,16 +109,10 @@ class DvfProvider:
             }
         )
         rows = [row for section_rows in by_section.values() for row in section_rows]
-        sales = build_sales(rows, ctx.lat, ctx.lon, _RADIUS_M)
-        if not sales:
-            raise NoDataError
-        summary = summarize(sales)
-        summary["rayon_m"] = _RADIUS_M
-        summary["sections_interrogees"] = len(by_section)
-        return ProviderData(data=summary, missing=missing)
+        return rows, len(by_section), missing
 
-    async def _sections(self, ctx: AuditContext) -> list[tuple[str, str]]:
-        polygon = json.dumps(circle_polygon(ctx.lat, ctx.lon, _RADIUS_M), separators=(",", ":"))
+    async def _sections(self, ctx: AuditContext, area: dict[str, Any]) -> list[tuple[str, str]]:
+        polygon = json.dumps(area, separators=(",", ":"))
         payload = await self._http.get_json("apicarto", _FEUILLE_URL, params={"geom": polygon})
         distances: dict[tuple[str, str], float] = {}
         for feature in as_rows(payload, "features"):
@@ -91,6 +126,26 @@ class DvfProvider:
     async def _mutations(self, commune: str, section: str) -> list[dict[str, Any]]:
         payload = await self._http.get_json("dvf", f"{_MUTATIONS_URL}/{commune}/{section}")
         return as_rows(payload, "mutations")
+
+
+def _on_street(row: dict[str, Any], street: Street) -> bool:
+    """Vrai si la ligne DVF porte le code de la voie ou, à défaut, son nom."""
+    code = str(row.get("adresse_code_voie") or "").upper()
+    if street.fantoir is not None and code == street.fantoir:
+        return True
+    return normalize_street_name(row.get("adresse_nom_voie")) == normalize_street_name(street.name)
+
+
+def _comparison(street_summary: dict[str, Any], area_sales: list[Sale]) -> dict[str, Any]:
+    """Repère : ventes de tout le secteur traversé, voie comprise."""
+    area_median = _median_price(area_sales)
+    gap = 100 * (street_summary["prix_m2_median"] - area_median) / area_median
+    return {
+        "perimetre": "sections cadastrales traversées",
+        "nb_ventes": len(area_sales),
+        "prix_m2_median": area_median,
+        "ecart_pct": round(gap, 1),
+    }
 
 
 def _positions(coordinates: Any) -> Iterator[tuple[float, float]]:
@@ -183,6 +238,7 @@ def _sale_from_lots(
         kind=kinds.pop() if len(kinds) == 1 else "mixte",
         distance_m=round(distance),
         rooms=round(rooms) if rooms else None,
+        number=round(number) if (number := to_float(first.get("adresse_numero"))) else None,
     )
 
 
@@ -233,6 +289,7 @@ def summarize(sales: list[Sale]) -> dict[str, Any]:
                 "prix_m2": round(sale.price_m2),
                 "type": sale.kind,
                 "pieces": sale.rooms,
+                "numero": sale.number,
                 "distance_m": sale.distance_m,
             }
             for sale in sales[:_RECENT_SALES]

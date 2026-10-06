@@ -2,7 +2,15 @@
 import type { ChartConfiguration } from 'chart.js'
 import { computed } from 'vue'
 
-import { capitalize, formatDate, formatDistance, formatEuros, formatInteger, formatPricePerM2 } from '../../lib/format'
+import {
+  capitalize,
+  formatDate,
+  formatDecimal,
+  formatDistance,
+  formatEuros,
+  formatInteger,
+  formatPricePerM2,
+} from '../../lib/format'
 import type { DvfData } from '../../types/audit'
 import BaseChart from '../BaseChart.vue'
 import StatTile from '../StatTile.vue'
@@ -10,6 +18,11 @@ import StatTile from '../StatTile.vue'
 const props = defineProps<{ data: DvfData }>()
 
 const VISIBLE_SALES = 5
+
+const street = computed(() => props.data.perimetre === 'rue')
+const scope = computed(() =>
+  street.value ? `${formatInteger(props.data.nb_ventes)} ventes dans la rue` : `${formatInteger(props.data.nb_ventes)} ventes à moins de ${props.data.rayon_m} m`,
+)
 
 const chart = computed<ChartConfiguration>(() => ({
   type: 'bar',
@@ -45,7 +58,7 @@ const chart = computed<ChartConfiguration>(() => ({
         <StatTile
           label="Prix médian"
           :value="formatPricePerM2(data.prix_m2_median)"
-          :hint="`${formatInteger(data.nb_ventes)} ventes à moins de ${data.rayon_m} m`"
+          :hint="scope"
         />
         <StatTile
           v-for="(stats, kind) in data.par_type"
@@ -55,6 +68,13 @@ const chart = computed<ChartConfiguration>(() => ({
           :hint="`${formatInteger(stats.nb_ventes)} ventes`"
         />
       </div>
+      <p v-if="data.comparaison" class="mb-3 rounded-xl bg-slate-50 px-3 py-2 text-sm text-slate-700">
+        <strong class="font-semibold text-slate-900">
+          {{ data.comparaison.ecart_pct > 0 ? '+' : '' }}{{ formatDecimal(data.comparaison.ecart_pct) }} %
+        </strong>
+        par rapport au quartier ({{ formatPricePerM2(data.comparaison.prix_m2_median) }} sur
+        {{ formatInteger(data.comparaison.nb_ventes) }} ventes dans les {{ data.comparaison.perimetre }}).
+      </p>
       <p class="mb-3 text-sm text-slate-600">
         La moitié des ventes s’est conclue entre
         <strong class="font-semibold text-slate-900">{{ formatPricePerM2(data.dispersion.q1) }}</strong> et
@@ -74,7 +94,7 @@ const chart = computed<ChartConfiguration>(() => ({
               <th scope="col" class="pb-2 font-medium">Bien</th>
               <th scope="col" class="pb-2 text-right font-medium">Prix</th>
               <th scope="col" class="pb-2 text-right font-medium">€/m²</th>
-              <th scope="col" class="pb-2 text-right font-medium">Distance</th>
+              <th scope="col" class="pb-2 text-right font-medium">{{ street ? 'N°' : 'Distance' }}</th>
             </tr>
           </thead>
           <tbody class="divide-y divide-slate-100 tabular-nums">
@@ -85,7 +105,7 @@ const chart = computed<ChartConfiguration>(() => ({
               </td>
               <td class="py-2 text-right">{{ formatEuros(sale.prix) }}</td>
               <td class="py-2 text-right">{{ formatInteger(sale.prix_m2) }}</td>
-              <td class="py-2 text-right">{{ formatDistance(sale.distance_m) }}</td>
+              <td class="py-2 text-right">{{ street ? (sale.numero ?? '—') : formatDistance(sale.distance_m) }}</td>
             </tr>
           </tbody>
         </table>

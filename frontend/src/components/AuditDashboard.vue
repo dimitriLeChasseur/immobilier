@@ -29,6 +29,8 @@ const props = defineProps<{
   sources: SourceResults
   /** Vrai une fois le flux terminé : une source sans réponse est alors en échec, plus en attente. */
   settled: boolean
+  /** Mode « rue » : une voie n'a pas de parcelle, le bloc cadastre est retiré. */
+  street?: boolean
 }>()
 
 const DEFAULT_SURFACE_M2 = 50
@@ -123,7 +125,7 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
         <SourceCard v-bind="card('permis_construire', true)">
           <template #default="{ data }"><PermitsCard :data="data" /></template>
         </SourceCard>
-        <SourceCard v-bind="card('cadastre', true)">
+        <SourceCard v-if="!street" v-bind="card('cadastre', true)">
           <template #default="{ data }"><ParcelCard :data="data" /></template>
         </SourceCard>
         <SourceCard class="lg:col-span-2" v-bind="card('urbanisme')">

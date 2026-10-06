@@ -17,6 +17,7 @@ from app.services.audit_service import (
     SourceEvent,
 )
 from app.services.providers.base import AuditContext, Provider, ProviderData
+from app.services.street import Street
 
 QUERY = AuditQuery(lat=48.862725, lon=2.337589, ban_id="75101_8909_00008")
 POLICY = AuditPolicy(
@@ -203,3 +204,44 @@ def test_default_timeouts_leave_room_for_slow_public_apis() -> None:
     settings = Settings(database_url="postgresql://u:p@h/d", supabase_jwt_secret="s")  # noqa: S106
     assert 8 <= settings.http_timeout_s <= 10
     assert settings.provider_deadline_s >= 2 * settings.http_timeout_s
+
+
+class FakeStreets:
+    async def resolve(self, ban_id: str, lat: float, lon: float) -> Street | None:
+        if ban_id != "49007_7050":
+            return None
+        return Street(
+            id=ban_id, name="Rue Saint-Aubin", points=((-0.554, 47.4699), (-0.551, 47.4678))
+        )
+
+
+class ContextProbe:
+    name = "sonde"
+
+    def __init__(self) -> None:
+        self.contexts: list[AuditContext] = []
+
+    async def fetch(self, ctx: AuditContext) -> ProviderData:
+        self.contexts.append(ctx)
+        return ProviderData(data={})
+
+
+async def test_street_identifier_switches_the_audit_to_street_mode() -> None:
+    probe = ContextProbe()
+    service = AuditService(
+        geocoder=FakeGeocoder(),
+        streets=FakeStreets(),
+        providers=[probe],
+        cache=MemoryCache(),
+        policy=POLICY,
+    )
+    street = await service.get_report(AuditQuery(lat=47.469, lon=-0.5529, ban_id="49007_7050"))
+    assert street.location.label == "Rue Saint-Aubin"
+    assert street.location.rue is not None
+    assert street.location.rue.nb_numeros == 2
+    assert probe.contexts[0].street is not None
+
+    address = await service.get_report(AuditQuery(lat=47.47, lon=-0.55, ban_id="49007_7050_00012"))
+    assert address.location.rue is None
+    assert address.location.label == "8 Rue de Rivoli"
+    assert probe.contexts[1].street is None

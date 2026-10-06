@@ -42,7 +42,12 @@ function riskCount(data: Data): string | null {
 
 // Ce que l'on peut dire sans rien révéler : la preuve que l'analyse a eu lieu.
 const HOOKS: Partial<Record<SourceName, Hook>> = {
-  dvf: (d) => sentence(d.nb_ventes, (n) => `${formatInteger(n)} ventes analysées à moins de ${formatInteger(count(d.rayon_m))} m`),
+  dvf: (d) =>
+    sentence(d.nb_ventes, (n) =>
+      d.perimetre === 'rue'
+        ? `${formatInteger(n)} ventes analysées dans la rue`
+        : `${formatInteger(n)} ventes analysées à moins de ${formatInteger(count(d.rayon_m))} m`,
+    ),
   georisques: riskCount,
   reseau_mobile: (d) => sentence(d.nb_sites, (n) => `${formatInteger(n)} sites d’antennes repérés à proximité`),
   permis_construire: (d) => sentence(d.nb_permis, (n) => `${formatInteger(n)} autorisation(s) d’urbanisme en cours à proximité`),

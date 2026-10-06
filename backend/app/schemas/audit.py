@@ -28,6 +28,17 @@ class AuditQuery(BaseModel):
         return round(value, 6)
 
 
+class StreetInfo(BaseModel):
+    """Voie analysée en mode « rue »."""
+
+    id: str
+    nom: str
+    nb_numeros: int
+    longueur_m: int
+    # [lon, lat] de numéros répartis le long de la voie, pour la carte.
+    points: list[tuple[float, float]]
+
+
 class Location(BaseModel):
     """Localisation résolue côté serveur (jamais reprise telle quelle du client)."""
 
@@ -42,6 +53,8 @@ class Location(BaseModel):
     # Identifiant BAN de l'adresse la plus proche du point, résolu par le serveur. À la
     # différence de `ban_id` (repris de la requête), il peut fonder un droit d'accès.
     adresse_id: str | None = None
+    # Présent quand l'audit porte sur une voie entière plutôt que sur un point.
+    rue: StreetInfo | None = None
 
 
 class SourceResult(BaseModel):

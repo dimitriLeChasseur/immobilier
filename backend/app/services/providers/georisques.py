@@ -1,5 +1,6 @@
 """Géorisques : inondation, argiles, sismicité, radon, Seveso, catastrophes naturelles."""
 
+from collections.abc import Awaitable, Callable
 from typing import Any
 
 from app.core.geo import haversine_m
@@ -12,12 +13,16 @@ from app.services.providers.base import (
     gather_parts,
     to_float,
 )
+from app.services.street import Street
 
 _BASE_URL = "https://georisques.gouv.fr/api/v1"
 _SOURCE = "georisques"
 _POINT_RADIUS_M = 100
 _SEVESO_RADIUS_M = 2000
 _SEVESO_PAGE_SIZE = 100
+# Points évalués le long d'une voie : assez pour voir une rue traverser une zone, sans
+# multiplier les appels.
+_STREET_SAMPLES = 5
 
 
 class GeorisquesProvider:
@@ -31,8 +36,10 @@ class GeorisquesProvider:
         data, missing = await gather_parts(
             {
                 "risques": self._risks(latlon),
+                # L'atlas des zones inondables répond à l'échelle de la commune : l'évaluer en
+                # plusieurs points de la voie n'apporterait rien.
                 "inondation": self._flood(latlon),
-                "argiles": self._clay(latlon),
+                "argiles": self._clay_along(ctx.street) if ctx.street else self._clay(latlon),
                 "sismicite": self._seismic(ctx.citycode),
                 "radon": self._radon(ctx.citycode),
                 "seveso": self._seveso(ctx, latlon),
@@ -66,6 +73,23 @@ class GeorisquesProvider:
         if not isinstance(payload, dict):
             return {"code": None, "exposition": None}
         return {"code": payload.get("codeExposition"), "exposition": payload.get("exposition")}
+
+    async def _clay_along(self, street: Street) -> dict[str, Any]:
+        """Exposition la plus forte rencontrée le long de la voie."""
+        results = [r for r in await self._along(street, self._clay) if r["code"] is not None]
+        if not results:
+            return {"code": None, "exposition": None}
+        worst = max(results, key=lambda result: str(result["code"]))
+        return {**worst, "variable": len({str(result["code"]) for result in results}) > 1}
+
+    async def _along(
+        self, street: Street, probe: Callable[[str], Awaitable[dict[str, Any]]]
+    ) -> list[dict[str, Any]]:
+        points = street.sample(_STREET_SAMPLES)
+        results, _ = await gather_parts(
+            {str(index): probe(f"{lon},{lat}") for index, (lon, lat) in enumerate(points)}
+        )
+        return list(results.values())
 
     async def _seismic(self, citycode: str) -> dict[str, Any] | None:
         payload = await self._get("zonage_sismique", {"code_insee": citycode})
