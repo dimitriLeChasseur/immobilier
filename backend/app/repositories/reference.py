@@ -56,6 +56,30 @@ _IPS_BENCHMARK = """
     GROUP BY type_etablissement
 """
 
+_COMMUNE_SCHOOLS = """
+    SELECT type_etablissement, count(*) AS nb, avg(ips) AS ips_moyen
+    FROM (
+        SELECT DISTINCT ON (uai) uai, type_etablissement, ips
+        FROM geo_ips_ecoles
+        WHERE code_insee = $1
+          AND rentree_scolaire >= (SELECT max(rentree_scolaire) FROM geo_ips_ecoles) - 1
+        ORDER BY uai, rentree_scolaire DESC
+    ) AS etablissements
+    WHERE ips IS NOT NULL
+    GROUP BY type_etablissement
+    ORDER BY type_etablissement
+"""
+
+# Les quartiers IRIS d'une commune portent son code en préfixe.
+_COMMUNE_HOUSING = """
+    SELECT max(annee) AS annee, sum(logements) AS logements,
+           sum(residences_principales) AS residences_principales,
+           sum(logements_vacants) AS logements_vacants,
+           sum(proprietaires) AS proprietaires, sum(locataires) AS locataires
+    FROM insee_iris_logement
+    WHERE left(code_iris, 5) = $1
+"""
+
 _PROPERTY_TAX = """
     SELECT annee, libelle_commune, taux_tfb_commune, taux_tfb_epci, taux_tfb_total, taux_teom
     FROM insee_dgfip
@@ -350,3 +374,15 @@ class PostgresReferenceRepository:
                 return [_jsonable(record) for record in records]
             covered = await self._pool.fetchval(_POI_COVERAGE, lon, lat, _POI_COVERAGE_M)
         return [] if covered else None
+
+    async def commune_schools(self, code: str) -> list[dict[str, Any]]:
+        """Nombre d'établissements et IPS moyen par niveau dans la commune."""
+        async with db_errors():
+            records = await self._pool.fetch(_COMMUNE_SCHOOLS, code)
+        return [_jsonable(record) for record in records]
+
+    async def commune_housing(self, code: str) -> dict[str, Any] | None:
+        """Occupation des logements de la commune (somme de ses quartiers IRIS)."""
+        async with db_errors():
+            record = await self._pool.fetchrow(_COMMUNE_HOUSING, code)
+        return _jsonable(record) if record is not None and record["annee"] is not None else None

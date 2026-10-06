@@ -13,6 +13,7 @@ from app.repositories.reference import PostgresReferenceRepository
 from app.repositories.report_cache import PostgresReportCache, ReportCache
 from app.services.audit_service import AuditPolicy, AuditService
 from app.services.billing import BillingService
+from app.services.communes import CommuneService
 from app.services.geocoding import BanGeocoder
 from app.services.providers.apicarto import CadastreProvider, UrbanismeProvider
 from app.services.providers.base import Provider
@@ -122,3 +123,15 @@ def build_billing_service(
         site_url=settings.site_url,
         pro_tax_rate_id=settings.stripe_pro_tax_rate_id,
     )
+
+
+def build_commune_service(
+    settings: Settings, pool: asyncpg.Pool, session: aiohttp.ClientSession
+) -> CommuneService:
+    http = HttpClient(
+        session,
+        timeout_s=settings.http_timeout_s,
+        failure_threshold=settings.breaker_failure_threshold,
+        reset_after_s=settings.breaker_reset_after_s,
+    )
+    return CommuneService(http, PostgresReferenceRepository(pool))

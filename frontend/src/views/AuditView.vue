@@ -15,6 +15,7 @@ import { useAudit } from '../composables/useAudit'
 import { useAuth } from '../composables/useAuth'
 import { clearPendingAudit, savePendingAudit } from '../lib/pending'
 import { buildReportSections, synthesisSections, unavailableSources } from '../lib/report'
+import { DEFAULT_DESCRIPTION, setPageMeta, SITE_NAME } from '../lib/seo'
 import { SOURCE_INFO } from '../lib/sources'
 import { UNLOCK_KEY } from '../lib/unlock'
 import { readTarget, writeTarget } from '../lib/url'
@@ -65,7 +66,18 @@ const statusText = computed(() => {
   return `${origin} · rapport partiel, ${detail}`
 })
 
+/** Le rapport d'une adresse n'est pas indexable (ventes DVF) et porte le nom de l'adresse. */
+function markAsReport(label: string): void {
+  setPageMeta({
+    title: label ? `Audit immobilier : ${label} | ${SITE_NAME}` : `Audit immobilier | ${SITE_NAME}`,
+    description: DEFAULT_DESCRIPTION,
+    path: '/',
+    noindex: true,
+  })
+}
+
 function run(target: AuditTarget, label: string): void {
+  markAsReport(label)
   checkedItems.value = []
   lastTarget.value = target
   lastLabel.value = label
@@ -113,6 +125,11 @@ function newSearch(): void {
   reset()
   lastTarget.value = null
   window.history.replaceState(null, '', window.location.pathname)
+  setPageMeta({
+    title: `${SITE_NAME} : tout savoir sur une adresse avant d’acheter`,
+    description: DEFAULT_DESCRIPTION,
+    path: '/',
+  })
   searchKey.value += 1
 }
 

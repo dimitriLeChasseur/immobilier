@@ -2,6 +2,8 @@
 
 interface ImportMetaEnv {
   readonly VITE_API_URL?: string
+  /** Adresse publique du site (https://mondomaine.fr) : URL canoniques et plan du site. */
+  readonly VITE_SITE_URL?: string
   readonly VITE_SUPABASE_URL?: string
   readonly VITE_SUPABASE_ANON_KEY?: string
 }

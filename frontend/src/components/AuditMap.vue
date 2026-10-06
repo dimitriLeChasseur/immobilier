@@ -12,6 +12,12 @@ const props = defineProps<{
 }>()
 
 const DVF_RADIUS_M = 300
+// Plan IGN servi par la Géoplateforme : service public ouvert, sans clé, utilisable par un
+// produit commercial (les tuiles d'openstreetmap.org ne le sont pas à volume).
+const IGN_TILES =
+  'https://data.geopf.fr/wmts?SERVICE=WMTS&REQUEST=GetTile&VERSION=1.0.0' +
+  '&LAYER=GEOGRAPHICALGRIDSYSTEMS.PLANIGNV2&STYLE=normal&FORMAT=image/png' +
+  '&TILEMATRIXSET=PM&TILEMATRIX={z}&TILEROW={y}&TILECOL={x}'
 const DEFAULT_ZOOM = 16
 
 const container = ref<HTMLDivElement | null>(null)
@@ -57,9 +63,9 @@ function draw(): void {
 onMounted(() => {
   if (!container.value) return
   map = L.map(container.value, { scrollWheelZoom: false })
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  L.tileLayer(IGN_TILES, {
     maxZoom: 19,
-    attribution: '&copy; contributeurs <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+    attribution: '&copy; <a href="https://www.ign.fr/">IGN</a>, Géoplateforme',
   }).addTo(map)
   overlay = L.layerGroup().addTo(map)
   draw()

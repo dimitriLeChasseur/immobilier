@@ -178,6 +178,31 @@ docker compose exec -T backend python -m app.smoke   # code de retour 1 en cas d
 0 3 * * * cd /opt/project-immobilier && docker compose exec -T backend python -m app.smoke >> /var/log/immo-smoke.log 2>&1
 ```
 
+## Référencement
+
+Une application monopage ne livre aux robots qu'une coquille vide. Le site expose donc :
+
+- **des balises par page** (titre, description, URL canonique, Open Graph), mises à jour à
+  chaque navigation ; le rapport d'une adresse est marqué `noindex`, car il contient des
+  ventes DVF dont les conditions de réutilisation excluent l'indexation ;
+- **une fiche par commune** (`/commune/angers-49007`) : taxe foncière, cambriolages, écoles,
+  logement et fibre, comparés au département et à la France. Ces chiffres communaux sont
+  publics et gratuits ; l'audit d'une adresse reste le produit payant ;
+- **des pages statiques** : à la construction, `scripts/seo.ts` écrit chaque fiche en HTML
+  dans `dist/commune/<slug>/index.html`, ainsi que `sitemap.xml`, `robots.txt` et
+  `communes.json`.
+
+```bash
+# Régénérer les fiches (après une ingestion), puis construire le site
+docker compose exec -T backend python -m app.seo --limit 1000 > frontend/seo/communes.json
+cd frontend && VITE_SITE_URL=https://mondomaine.fr npm run build
+```
+
+`frontend/seo/communes.json` est versionné pour que la construction sur Cloudflare Pages
+n'ait pas besoin de la base. Sans `VITE_SITE_URL`, le plan du site n'est pas produit (il exige
+des adresses absolues). Le fond de carte est le Plan IGN de la Géoplateforme, service public
+ouvert sans clé.
+
 ## Paiement Stripe et connexion Google
 
 ### Stripe

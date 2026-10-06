@@ -55,6 +55,9 @@ const authOpen = ref(false)
     <footer class="border-t border-slate-200 bg-white">
       <p class="mx-auto max-w-6xl px-4 py-5 text-xs text-slate-500 sm:px-6">
         Données publiques : {{ DATA_SOURCES }}. Informations indicatives, sans valeur contractuelle.
+        <RouterLink :to="{ name: 'communes' }" class="ml-1 font-medium text-slate-700 underline">
+          Chiffres clés par commune
+        </RouterLink>
       </p>
     </footer>
 
