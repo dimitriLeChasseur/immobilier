@@ -1,7 +1,7 @@
 import type { SourceResults } from '../types/audit'
 import { formatDate, formatInteger, formatPricePerM2 } from './format'
 
-export type MarkerKind = 'vente' | 'ecole' | 'permis'
+export type MarkerKind = 'vente' | 'ecole' | 'superieur' | 'permis'
 
 export interface MapMarker {
   kind: MarkerKind
@@ -15,6 +15,7 @@ export interface MapMarker {
 export const MARKER_STYLES: Record<MarkerKind, { color: string; legend: string }> = {
   vente: { color: '#0d9488', legend: 'Ventes' },
   ecole: { color: '#7c3aed', legend: 'Établissements scolaires' },
+  superieur: { color: '#2563eb', legend: 'Enseignement supérieur' },
   permis: { color: '#ea580c', legend: 'Permis de construire' },
 }
 
@@ -54,6 +55,16 @@ export function mapMarkers(sources: SourceResults): MapMarker[] {
       lon: school.lon as number,
       label: `${school.nom} (IPS ${formatInteger(school.ips)})`,
     }))
+  const campuses = listOf<Positioned & { nom: string; sigle: string | null }>(
+    sources.ecoles?.data?.superieur?.etablissements,
+  )
+    .filter((school) => isPosition(school.lat, school.lon))
+    .map((school): MapMarker => ({
+      kind: 'superieur',
+      lat: school.lat as number,
+      lon: school.lon as number,
+      label: school.sigle ? `${school.nom} (${school.sigle})` : school.nom,
+    }))
   const permits = listOf<Positioned & { adresse: string | null; date_autorisation: string }>(
     sources.permis_construire?.data?.permis,
   )
@@ -64,5 +75,5 @@ export function mapMarkers(sources: SourceResults): MapMarker[] {
       lon: permit.lon as number,
       label: `Permis du ${formatDate(permit.date_autorisation)}${permit.adresse ? `, ${permit.adresse}` : ''}`,
     }))
-  return [...sales, ...schools, ...permits]
+  return [...sales, ...schools, ...campuses, ...permits]
 }

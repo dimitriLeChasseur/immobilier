@@ -307,6 +307,21 @@ export interface EcolesData {
     lat?: number
     distance_m: number
   }[]
+  /** Enseignement supérieur dans un rayon plus large ; absent si le service n'a pas répondu. */
+  superieur?: {
+    rayon_m: number
+    nb: number
+    etablissements: {
+      nom: string
+      sigle: string | null
+      type: string | null
+      secteur: string | null
+      effectif: number | null
+      lon: number
+      lat: number
+      distance_m: number
+    }[]
+  }
 }
 
 export interface PermisData {

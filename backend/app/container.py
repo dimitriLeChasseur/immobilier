@@ -22,6 +22,7 @@ from app.services.providers.dpe import DpeProvider
 from app.services.providers.dvf import DvfProvider
 from app.services.providers.environment import AirQualityProvider, SunlightProvider
 from app.services.providers.georisques import GeorisquesProvider
+from app.services.providers.higher_education import HigherEducationFinder
 from app.services.providers.housing import (
     CondoChargesProvider,
     ConnectivityProvider,
@@ -76,7 +77,7 @@ def build_audit_service(
         ),
         CrimeProvider(reference),
         PropertyTaxProvider(reference),
-        SchoolsProvider(reference),
+        SchoolsProvider(reference, HigherEducationFinder(http)),
         PermitsProvider(reference),
         RentalMarketProvider(http, reference, abc_resource_id=settings.zonage_abc_resource_id),
         ConnectivityProvider(reference),

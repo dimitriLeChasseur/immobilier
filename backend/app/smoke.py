@@ -48,7 +48,7 @@ EXPECTED_KEYS: dict[str, tuple[str, ...]] = {
     "loyers": ("loyer_m2_charges_comprises", "par_typologie"),
     "delinquance": ("indicateurs",),
     "taxe_fonciere": ("taux_tfb_total",),
-    "ecoles": ("etablissements",),
+    "ecoles": ("etablissements", "superieur"),
     "permis_construire": ("nb_permis",),
     "marche_locatif": ("occupation", "encadrement_loyers", "zonage_abc"),
     "connectivite": ("part_fibre_pct",),

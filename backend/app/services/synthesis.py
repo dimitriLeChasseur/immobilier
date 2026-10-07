@@ -15,6 +15,7 @@ _STRONG_NOISE_DB = 65
 _CLAY_STRONG = 3
 _INDUSTRIAL_SITE_NEAR_M = 100
 _CAVITY_NEAR_M = 200
+_CAMPUS_NEAR_M = 800
 _RADON_MAX = 3
 # Plus exigeant que le signal de la carte DPE (40 %) : seule une nette majorité fait une alerte.
 _POOR_ENERGY_SHARE_PCT = 50
@@ -438,6 +439,23 @@ def _schools(data: Data) -> _Scored | None:
     )
 
 
+def _students(data: Data) -> _Scored | None:
+    """Établissement d'enseignement supérieur tout proche : demande locative étudiante."""
+    schools = (data.get("superieur") or {}).get("etablissements") or []
+    nearest = schools[0] if schools else {}
+    distance = _number(nearest.get("distance_m"))
+    if distance is None or distance > _CAMPUS_NEAR_M:
+        return None
+    name = nearest.get("sigle") or nearest.get("nom")
+    return _scored(
+        45,
+        "Marché locatif",
+        f"Enseignement supérieur à {round(distance)} m",
+        f"{name} est à distance de marche : la demande locative étudiante soutient les "
+        "petites surfaces.",
+    )
+
+
 _ALERTS: tuple[tuple[str, Rule], ...] = (
     ("georisques", _seveso),
     ("georisques", _clay),
@@ -463,6 +481,7 @@ _STRENGTHS: tuple[tuple[str, Rule], ...] = (
     ("taxe_fonciere", _tax_strength),
     ("connectivite", _fibre),
     ("ecoles", _schools),
+    ("ecoles", _students),
 )
 
 

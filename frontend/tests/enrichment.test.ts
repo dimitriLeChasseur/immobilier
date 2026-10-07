@@ -153,3 +153,38 @@ describe('risques, servitudes et loyers complémentaires', () => {
     expect(rows['Cavités souterraines (500 m)']).toBe('2 recensée(s), la plus proche à 120 m')
   })
 })
+
+describe('enseignement supérieur', () => {
+  const superieur = {
+    rayon_m: 3000,
+    nb: 7,
+    etablissements: [
+      { nom: 'Université d’Angers', sigle: 'UA', type: 'Université', secteur: 'public', effectif: 1258, lon: -0.5497, lat: 47.4769, distance_m: 328 },
+      { nom: 'ESEO', sigle: 'ESEO', type: 'École', secteur: 'privé', effectif: null, lon: -0.5508, lat: 47.4934, distance_m: 2148 },
+    ],
+  }
+
+  it('s’ajoute au bloc des établissements scolaires, sans indice de position sociale', async () => {
+    const { default: SchoolsCard } = await import('../src/components/cards/SchoolsCard.vue')
+    const card = mount(SchoolsCard, {
+      props: { data: { rayon_m: 1500, ips_moyen: null, etablissements: [], superieur } },
+    })
+    const text = card.text().replace(/\s+/g, ' ')
+    expect(text).toContain('Aucune école, aucun collège ni lycée dans un rayon de 1,5 km.')
+    expect(text).toContain('Enseignement supérieur à moins de 3,0 km')
+    expect(text).toContain('Université d’Angers')
+    expect(text).toContain('Université public · 1 258 étudiants')
+    expect(text).toContain('328 m')
+    expect(text).toContain('7 établissements ou implantations au total.')
+    expect(text).not.toContain('Indice de position sociale moyen')
+  })
+
+  it('apparaît sur la carte avec sa propre couleur', async () => {
+    const { mapMarkers } = await import('../src/lib/markers')
+    const markers = mapMarkers({ ecoles: ok({ rayon_m: 1500, ips_moyen: null, etablissements: [], superieur }) })
+    expect(markers.map((marker) => [marker.kind, marker.label])).toEqual([
+      ['superieur', 'Université d’Angers (UA)'],
+      ['superieur', 'ESEO (ESEO)'],
+    ])
+  })
+})

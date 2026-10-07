@@ -390,7 +390,15 @@ function schoolAverages(schools: EcolesData): Rows {
     const reference = stats.moyenne_nationale === null ? '' : ` (France : ${formatDecimal(stats.moyenne_nationale)})`
     return [[`IPS moyen des ${label} proches`, `${formatDecimal(stats.ips_moyen)}${reference}`]]
   })
-  return rows.length ? rows : [['IPS moyen des établissements proches', formatDecimal(schools.ips_moyen)]]
+  const nearest = schools.superieur?.etablissements[0]
+  if (nearest) {
+    rows.push([
+      `Enseignement supérieur (${formatDistance(schools.superieur?.rayon_m)})`,
+      `${schools.superieur?.nb} établissement(s), le plus proche : ${nearest.nom} à ${formatDistance(nearest.distance_m)}`,
+    ])
+  }
+  if (rows.length) return rows
+  return schools.etablissements.length ? [['IPS moyen des établissements proches', formatDecimal(schools.ips_moyen)]] : []
 }
 
 /** Synthèse en tête du PDF : une ligne par constat, alertes d'abord. */

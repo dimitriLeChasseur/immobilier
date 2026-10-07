@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 
-import { formatDecimal, formatDistance } from '../../lib/format'
+import { formatDecimal, formatDistance, formatInteger } from '../../lib/format'
 import { SCHOOL_KIND_LABELS } from '../../lib/sources'
 import type { EcolesData } from '../../types/audit'
 import StatTile from '../StatTile.vue'
@@ -25,6 +25,7 @@ const kinds = computed(() =>
 )
 
 const VISIBLE_SCHOOLS = 6
+const VISIBLE_HIGHER = 5
 </script>
 
 <template>
@@ -38,7 +39,7 @@ const VISIBLE_SCHOOLS = 6
     />
   </div>
   <StatTile
-    v-else
+    v-else-if="data.etablissements.length"
     label="Indice de position sociale moyen"
     :value="formatDecimal(data.ips_moyen)"
     :hint="`${data.etablissements.length} établissements les plus proches · moyenne nationale ≈ 100`"
@@ -62,4 +63,33 @@ const VISIBLE_SCHOOLS = 6
       <span class="shrink-0 text-sm font-semibold tabular-nums text-slate-900">{{ formatDecimal(school.ips) }}</span>
     </li>
   </ul>
+  <p v-if="!data.etablissements.length && !kinds.length" class="text-sm text-slate-500">
+    Aucune école, aucun collège ni lycée dans un rayon de {{ formatDistance(data.rayon_m) }}.
+  </p>
+
+  <div v-if="data.superieur" class="mt-4 border-t border-slate-100 pt-4">
+    <h4 class="text-xs font-medium tracking-wide text-slate-500 uppercase">
+      Enseignement supérieur à moins de {{ formatDistance(data.superieur.rayon_m) }}
+    </h4>
+    <ul v-if="data.superieur.etablissements.length" class="mt-2 divide-y divide-slate-100 text-sm">
+      <li
+        v-for="school in data.superieur.etablissements.slice(0, VISIBLE_HIGHER)"
+        :key="`${school.nom}-${school.distance_m}`"
+        class="flex items-center justify-between gap-4 py-2"
+      >
+        <div class="min-w-0">
+          <p class="truncate font-medium text-slate-900">{{ school.nom }}</p>
+          <p class="text-xs text-slate-500">
+            {{ [school.type, school.secteur].filter(Boolean).join(' ') || 'Établissement' }}<template v-if="school.effectif">
+              · {{ formatInteger(school.effectif) }} étudiants</template>
+          </p>
+        </div>
+        <span class="shrink-0 text-sm tabular-nums text-slate-700">{{ formatDistance(school.distance_m) }}</span>
+      </li>
+    </ul>
+    <p v-else class="mt-2 text-sm text-slate-500">Aucun établissement recensé.</p>
+    <p v-if="data.superieur.nb > VISIBLE_HIGHER" class="mt-2 text-xs text-slate-500">
+      {{ data.superieur.nb }} établissements ou implantations au total.
+    </p>
+  </div>
 </template>

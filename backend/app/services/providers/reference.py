@@ -6,6 +6,7 @@ from app.core.errors import NoDataError, RepositoryError, SourceError
 from app.core.geo import departement_code
 from app.repositories.reference import ReferenceRepository
 from app.services.providers.base import AuditContext, ProviderData
+from app.services.providers.higher_education import HigherEducationFinder
 
 _SCHOOL_RADIUS_M = 1500
 _SCHOOL_LIMIT = 15
@@ -108,8 +109,11 @@ class PropertyTaxProvider:
 class SchoolsProvider:
     name = "ecoles"
 
-    def __init__(self, repository: ReferenceRepository) -> None:
+    def __init__(
+        self, repository: ReferenceRepository, higher_education: HigherEducationFinder | None = None
+    ) -> None:
         self._repository = repository
+        self._higher_education = higher_education
 
     async def fetch(self, ctx: AuditContext) -> ProviderData:
         try:
@@ -118,22 +122,37 @@ class SchoolsProvider:
             )
         except RepositoryError as exc:
             raise _unavailable(exc) from exc
-        if not rows:
+        higher, missing = await self._higher(ctx)
+        if not rows and not (higher or {}).get("etablissements"):
+            if missing:
+                # Rien en base et l'enseignement supérieur n'a pas répondu : on ne conclut pas.
+                raise SourceError("http_error", "esr")
             raise NoDataError
         scores = [row["ips"] for row in rows if row.get("ips") is not None]
         try:
             benchmarks = await self._repository.ips_benchmarks(departement_code(ctx.citycode))
         except RepositoryError:
             benchmarks = {}
-        return ProviderData(
-            data={
-                "rayon_m": _SCHOOL_RADIUS_M,
-                "ips_moyen": round(sum(scores) / len(scores), 1) if scores else None,
-                # Un IPS d'école ne se compare pas à celui d'un lycée : moyenne par niveau.
-                "par_type": _ips_by_kind(rows, benchmarks),
-                "etablissements": rows,
-            }
-        )
+        data: dict[str, Any] = {
+            "rayon_m": _SCHOOL_RADIUS_M,
+            "ips_moyen": round(sum(scores) / len(scores), 1) if scores else None,
+            # Un IPS d'école ne se compare pas à celui d'un lycée : moyenne par niveau.
+            "par_type": _ips_by_kind(rows, benchmarks),
+            "etablissements": rows,
+        }
+        if higher is not None:
+            data["superieur"] = higher
+        return ProviderData(data=data, missing=missing)
+
+    async def _higher(self, ctx: AuditContext) -> tuple[dict[str, Any] | None, tuple[str, ...]]:
+        """Enseignement supérieur à proximité ; son absence de réponse ne retire pas les écoles."""
+        if self._higher_education is None:
+            return None, ()
+        try:
+            found, incomplete = await self._higher_education.nearby(ctx)
+        except SourceError:
+            return None, ("superieur",)
+        return found, ("superieur",) if incomplete else ()
 
 
 class PermitsProvider:
