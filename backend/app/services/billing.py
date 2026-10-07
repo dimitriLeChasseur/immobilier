@@ -62,6 +62,10 @@ class AlreadySubscribedError(Exception):
     """L'utilisateur a déjà un abonnement en cours : pas de double facturation."""
 
 
+class AlreadyUnlockedError(Exception):
+    """L'adresse est déjà ouverte à cet utilisateur : rien à lui revendre."""
+
+
 class NoSubscriptionError(Exception):
     """Aucun abonnement à gérer pour cet utilisateur."""
 
@@ -121,6 +125,7 @@ def checkout_params(
     site_url: str,
     tax_rate_id: str | None = None,
     address_id: str | None = None,
+    grant_address: bool = True,
 ) -> dict[str, str]:
     """Paramètres de création d'une session Stripe Checkout (formulaire à clés imbriquées)."""
     item = "line_items[0]"
@@ -142,7 +147,9 @@ def checkout_params(
     }
     if user.email:
         params["customer_email"] = user.email
-    if target is not None:
+    # `grant_address` faux : le retour ramène bien à l'adresse, mais l'achat ne la débloque pas
+    # (elle l'est déjà) ; un pack crédite alors ses dix audits.
+    if target is not None and grant_address:
         params["metadata[lat]"] = str(target.lat)
         params["metadata[lon]"] = str(target.lon)
         params["metadata[label]"] = target.label[:_MAX_LABEL_LENGTH]
@@ -224,10 +231,18 @@ class BillingService:
         if not self._secret_key:
             raise BillingNotConfiguredError
         offer = OFFERS[offer_id]
-        if offer.mode == "subscription":
-            account = await self._repository.account(user.id)
-            if account["subscription_active"]:
-                raise AlreadySubscribedError
+        account = await self._repository.account(user.id)
+        if offer.mode == "subscription" and account["subscription_active"]:
+            raise AlreadySubscribedError
+        address_id = await self.address_id(target) if target else None
+        # Le client ne paie pas deux fois ce qu'il a déjà : une adresse déjà ouverte, par un
+        # achat ou par son abonnement, n'est ni revendue ni décomptée d'un pack.
+        owned = target is not None and (
+            account["subscription_active"]
+            or await self._repository.is_entitled(user.id, target.lat, target.lon, address_id)
+        )
+        if owned and offer.id == "unit":
+            raise AlreadyUnlockedError
         session = await self._http.post_form_json(
             "stripe",
             f"{self._api_url}/v1/checkout/sessions",
@@ -237,7 +252,8 @@ class BillingService:
                 target,
                 site_url=self._site_url,
                 tax_rate_id=self._pro_tax_rate_id,
-                address_id=await self.address_id(target) if target else None,
+                address_id=address_id,
+                grant_address=not owned,
             ),
             headers={"Authorization": f"Bearer {self._secret_key}"},
         )

@@ -15,6 +15,7 @@ from app.api.deps import (
 from app.core.errors import RepositoryError, SourceError
 from app.services.billing import (
     AlreadySubscribedError,
+    AlreadyUnlockedError,
     BillingNotConfiguredError,
     CheckoutTarget,
     InvalidSignatureError,
@@ -78,6 +79,10 @@ async def create_checkout(
     target = body.address.to_target() if body.address else None
     try:
         return {"url": await billing.start_checkout(user, body.offer, target)}
+    except AlreadyUnlockedError as exc:
+        raise HTTPException(
+            status.HTTP_409_CONFLICT, "Cette adresse est déjà débloquée sur votre compte."
+        ) from exc
     except AlreadySubscribedError as exc:
         raise HTTPException(
             status.HTTP_409_CONFLICT, "Votre abonnement Pro est déjà actif."

@@ -50,6 +50,7 @@ class FakeRepository:
         self.unlocked: list[tuple[float, float]] = []
         self.unlocked_ids: list[str | None] = []
         self.customer: str | None = None
+        self.already_unlocked = False
 
     def _is_new(self, event_id: str) -> bool:
         if event_id in self.events:
@@ -85,6 +86,11 @@ class FakeRepository:
 
     async def customer_id(self, user_id: str) -> str | None:
         return self.customer
+
+    async def is_entitled(
+        self, user_id: str, lat: float, lon: float, address_id: str | None
+    ) -> bool:
+        return self.already_unlocked
 
 
 class FakeHttp:
@@ -433,6 +439,37 @@ def test_checkout_refuses_a_second_subscription(
 ) -> None:
     repository.subscription_active = True
     assert client.post("/api/v1/checkout", json={"offer": "pro"}, headers=AUTH).status_code == 409
+    assert http.calls == []
+
+
+def test_an_address_already_unlocked_is_not_sold_again(
+    client: TestClient, repository: FakeRepository, http: FakeHttp
+) -> None:
+    repository.already_unlocked = True
+    unit = client.post("/api/v1/checkout", json={"offer": "unit", "address": ADDRESS}, headers=AUTH)
+    assert unit.status_code == 409
+    assert unit.json()["detail"] == "Cette adresse est déjà débloquée sur votre compte."
+    assert http.calls == []
+
+    # Le pack reste achetable, mais il ne « dépense » pas un audit sur cette adresse : sans
+    # adresse à débloquer, le paiement crédite les dix audits.
+    pack = client.post("/api/v1/checkout", json={"offer": "pack", "address": ADDRESS}, headers=AUTH)
+    assert pack.status_code == 200
+    data = http.calls[0][1]
+    assert "metadata[lat]" not in data
+    assert "metadata[ban_id]" not in data
+    # Le retour après paiement ramène tout de même à l'adresse consultée.
+    assert "lat=48.86" in data["success_url"]
+
+
+def test_a_subscriber_is_not_sold_a_single_address(
+    client: TestClient, repository: FakeRepository, http: FakeHttp
+) -> None:
+    repository.subscription_active = True
+    response = client.post(
+        "/api/v1/checkout", json={"offer": "unit", "address": ADDRESS}, headers=AUTH
+    )
+    assert response.status_code == 409
     assert http.calls == []
 
 
