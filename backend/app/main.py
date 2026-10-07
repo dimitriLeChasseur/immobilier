@@ -8,7 +8,7 @@ import aiohttp
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.api.routers import audit, billing, communes, health
+from app.api.routers import account, audit, billing, communes, health
 from app.container import build_audit_service, build_billing_service, build_commune_service
 from app.core.config import get_settings
 from app.core.rate_limit import SlidingWindowRateLimiter
@@ -59,12 +59,13 @@ def create_app() -> FastAPI:
         CORSMiddleware,
         allow_origins=settings.cors_allowed_origins,
         allow_credentials=False,
-        allow_methods=["GET", "POST"],
+        allow_methods=["GET", "POST", "PUT", "DELETE"],
         allow_headers=["Authorization", "Content-Type"],
     )
     app.include_router(health.router)
     app.include_router(audit.router)
     app.include_router(billing.router)
+    app.include_router(account.router)
     app.include_router(communes.router)
     return app
 

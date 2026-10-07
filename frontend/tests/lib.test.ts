@@ -140,3 +140,31 @@ describe('prix de référence du rendement', () => {
     expect(flatPrice(null)).toBeNull()
   })
 })
+
+describe('médiane récente dans le PDF', () => {
+  const dvf = (recent: object | null) =>
+    ({
+      rayon_m: 300,
+      nb_ventes: 603,
+      prix_m2_median: 3750,
+      dispersion: { min: 1000, q1: 3100, q3: 4500, max: 9000 },
+      par_type: {},
+      historique: [],
+      dernieres_ventes: [],
+      sections_interrogees: 6,
+      recent,
+    }) as unknown as NonNullable<SourceResults['dvf']>['data']
+  const row = (recent: object | null) => {
+    const result = { status: 'ok', data: dvf(recent), missing: [], error: null, duration_ms: 1 } as SourceResults['dvf']
+    const rows = buildReportSections({ dvf: result })[0]?.rows ?? []
+    return rows.find(([label]) => label.includes('24 derniers mois'))?.[1].replace(/\s/g, ' ')
+  }
+  const window = { mois: 24, jusqu_au: '2025-12-31', nb_ventes: 235, prix_m2_median: 3684 }
+
+  it('chiffre l’évolution quand elle est connue, sinon en donne le sens', () => {
+    expect(row({ ...window, tendance: 'en baisse', tendance_pct: -6.8 })).toBe('3 684 €/m² (235 ventes, -6,8 % en deux ans)')
+    expect(row({ ...window, tendance: 'stable', tendance_pct: null })).toBe('3 684 €/m² (235 ventes, stable sur deux ans)')
+    expect(row({ ...window, tendance: null, tendance_pct: null })).toBe('3 684 €/m² (235 ventes)')
+    expect(row(null)).toBeUndefined()
+  })
+})

@@ -323,6 +323,45 @@ CREATE TABLE IF NOT EXISTS immo.user_subscriptions (
     CONSTRAINT user_subscriptions_stripe_id_key UNIQUE (stripe_subscription_id)
 );
 
+-- Marque blanche (offre Pro) : nom et logo repris en tête des rapports PDF de l'abonné.
+CREATE TABLE IF NOT EXISTS immo.user_branding (
+    user_id     uuid        NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+    company     text        NOT NULL,
+    logo        bytea,
+    logo_type   text,
+    updated_at  timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT user_branding_pkey PRIMARY KEY (user_id),
+    CONSTRAINT user_branding_company_check CHECK (char_length(company) BETWEEN 1 AND 80),
+    CONSTRAINT user_branding_logo_type_check
+        CHECK (logo_type IS NULL OR logo_type IN ('image/png', 'image/jpeg')),
+    CONSTRAINT user_branding_logo_size_check
+        CHECK (logo IS NULL OR octet_length(logo) <= 262144),
+    CONSTRAINT user_branding_logo_pair_check CHECK ((logo IS NULL) = (logo_type IS NULL))
+);
+
+-- Personnalisation : couleur du bandeau et coordonnées du professionnel.
+ALTER TABLE immo.user_branding
+    ADD COLUMN IF NOT EXISTS color   text,
+    ADD COLUMN IF NOT EXISTS phone   text,
+    ADD COLUMN IF NOT EXISTS email   text,
+    ADD COLUMN IF NOT EXISTS website text,
+    ADD COLUMN IF NOT EXISTS address text;
+DO $$
+BEGIN
+    IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_branding_color_check') THEN
+        ALTER TABLE immo.user_branding
+            ADD CONSTRAINT user_branding_color_check
+                CHECK (color IS NULL OR color ~ '^#[0-9a-f]{6}$'),
+            ADD CONSTRAINT user_branding_contact_check CHECK (
+                char_length(coalesce(phone, '')) <= 30
+                AND char_length(coalesce(email, '')) <= 120
+                AND char_length(coalesce(website, '')) <= 120
+                AND char_length(coalesce(address, '')) <= 160
+            );
+    END IF;
+END
+$$;
+
 -- Évènements Stripe déjà traités : Stripe peut livrer deux fois le même évènement.
 CREATE TABLE IF NOT EXISTS immo.stripe_events (
     event_id     text        NOT NULL,
@@ -353,7 +392,7 @@ BEGIN
         'api_reports_cache', 'insee_ssmsi', 'insee_dgfip', 'geo_ips_ecoles', 'geo_sitadel',
         'insee_iris_logement', 'arcep_connectivite', 'geo_bruit_lden', 'geo_osm_poi',
         'audit_entitlements',
-        'user_credits', 'user_subscriptions', 'stripe_events'
+        'user_credits', 'user_subscriptions', 'stripe_events', 'user_branding'
     ]
     LOOP
         EXECUTE format('ALTER TABLE immo.%I OWNER TO postgres', tbl);

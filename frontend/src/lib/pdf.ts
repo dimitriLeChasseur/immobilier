@@ -23,16 +23,61 @@ interface ReportInput {
   unavailable: string[]
   /** Identifiants des points de la checklist déjà cochés par l'utilisateur. */
   checkedItems?: readonly string[]
+  /** Marque blanche (offre Pro) : nom et logo du professionnel qui remet le rapport. */
+  branding?: ReportBranding | null
+}
+
+export interface ReportBranding {
+  company: string
+  /** URL « data: » d'un PNG ou d'un JPEG, ou null sans logo. */
+  logo: string | null
+  /** Couleur du bandeau et des titres (« #rrggbb »). */
+  color?: string | null
+  phone?: string | null
+  email?: string | null
+  website?: string | null
+  address?: string | null
+}
+
+type Rgb = [number, number, number]
+
+/** « #1e40af » -> [30, 64, 175] ; null si la valeur n'est pas une couleur hexadécimale. */
+export function hexToRgb(hex: string | null | undefined): Rgb | null {
+  const match = /^#([0-9a-f]{2})([0-9a-f]{2})([0-9a-f]{2})$/i.exec(hex ?? '')
+  if (!match) return null
+  return [parseInt(match[1] ?? '', 16), parseInt(match[2] ?? '', 16), parseInt(match[3] ?? '', 16)]
+}
+
+/** Vrai si un texte blanc reste lisible sur cette couleur (luminance relative, WCAG). */
+export function isDark([red, green, blue]: Rgb): boolean {
+  const channel = (value: number) => {
+    const ratio = value / 255
+    return ratio <= 0.03928 ? ratio / 12.92 : ((ratio + 0.055) / 1.055) ** 2.4
+  }
+  return 0.2126 * channel(red) + 0.7152 * channel(green) + 0.0722 * channel(blue) < 0.4
+}
+
+/** Coordonnées du professionnel sur une ligne, dans l'ordre où on les lit. */
+export function contactLine(branding: ReportBranding): string {
+  return [branding.company, branding.address, branding.phone, branding.email, branding.website]
+    .filter((part): part is string => Boolean(part))
+    .join(' - ')
 }
 
 const MARGIN = 15
 const PAGE_BOTTOM = 274
-const BRAND: [number, number, number] = [15, 118, 110]
-const MUTED: [number, number, number] = [100, 116, 139]
+const BRAND: Rgb = [15, 118, 110]
+// Couleur d'accent du document en cours : celle de l'abonné en marque blanche, sinon la nôtre.
+let accent: Rgb = BRAND
+const MUTED: Rgb = [100, 116, 139]
+const DARK_TEXT: Rgb = [15, 23, 42]
+const WHITE: Rgb = [255, 255, 255]
 const CHART_WIDTH = 85
 const CHART_GAP = 10
 const CHECKBOX_SIZE = 4.2
 const CHECKLIST_TEXT_WIDTH = 165
+const LOGO_MAX_WIDTH = 42
+const LOGO_MAX_HEIGHT = 18
 
 // Les polices standard du PDF ne connaissent pas ces caractères typographiques.
 const REPLACEMENTS: [RegExp, string][] = [
@@ -58,13 +103,15 @@ function ensureRoom(doc: jsPDF, y: number, needed: number): number {
 }
 
 function drawHeader(doc: jsPDF, input: ReportInput): number {
-  doc.setFillColor(...BRAND)
+  doc.setFillColor(...accent)
   doc.rect(0, 0, 210, 30, 'F')
-  doc.setTextColor(255, 255, 255)
+  // Sur une couleur claire choisie par l'abonné, le texte passe en foncé pour rester lisible.
+  doc.setTextColor(...(isDark(accent) ? WHITE : DARK_TEXT))
   doc.setFont('helvetica', 'bold').setFontSize(16)
   doc.text("Rapport d'audit immobilier", MARGIN, 13)
   doc.setFont('helvetica', 'normal').setFontSize(11)
-  doc.text(pdfSafe(input.location.label), MARGIN, 21)
+  doc.text(pdfSafe(input.location.label), MARGIN, 21, { maxWidth: input.branding ? 130 : 180 })
+  if (input.branding) drawBranding(doc, input.branding)
 
   doc.setTextColor(...MUTED).setFontSize(9)
   const generated = formatDate(input.meta?.generated_at ?? new Date().toISOString())
@@ -74,12 +121,36 @@ function drawHeader(doc: jsPDF, input: ReportInput): number {
     MARGIN,
     37,
   )
-  return 45
+  const contact = input.branding ? contactLine(input.branding) : ''
+  if (!contact) return 45
+  const lines = doc.splitTextToSize(pdfSafe(contact), 180) as string[]
+  doc.text(lines, MARGIN, 42)
+  return 46 + lines.length * 4
+}
+
+/** Logo de l'abonné dans un cartouche blanc, à droite du bandeau ; à défaut, son nom. */
+function drawBranding(doc: jsPDF, branding: ReportBranding): void {
+  const right = 210 - MARGIN
+  if (branding.logo) {
+    try {
+      const { width, height } = doc.getImageProperties(branding.logo)
+      const scale = Math.min(LOGO_MAX_WIDTH / width, LOGO_MAX_HEIGHT / height)
+      const [w, h] = [width * scale, height * scale]
+      doc.setFillColor(255, 255, 255)
+      doc.roundedRect(right - w - 4, (30 - h) / 2 - 2, w + 4, h + 4, 1.5, 1.5, 'F')
+      doc.addImage(branding.logo, right - w - 2, (30 - h) / 2, w, h)
+      return
+    } catch {
+      // Logo illisible par le moteur PDF : le nom du professionnel en tient lieu.
+    }
+  }
+  doc.setTextColor(...(isDark(accent) ? WHITE : DARK_TEXT)).setFont('helvetica', 'bold').setFontSize(11)
+  doc.text(pdfSafe(branding.company), right, 13, { align: 'right', maxWidth: 55 })
 }
 
 function drawSection(doc: jsPDF, section: ReportSection, startY: number): number {
   let y = ensureRoom(doc, startY, 25)
-  doc.setTextColor(...BRAND).setFont('helvetica', 'bold').setFontSize(12)
+  doc.setTextColor(...accent).setFont('helvetica', 'bold').setFontSize(12)
   doc.text(pdfSafe(section.title), MARGIN, y)
   y += 3
 
@@ -99,7 +170,7 @@ function drawSection(doc: jsPDF, section: ReportSection, startY: number): number
       margin: { left: MARGIN, right: MARGIN },
       theme: 'striped',
       styles: { fontSize: 8.5, cellPadding: 1.5 },
-      headStyles: { fillColor: BRAND },
+      headStyles: { fillColor: accent },
       head: [section.table.head.map(pdfSafe)],
       body: section.table.body.map((row) => row.map(pdfSafe)),
     })
@@ -111,7 +182,7 @@ function drawSection(doc: jsPDF, section: ReportSection, startY: number): number
 function drawCharts(doc: jsPDF, charts: ChartImage[], startY: number): number {
   if (!charts.length) return startY
   let y = ensureRoom(doc, startY, 70)
-  doc.setTextColor(...BRAND).setFont('helvetica', 'bold').setFontSize(12)
+  doc.setTextColor(...accent).setFont('helvetica', 'bold').setFontSize(12)
   doc.text('Graphiques', MARGIN, y)
   y += 6
 
@@ -131,7 +202,7 @@ function drawCharts(doc: jsPDF, charts: ChartImage[], startY: number): number {
 function drawChecklist(doc: jsPDF, checkedItems: readonly string[], startY: number): number {
   const lineHeight = 4.6
   let y = ensureRoom(doc, startY, 20 + CHECKLIST_ITEMS.length * 12)
-  doc.setTextColor(...BRAND).setFont('helvetica', 'bold').setFontSize(12)
+  doc.setTextColor(...accent).setFont('helvetica', 'bold').setFontSize(12)
   doc.text(pdfSafe(CHECKLIST_TITLE), MARGIN, y)
   y += 7
 
@@ -141,7 +212,7 @@ function drawChecklist(doc: jsPDF, checkedItems: readonly string[], startY: numb
     doc.setDrawColor(...MUTED).setLineWidth(0.4)
     doc.rect(MARGIN, y - CHECKBOX_SIZE + 0.8, CHECKBOX_SIZE, CHECKBOX_SIZE)
     if (checkedItems.includes(item.id)) {
-      doc.setDrawColor(...BRAND).setLineWidth(0.7)
+      doc.setDrawColor(...accent).setLineWidth(0.7)
       doc.line(MARGIN + 0.9, y - 1.3, MARGIN + 1.9, y - 0.2)
       doc.line(MARGIN + 1.9, y - 0.2, MARGIN + 3.6, y - 3)
     }
@@ -152,13 +223,15 @@ function drawChecklist(doc: jsPDF, checkedItems: readonly string[], startY: numb
   return y
 }
 
-function drawFooters(doc: jsPDF): void {
+function drawFooters(doc: jsPDF, branding?: ReportBranding | null): void {
+  // Les sources restent citées : leurs licences l'exigent, marque blanche ou non.
+  const author = branding ? `Rapport remis par ${branding.company}. ` : ''
   const pages = doc.getNumberOfPages()
   for (let page = 1; page <= pages; page += 1) {
     doc.setPage(page)
     doc.setTextColor(...MUTED).setFont('helvetica', 'normal').setFontSize(8)
     doc.text(
-      `Sources : ${DATA_SOURCES}. Document informatif, sans valeur contractuelle.`,
+      pdfSafe(`${author}Sources : ${DATA_SOURCES}. Document informatif, sans valeur contractuelle.`),
       MARGIN,
       284,
       { maxWidth: 160 },
@@ -169,6 +242,7 @@ function drawFooters(doc: jsPDF): void {
 
 export function buildReportPdf(input: ReportInput): jsPDF {
   const doc = new jsPDF({ unit: 'mm', format: 'a4' })
+  accent = hexToRgb(input.branding?.color) ?? BRAND
   let y = drawHeader(doc, input)
 
   if (input.unavailable.length) {
@@ -182,7 +256,7 @@ export function buildReportPdf(input: ReportInput): jsPDF {
   for (const section of input.sections) y = drawSection(doc, section, y)
   y = drawCharts(doc, input.charts, y)
   drawChecklist(doc, input.checkedItems ?? [], y)
-  drawFooters(doc)
+  drawFooters(doc, input.branding)
   return doc
 }
 

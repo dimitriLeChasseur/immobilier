@@ -27,7 +27,13 @@ const authOpen = ref(false)
             Tarifs
           </RouterLink>
           <template v-if="user">
-            <span class="hidden max-w-48 truncate text-slate-500 sm:inline">{{ user.email }}</span>
+            <RouterLink
+              :to="{ name: 'account' }"
+              class="max-w-48 truncate rounded-lg px-3 py-2 font-medium text-slate-700 hover:bg-slate-100"
+              :title="user.email ?? undefined"
+            >
+              Mon compte
+            </RouterLink>
             <button
               type="button"
               class="rounded-lg border border-slate-300 px-3 py-2 font-medium text-slate-700 hover:bg-slate-50"

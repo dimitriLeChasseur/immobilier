@@ -53,6 +53,24 @@ function salesTable(dvf: DvfData): ReportSection['table'] {
   }
 }
 
+/** Médiane des 24 derniers mois, avec son évolution quand elle est connue. */
+function recentRows(dvf: DvfData): Rows {
+  const recent = dvf.recent
+  if (!recent) return []
+  let trend = ''
+  if (recent.tendance_pct !== null) {
+    trend = `, ${recent.tendance_pct > 0 ? '+' : ''}${formatDecimal(recent.tendance_pct)} % en deux ans`
+  } else if (recent.tendance) {
+    trend = `, ${recent.tendance} sur deux ans`
+  }
+  return [
+    [
+      `Prix médian au m², ${recent.mois} derniers mois`,
+      `${formatPricePerM2(recent.prix_m2_median)} (${formatInteger(recent.nb_ventes)} ventes${trend})`,
+    ],
+  ]
+}
+
 function priceRows(dvf: DvfData | null | undefined): Rows {
   if (!dvf) return []
   const street = dvf.perimetre === 'rue'
@@ -65,6 +83,7 @@ function priceRows(dvf: DvfData | null | undefined): Rows {
       ]
     : []
   return [
+    ...recentRows(dvf),
     [street ? 'Prix médian au m² (ventes de la rue)' : `Prix médian au m² (${dvf.rayon_m ?? 300} m)`, formatPricePerM2(dvf.prix_m2_median)],
     ...comparison,
     ['Ventes analysées', formatInteger(dvf.nb_ventes)],

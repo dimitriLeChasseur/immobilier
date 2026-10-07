@@ -3,6 +3,7 @@ import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, provide, re
 import { useRouter } from 'vue-router'
 
 import type { AuditTarget } from '../api/audit'
+import { fetchBranding, type Branding } from '../api/account'
 import { unlockWithCredit } from '../api/billing'
 import AddressSearch from '../components/AddressSearch.vue'
 import AuditDashboard from '../components/AuditDashboard.vue'
@@ -145,6 +146,16 @@ function newSearch(): void {
   searchKey.value += 1
 }
 
+/** Marque blanche de l'abonné ; son absence ou une panne n'empêche jamais l'export. */
+async function loadBranding(): Promise<Branding | null> {
+  if (!accessToken.value || !account.value?.subscription_active) return null
+  try {
+    return await fetchBranding(accessToken.value)
+  } catch {
+    return null
+  }
+}
+
 async function exportPdf(): Promise<void> {
   if (!location.value || teaser.value) return
   exporting.value = true
@@ -162,6 +173,7 @@ async function exportPdf(): Promise<void> {
       charts: collectCharts(),
       unavailable,
       checkedItems: checkedItems.value,
+      branding: await loadBranding(),
     }).save(reportFileName(location.value))
   } catch (error) {
     console.error('Export PDF impossible', error)

@@ -1,5 +1,6 @@
 """Écritures liées au paiement : droits, crédits, abonnements, évènements Stripe traités."""
 
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any, Protocol
 
@@ -67,12 +68,53 @@ _ACCOUNT = """
         ) AS subscription_active
 """
 
+# Le point restitué est le centre de la cellule achetée (précision ~2 m) : il retombe dans la
+# même cellule, donc sur le même droit et le même rapport en cache.
+_AUDITS = """
+    SELECT label, ban_id, origin, granted_at,
+           ST_X(ST_PointFromGeoHash(geohash, 4326)) AS lon,
+           ST_Y(ST_PointFromGeoHash(geohash, 4326)) AS lat
+    FROM audit_entitlements
+    WHERE user_id = $1::uuid
+    ORDER BY granted_at DESC
+    LIMIT $2
+"""
+
+_BRANDING = """
+    SELECT company, logo, logo_type, color, phone, email, website, address
+    FROM user_branding WHERE user_id = $1::uuid
+"""
+
+_SET_BRANDING = """
+    INSERT INTO user_branding
+        (user_id, company, logo, logo_type, color, phone, email, website, address)
+    VALUES ($1::uuid, $2, $3, $4, $5, $6, $7, $8, $9)
+    ON CONFLICT (user_id) DO UPDATE SET
+        company = EXCLUDED.company, logo = EXCLUDED.logo, logo_type = EXCLUDED.logo_type,
+        color = EXCLUDED.color, phone = EXCLUDED.phone, email = EXCLUDED.email,
+        website = EXCLUDED.website, address = EXCLUDED.address,
+        updated_at = now()
+"""
+
+_DELETE_BRANDING = "DELETE FROM user_branding WHERE user_id = $1::uuid"
+
 _IS_ENTITLED = f"""
     SELECT EXISTS (
         SELECT 1 FROM audit_entitlements
         WHERE user_id = $1::uuid AND (geohash = {_GEOHASH} OR ban_id = $4::text)
     )
 """  # noqa: S608
+
+
+@dataclass(frozen=True, slots=True)
+class BrandingDetails:
+    """Personnalisation facultative : couleur du bandeau et coordonnées du professionnel."""
+
+    color: str | None = None
+    phone: str | None = None
+    email: str | None = None
+    website: str | None = None
+    address: str | None = None
 
 
 class BillingRepository(Protocol):
@@ -111,6 +153,31 @@ class BillingRepository(Protocol):
     ) -> bool: ...
 
     async def customer_id(self, user_id: str) -> str | None: ...
+
+    async def is_entitled(
+        self, user_id: str, lat: float, lon: float, address_id: str | None
+    ) -> bool: ...
+
+
+class AccountRepository(Protocol):
+    """Lectures et écritures de l'espace client."""
+
+    async def account(self, user_id: str) -> dict[str, Any]: ...
+
+    async def audits(self, user_id: str, limit: int) -> list[dict[str, Any]]: ...
+
+    async def branding(self, user_id: str) -> dict[str, Any] | None: ...
+
+    async def set_branding(
+        self,
+        user_id: str,
+        company: str,
+        logo: bytes | None,
+        logo_type: str | None,
+        details: BrandingDetails,
+    ) -> None: ...
+
+    async def delete_branding(self, user_id: str) -> None: ...
 
 
 class PostgresBillingRepository:
@@ -175,6 +242,13 @@ class PostgresBillingRepository:
             record = await self._pool.fetchrow(_ACCOUNT, user_id)
         return dict(record) if record is not None else {"credits": 0, "subscription_active": False}
 
+    async def is_entitled(
+        self, user_id: str, lat: float, lon: float, address_id: str | None
+    ) -> bool:
+        """Vrai si l'utilisateur a déjà débloqué cette adresse (point ou identifiant)."""
+        async with db_errors():
+            return bool(await self._pool.fetchval(_IS_ENTITLED, user_id, lon, lat, address_id))
+
     async def customer_id(self, user_id: str) -> str | None:
         async with db_errors():
             value: str | None = await self._pool.fetchval(_CUSTOMER, user_id)
@@ -194,3 +268,40 @@ class PostgresBillingRepository:
                 return False
             await connection.execute(_GRANT, user_id, lon, lat, "pack", label, address_id)
             return True
+
+    async def audits(self, user_id: str, limit: int) -> list[dict[str, Any]]:
+        """Adresses débloquées par l'utilisateur, la plus récente d'abord."""
+        async with db_errors():
+            records = await self._pool.fetch(_AUDITS, user_id, limit)
+        return [dict(record) for record in records]
+
+    async def branding(self, user_id: str) -> dict[str, Any] | None:
+        async with db_errors():
+            record = await self._pool.fetchrow(_BRANDING, user_id)
+        return dict(record) if record is not None else None
+
+    async def set_branding(
+        self,
+        user_id: str,
+        company: str,
+        logo: bytes | None,
+        logo_type: str | None,
+        details: BrandingDetails,
+    ) -> None:
+        async with db_errors():
+            await self._pool.execute(
+                _SET_BRANDING,
+                user_id,
+                company,
+                logo,
+                logo_type,
+                details.color,
+                details.phone,
+                details.email,
+                details.website,
+                details.address,
+            )
+
+    async def delete_branding(self, user_id: str) -> None:
+        async with db_errors():
+            await self._pool.execute(_DELETE_BRANDING, user_id)

@@ -8,6 +8,8 @@ declare module 'vue-router' {
     /** Titre et description de la page ; absents quand la vue les fixe elle-même. */
     title?: string
     description?: string
+    /** Page personnelle : jamais indexée. */
+    private?: boolean
   }
 }
 
@@ -42,6 +44,12 @@ export const router = createRouter({
           'Taxe foncière, sécurité, écoles et logement des principales communes de France, à partir des données publiques.',
       },
     },
+    {
+      path: '/compte',
+      name: 'account',
+      component: () => import('./views/AccountView.vue'),
+      meta: { title: `Mon compte | ${SITE_NAME}`, private: true },
+    },
     // La fiche fixe elle-même ses balises, une fois la commune chargée.
     { path: '/commune/:slug', name: 'commune', component: () => import('./views/CommuneView.vue') },
     { path: '/:pathMatch(.*)*', redirect: { name: 'audit' } },
@@ -57,6 +65,6 @@ router.afterEach((to) => {
     path: to.path,
     // Le rapport d'une adresse (paramètres lat/lon) n'a pas vocation à être indexé : il contient
     // des ventes DVF, dont les conditions de réutilisation excluent l'indexation.
-    noindex: 'lat' in to.query,
+    noindex: 'lat' in to.query || to.meta.private === true,
   })
 })

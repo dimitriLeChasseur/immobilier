@@ -191,6 +191,15 @@ docker compose exec -T backend python -m app.smoke   # code de retour 1 en cas d
 0 3 * * * cd /opt/project-immobilier && docker compose exec -T backend python -m app.smoke >> /var/log/immo-smoke.log 2>&1
 ```
 
+## Espace client et marque blanche
+
+- `/compte` : offre en cours, adresses débloquées (chacune se rouvre d'un clic) et, pour les
+  abonnés Pro, la marque blanche des rapports.
+- Marque blanche : le nom et le logo de l'abonné figurent en tête du PDF, et le pied de page
+  indique « Rapport remis par… ». Les sources restent citées : leurs licences l'exigent.
+- Le logo est contrôlé par le serveur d'après son contenu réel : PNG ou JPEG de 200 Ko au
+  plus, jamais de SVG. Il n'est servi qu'aux abonnés actifs.
+
 ## Référencement
 
 Une application monopage ne livre aux robots qu'une coquille vide. Le site expose donc :

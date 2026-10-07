@@ -10,7 +10,7 @@ from app.core.config import get_settings
 from app.core.errors import RepositoryError
 from app.core.rate_limit import SlidingWindowRateLimiter
 from app.core.security import AuthenticatedUser, InvalidTokenError, decode_access_token
-from app.repositories.billing import BillingRepository
+from app.repositories.billing import AccountRepository, BillingRepository
 from app.repositories.entitlements import EntitlementRepository
 from app.schemas.audit import Location
 from app.services.audit_service import AuditService
@@ -119,6 +119,12 @@ def get_billing_service(request: Request) -> BillingService:
     return service
 
 
+def get_account_repository(request: Request) -> AccountRepository:
+    # Même dépôt que la facturation : crédits, abonnement, audits et marque blanche.
+    repository: AccountRepository = request.app.state.billing_repository
+    return repository
+
+
 def get_billing_repository(request: Request) -> BillingRepository:
     repository: BillingRepository = request.app.state.billing_repository
     return repository
@@ -128,4 +134,5 @@ AuditServiceDep = Annotated[AuditService, Depends(get_audit_service)]
 RequiredUserDep = Annotated[AuthenticatedUser, Depends(require_user)]
 BillingServiceDep = Annotated[BillingService, Depends(get_billing_service)]
 BillingRepositoryDep = Annotated[BillingRepository, Depends(get_billing_repository)]
+AccountRepositoryDep = Annotated[AccountRepository, Depends(get_account_repository)]
 AccessCheckDep = Annotated[AccessCheck, Depends(get_access_check)]

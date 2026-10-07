@@ -39,11 +39,15 @@ async function errorMessage(response: Response): Promise<string> {
   }
 }
 
-async function call<T>(path: string, accessToken: string, body?: unknown): Promise<T> {
+type Method = 'GET' | 'POST' | 'PUT' | 'DELETE'
+const HTTP_NO_CONTENT = 204
+
+/** Appel authentifié à l'API ; `method` vaut GET sans corps et POST avec, sauf précision. */
+export async function call<T>(path: string, accessToken: string, body?: unknown, method?: Method): Promise<T> {
   let response: Response
   try {
     response = await fetch(`${API_URL}/api/v1/${path}`, {
-      method: body === undefined ? 'GET' : 'POST',
+      method: method ?? (body === undefined ? 'GET' : 'POST'),
       headers: { Authorization: `Bearer ${accessToken}`, 'Content-Type': 'application/json' },
       body: body === undefined ? undefined : JSON.stringify(body),
     })
@@ -51,6 +55,7 @@ async function call<T>(path: string, accessToken: string, body?: unknown): Promi
     throw new BillingError(0, FALLBACK_ERROR)
   }
   if (!response.ok) throw new BillingError(response.status, await errorMessage(response))
+  if (response.status === HTTP_NO_CONTENT) return undefined as T
   return (await response.json()) as T
 }
 
