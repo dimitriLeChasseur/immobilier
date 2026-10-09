@@ -485,37 +485,72 @@ _STRENGTHS: tuple[tuple[str, Rule], ...] = (
 )
 
 
-def _flat_market(dvf: Data) -> Data:
-    """Ventes d'appartements : les 24 derniers mois s'ils suffisent, sinon les cinq ans."""
-    recent = ((dvf.get("recent") or {}).get("par_type") or {}).get("appartement") or {}
-    if (_number(recent.get("nb_ventes")) or 0) >= _MIN_SALES_FOR_YIELD:
-        return recent
-    flats: Data = (dvf.get("par_type") or {}).get("appartement") or {}
-    return flats
+# Types de bien de la carte des loyers : libellé, puis emplacement du prix dans les ventes.
+_YIELD_KINDS: tuple[tuple[str, str, str], ...] = (
+    ("appartement", "un appartement", "par_type"),
+    ("t1_t2", "un appartement de 1 ou 2 pièces", "par_taille"),
+    ("t3_plus", "un appartement de 3 pièces et plus", "par_taille"),
+    ("maison", "une maison", "par_type"),
+)
+
+
+def _mapping(value: Any) -> Data:
+    """Dictionnaire, ou vide pour une valeur absente ou masquée (chaîne)."""
+    return value if isinstance(value, dict) else {}
+
+
+def _market_price(dvf: Data, kind: str, group: str) -> float | None:
+    """Prix médian d'un type de bien : les 24 derniers mois s'ils suffisent, sinon les cinq ans.
+
+    Une poignée de ventes ne fait pas un prix de marché : en dessous du seuil, rien n'est rendu.
+    """
+    for scope in (_mapping(dvf.get("recent")), dvf):
+        sales = _mapping(_mapping(scope.get(group)).get(kind))
+        if (_number(sales.get("nb_ventes")) or 0) >= _MIN_SALES_FOR_YIELD:
+            return _number(sales.get("prix_m2_median")) or None
+    return None
+
+
+def _rent(rents: Data, kind: str) -> float | None:
+    if kind == "appartement":
+        return _number(rents.get("loyer_m2_charges_comprises"))
+    by_kind = _mapping(rents.get("par_typologie"))
+    return _number(_mapping(by_kind.get(kind)).get("loyer_m2_charges_comprises"))
+
+
+def _gross_yields(sources: Sources) -> list[tuple[float, str, str]]:
+    """(rendement brut en %, type, libellé) pour chaque type dont loyer et prix sont connus."""
+    rents, dvf = _data(sources, "loyers"), _data(sources, "dvf")
+    yields: list[tuple[float, str, str]] = []
+    for kind, label, group in _YIELD_KINDS:
+        rent, price = _rent(rents, kind), _market_price(dvf, kind, group)
+        if rent is not None and price:
+            yields.append((100 * rent * _MONTHS / price, kind, label))
+    return yields
 
 
 def _yield_strength(sources: Sources) -> _Scored | None:
-    """Rendement brut : loyer d'appartement de la commune sur prix des appartements voisins.
+    """Meilleur rendement brut parmi les types de bien, s'il atteint le seuil.
 
-    Le loyer de référence étant celui des appartements, il n'est rapporté qu'à des ventes
-    d'appartements : sans elles, aucun rendement n'est avancé.
+    Chaque loyer n'est rapporté qu'au prix de biens du même type vendus à proximité : sans
+    assez de ces ventes, aucun rendement n'est avancé pour ce type.
     """
-    rent = _number(_data(sources, "loyers").get("loyer_m2_charges_comprises"))
-    flats = _flat_market(_data(sources, "dvf"))
-    price = _number(flats.get("prix_m2_median"))
-    sales = _number(flats.get("nb_ventes")) or 0
-    # Une poignée de ventes ne fait pas un prix de marché (quartier pavillonnaire).
-    if rent is None or not price or sales < _MIN_SALES_FOR_YIELD:
+    yields = _gross_yields(sources)
+    if not yields:
         return None
-    gross = 100 * rent * _MONTHS / price
+    # À rendement égal, l'ordre des types départage : l'ensemble des appartements d'abord.
+    gross, best, label = max(yields, key=lambda item: item[0])
     if gross < _GOOD_YIELD_PCT:
         return None
+    others = [f"{name} : {_fr(value)} %" for value, kind, name in yields if kind != best]
+    comparison = f" Pour comparaison, {' ; '.join(others)}." if others else ""
+    suffix = "" if best == "appartement" else f" pour {label}"
     return _scored(
         60,
         "Rendement",
-        f"Rendement locatif brut estimé à {_fr(gross)} %",
-        "Loyer d'annonce des appartements de la commune rapporté au prix médian des "
-        "appartements vendus à proximité, avant charges et taxe foncière.",
+        f"Rendement locatif brut estimé à {_fr(gross)} %{suffix}",
+        "Loyer d'annonce de la commune pour ce type de bien, rapporté au prix médian des biens "
+        f"du même type vendus à proximité, avant charges et taxe foncière.{comparison}",
         local=False,
     )
 

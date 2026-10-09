@@ -361,3 +361,50 @@ def test_yield_prefers_recent_apartment_prices_when_there_are_enough() -> None:
     assert recent.titre == "Rendement locatif brut estimé à 8,4 %"
     five_years = build_synthesis({"loyers": rent, "dvf": market(3)}).points_forts[0]
     assert five_years.titre == "Rendement locatif brut estimé à 6,0 %"
+
+
+def test_yield_headline_is_the_best_dwelling_type_and_compares_the_others() -> None:
+    rents = ok(
+        {
+            "loyer_m2_charges_comprises": 14.0,
+            "par_typologie": {
+                "t1_t2": {"loyer_m2_charges_comprises": 17.0},
+                "t3_plus": {"loyer_m2_charges_comprises": 12.0},
+                "maison": {"loyer_m2_charges_comprises": 11.0},
+            },
+        }
+    )
+    dvf = ok(
+        {
+            "par_type": {
+                "appartement": {"prix_m2_median": 3000, "nb_ventes": 60},
+                # Trop peu de ventes de maisons : ce type n'entre pas dans la comparaison.
+                "maison": {"prix_m2_median": 1500, "nb_ventes": 3},
+            },
+            "par_taille": {
+                "t1_t2": {"prix_m2_median": 3200, "nb_ventes": 30},
+                "t3_plus": {"prix_m2_median": 2900, "nb_ventes": 25},
+            },
+            "recent": {"par_taille": {"t1_t2": {"prix_m2_median": 3000, "nb_ventes": 9}}},
+        }
+    )
+    # 1-2 pièces : 17 x 12 / 3 000 (24 derniers mois) = 6,8 % ; ensemble : 5,6 % ; grands : 5,0 %.
+    finding = build_synthesis({"loyers": rents, "dvf": dvf}).points_forts[0]
+    assert finding.titre == (
+        "Rendement locatif brut estimé à 6,8 % pour un appartement de 1 ou 2 pièces"
+    )
+    assert finding.detail.endswith(
+        "Pour comparaison, un appartement : 5,6 % ; un appartement de 3 pièces et plus : 5,0 %."
+    )
+
+    # Valeurs masquées : aucun calcul, aucune erreur.
+    locked = "***LOCKED***"
+    masked = {
+        "loyers": ok({"loyer_m2_charges_comprises": locked, "par_typologie": locked}),
+        "dvf": ok({"par_type": locked, "par_taille": locked, "recent": locked}),
+    }
+    assert build_synthesis(masked).points_forts == []
+
+    # Aucun type n'atteint le seuil : pas de point fort.
+    dear = ok({"par_type": {"appartement": {"prix_m2_median": 4000, "nb_ventes": 60}}})
+    assert build_synthesis({"loyers": rents, "dvf": dear}).points_forts == []
