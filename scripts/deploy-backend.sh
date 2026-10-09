@@ -23,8 +23,10 @@ ssh "$REMOTE" "bash -s" <<REMOTE_SCRIPT
 set -euo pipefail
 cd '$APP_DIR'
 docker compose up -d --build
+# Le schéma est lu sur l'entrée standard, depuis le fichier qui vient d'arriver : le conteneur,
+# lui, garde montée l'ancienne version du fichier tant qu'il n'est pas recréé.
 docker compose exec -T db psql -U supabase_admin -d postgres -v ON_ERROR_STOP=1 -q \
-  -f /docker-entrypoint-initdb.d/init-scripts/99-zzz-init.sql
+  < infra/db/init/init.sql
 docker compose exec -T backend python -c "import urllib.request; print(urllib.request.urlopen('http://127.0.0.1:8000/api/health/ready', timeout=10).read().decode())"
 echo "$commit" > .deployed-commit
 REMOTE_SCRIPT

@@ -76,6 +76,7 @@ docker compose exec -T db pg_dump -U supabase_admin -d postgres --format=custom 
   --table='immo.user_credits' \
   --table='immo.user_subscriptions' \
   --table='immo.user_branding' \
+  --table='immo.audit_history' \
   --table='immo.stripe_events' \
   < /dev/null > "$partial"
 
