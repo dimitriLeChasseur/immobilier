@@ -24,15 +24,33 @@ function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
 }
 
-/** Adresse publique du site, lue dans l'environnement ou dans les fichiers .env. */
-function siteUrl(): string {
+/** Variable de construction, lue dans l'environnement ou dans les fichiers .env. */
+function buildVariable(name: string): string {
   const fromFiles = ['.env.production', '.env']
-    .map((name) => join(ROOT, name))
+    .map((file) => join(ROOT, file))
     .filter((path) => existsSync(path))
     .flatMap((path) => readFileSync(path, 'utf8').split('\n'))
-    .find((line) => line.startsWith('VITE_SITE_URL='))
-  const value = process.env.VITE_SITE_URL ?? fromFiles?.slice('VITE_SITE_URL='.length) ?? ''
+    .find((line) => line.startsWith(`${name}=`))
+  const value = process.env[name] ?? fromFiles?.slice(name.length + 1) ?? ''
   return value.trim().replace(/\/+$/, '')
+}
+
+/** Adresse publique du site. */
+function siteUrl(): string {
+  return buildVariable('VITE_SITE_URL')
+}
+
+/**
+ * Autorise l'API dans la politique de sécurité servie par Cloudflare Pages : le fichier
+ * _headers porte un repère, remplacé ici par l'adresse réelle de l'API.
+ */
+function allowApiOrigin(): string {
+  const path = join(DIST, '_headers')
+  if (!existsSync(path)) return ''
+  const api = buildVariable('VITE_API_URL')
+  const origin = api ? new URL(api).origin : ''
+  writeFileSync(path, readFileSync(path, 'utf8').replaceAll('__API_ORIGIN__', origin))
+  return origin
 }
 
 function readCommunes(): CommuneProfile[] {
@@ -121,6 +139,8 @@ function main(): void {
 
   const plan = base ? 'plan du site écrit' : 'VITE_SITE_URL absent, plan du site non écrit'
   console.log(`Référencement : ${communes.length} page(s) commune, ${plan}.`)
+  const origin = allowApiOrigin()
+  console.log(origin ? `Politique de sécurité : API autorisée (${origin}).` : 'Politique de sécurité : VITE_API_URL absent.')
 }
 
 main()
