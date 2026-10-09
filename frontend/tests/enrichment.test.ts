@@ -188,3 +188,48 @@ describe('enseignement supérieur', () => {
     ])
   })
 })
+
+describe('zone tendue et collège de secteur dans le tableau de bord', () => {
+  it('nomme le collège de secteur sous les établissements, avec sa réserve', async () => {
+    const { default: SchoolsCard } = await import('../src/components/cards/SchoolsCard.vue')
+    const card = mount(SchoolsCard, {
+      props: {
+        data: {
+          rayon_m: 1500,
+          ips_moyen: null,
+          etablissements: [],
+          college_secteur: {
+            statut: 'adresse',
+            colleges: [{ uai: '0750465U', nom: 'COLLEGE ALAIN FOURNIER', ips: 104.2, distance_m: 296 }, { uai: '0759999Z' }],
+            nb_colleges_commune: 6,
+          },
+        },
+      },
+    })
+    const text = card.text().replace(/\s+/g, ' ')
+    expect(text).toContain('Secteur partagé entre 2 collèges publics')
+    expect(text).toContain('COLLEGE ALAIN FOURNIER')
+    expect(text).toContain('à 296 m')
+    // Collège absent du référentiel des établissements : son identifiant, sans chiffre inventé.
+    expect(text).toContain('Collège 0759999Z')
+    expect(text).toContain('à confirmer avant tout engagement')
+  })
+
+  it('explique la zone tendue et renvoie au simulateur officiel', async () => {
+    const { default: RentalMarketCard } = await import('../src/components/cards/RentalMarketCard.vue')
+    const card = mount(RentalMarketCard, {
+      props: {
+        data: {
+          occupation: null,
+          permis_de_louer: { statut: 'inconnu' },
+          zone_tendue: { categorie: 'tendue', tendue: true, reference: 'post décret 22/12/2025' },
+        },
+      },
+    })
+    const text = card.text().replace(/\s+/g, ' ')
+    expect(text).toContain('Zone tendue')
+    expect(text).toContain('Préavis du locataire réduit à un mois')
+    expect(text).toContain('post décret 22/12/2025')
+    expect(card.find('a').attributes('href')).toBe('https://www.service-public.fr/simulateur/calcul/zones-tendues')
+  })
+})

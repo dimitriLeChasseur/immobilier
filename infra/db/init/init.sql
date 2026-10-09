@@ -299,6 +299,37 @@ CREATE TABLE IF NOT EXISTS immo.ref_loyers (
     CONSTRAINT ref_loyers_loyer_check CHECK (loyer_m2 > 0)
 );
 
+-- Zonage de la taxe sur les logements vacants (ministère chargé du logement) : communes en
+-- zone tendue. Ingéré par `python -m app.ingestion zone_tendue`.
+CREATE TABLE IF NOT EXISTS immo.ref_zone_tendue (
+    code_insee   immo.code_insee PRIMARY KEY,
+    -- 'tendue' (agglomération de plus de 50 000 habitants), 'touristique' ou 'non_tendue'
+    categorie    text        NOT NULL,
+    -- Liste en vigueur, telle que la nomme le fichier (ex. « post décret 22/12/2025 »).
+    reference    text        NOT NULL,
+    imported_at  timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT ref_zone_tendue_categorie_check
+        CHECK (categorie IN ('tendue', 'touristique', 'non_tendue'))
+);
+
+-- Carte scolaire des collèges publics (ministère de l'Éducation nationale) : collège de
+-- secteur par commune ou, dans les communes partagées, par tronçon de voie. Remplacée en
+-- bloc par `python -m app.ingestion carte_scolaire`.
+CREATE TABLE IF NOT EXISTS immo.ref_carte_scolaire (
+    code_insee      immo.code_insee NOT NULL,
+    -- Nom de voie normalisé (majuscules sans accent ni ponctuation) ; vide si secteur unique.
+    voie            text        NOT NULL DEFAULT '',
+    numero_debut    integer,
+    numero_fin      integer,
+    -- 'P' pairs, 'I' impairs, 'PI' ou NULL : tous les numéros.
+    parite          text,
+    uai             text        NOT NULL,
+    -- Vrai quand toute la commune relève du même secteur.
+    secteur_unique  boolean     NOT NULL
+);
+CREATE INDEX IF NOT EXISTS ref_carte_scolaire_voie_idx
+    ON immo.ref_carte_scolaire (code_insee, voie);
+
 -- Droits d'accès aux audits complets : une ligne par utilisateur et par adresse achetée.
 -- Alimentée après paiement (intégration Stripe à venir) ; sans ligne, l'API ne renvoie
 -- que la version « teaser » du rapport.
@@ -427,7 +458,7 @@ BEGIN
     FOREACH tbl IN ARRAY ARRAY[
         'api_reports_cache', 'insee_ssmsi', 'insee_dgfip', 'geo_ips_ecoles', 'geo_sitadel',
         'insee_iris_logement', 'arcep_connectivite', 'geo_bruit_lden', 'geo_osm_poi',
-        'ref_loyers',
+        'ref_loyers', 'ref_zone_tendue', 'ref_carte_scolaire',
         'audit_entitlements',
         'user_credits', 'user_subscriptions', 'stripe_events', 'user_branding',
         'audit_history'

@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 
 import { formatDate, formatInteger, formatPercent } from '../../lib/format'
+import { tenseZoneNotice } from '../../lib/housingRules'
 import type { MarcheLocatifData } from '../../types/audit'
 import StatTile from '../StatTile.vue'
 
@@ -16,6 +17,7 @@ const RENT_CONTROL = {
 const OFFICIAL_SIMULATOR_URL = 'https://www.service-public.fr/simulateur/calcul/zones-tendues'
 
 const rentControl = computed(() => props.data.encadrement_loyers)
+const tenseZone = computed(() => tenseZoneNotice(props.data.zone_tendue))
 const rentControlDetail = computed(() => {
   const rule = rentControl.value
   if (!rule) return ''
@@ -76,6 +78,16 @@ const rentControlDetail = computed(() => {
           <span class="sr-only">(nouvel onglet)</span>
         </a>
         <p class="mt-1 text-xs opacity-70">Liste officielle vérifiée le {{ formatDate(rentControl.verifie_le) }}.</p>
+      </div>
+      <div v-if="tenseZone" class="rounded-xl bg-slate-100 px-3 py-2 text-slate-700">
+        <p class="text-sm font-medium">{{ tenseZone.title }}</p>
+        <p class="mt-1 text-xs">{{ tenseZone.detail }}</p>
+        <p class="mt-1 text-xs opacity-70">
+          Zonage de la taxe sur les logements vacants ({{ data.zone_tendue?.reference }}) ·
+          <a :href="OFFICIAL_SIMULATOR_URL" target="_blank" rel="noopener noreferrer" class="underline">
+            simulateur officiel<span class="sr-only"> (nouvel onglet)</span>
+          </a>
+        </p>
       </div>
       <div v-if="data.zonage_abc" class="rounded-xl bg-slate-100 px-3 py-2 text-slate-700">
         <p class="text-sm font-medium">

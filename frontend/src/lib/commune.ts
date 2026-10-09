@@ -30,6 +30,8 @@ export interface CommuneProfile {
   /** Échelle de l'estimation par type de bien : « commune », « EPCI » ou « maille ». */
   loyers_niveau?: Partial<Record<string, string>>
   loyers_millesime?: number | null
+  /** « tendue », « touristique » ou « non_tendue » ; absent si la commune n'est pas classée. */
+  zone_tendue?: string | null
   logement: {
     annee: number
     logements: number
@@ -107,6 +109,13 @@ export function rentScope(level: string | null | undefined): string | undefined 
   if (level === 'maille') return 'Estimé sur un groupe de communes voisines au marché comparable'
   if (level === 'EPCI') return 'Estimé à l’échelle de l’intercommunalité'
   return undefined
+}
+
+/** Zone tendue en un mot pour la fiche ; null si la commune est absente du zonage. */
+export function tenseZoneLabel(category: string | null | undefined): string | null {
+  if (category === 'tendue') return 'Oui'
+  if (category === 'touristique') return 'Oui, au titre des communes touristiques'
+  return category === 'non_tendue' ? 'Non' : null
 }
 
 function rentNote(profile: CommuneProfile, id: string): string | undefined {
@@ -202,6 +211,14 @@ function housingSection(profile: CommuneProfile): CommuneSection | null {
     if (housing.part_vacants_pct !== null) {
       facts.push({ label: 'Logements vacants', value: percent(housing.part_vacants_pct) })
     }
+  }
+  const tense = tenseZoneLabel(profile.zone_tendue)
+  if (tense !== null) {
+    facts.push({
+      label: 'Zone tendue',
+      value: tense,
+      note: 'Zonage de la taxe sur les logements vacants : préavis, hausses de loyer et fiscalité en dépendent',
+    })
   }
   if (profile.part_fibre_pct !== null) {
     facts.push({ label: 'Locaux raccordables à la fibre', value: percent(profile.part_fibre_pct) })

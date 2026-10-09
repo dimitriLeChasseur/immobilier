@@ -32,6 +32,8 @@ _CLEANUP = (
     ("insee_iris_logement", "code_insee LIKE $1", "0099%"),
     ("geo_ips_ecoles", "code_insee LIKE $1", "0099%"),
     ("ref_loyers", "code_insee LIKE $1", "0099%"),
+    ("ref_carte_scolaire", "code_insee LIKE $1", "0099%"),
+    ("ref_zone_tendue", "code_insee LIKE $1", "0099%"),
 )
 
 
@@ -231,3 +233,49 @@ async def test_commune_rents_weight_arrondissements_by_their_observations(
     assert set(single) == {"appartement"}
     assert single["appartement"]["nb_zones"] == 1
     assert await repository.commune_rents("00999") == {}
+
+
+async def test_school_sector_reads_the_street_or_the_whole_commune_and_names_the_colleges(
+    pool: asyncpg.Pool, repository: PostgresReferenceRepository
+) -> None:
+    await pool.executemany(
+        "INSERT INTO ref_carte_scolaire (code_insee, voie, numero_debut, numero_fin, parite, uai,"
+        " secteur_unique) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+        [
+            ("00991", "RUE DU TEST", 1, 59, "I", "0099001A", False),
+            ("00991", "RUE DU TEST", 2, 60, "P", "0099002B", False),
+            ("00991", "RUE AUTRE", 1, 9999, "PI", "0099003C", False),
+            ("00992", "", None, None, None, "0099004D", True),
+        ],
+    )
+    await add_school(pool, "0099001A", "00991", "college", 112.0)
+
+    rows, colleges = await repository.school_sector("00991", "RUE DU TEST")
+    assert {row["uai"] for row in rows} == {"0099001A", "0099002B"}
+    assert colleges == 3, "collèges de toute la commune, pas de la seule voie"
+    # Voie absente de la carte : la commune y figure quand même.
+    assert await repository.school_sector("00991", "RUE INCONNUE") == ([], 3)
+    assert await repository.school_sector("00999", "RUE DU TEST") == ([], 0)
+    whole, _ = await repository.school_sector("00992", "N IMPORTE")
+    assert [(row["uai"], row["secteur_unique"]) for row in whole] == [("0099004D", True)]
+
+    # Seul le collège connu du référentiel des établissements est décrit.
+    named = await repository.colleges(["0099001A", "0099002B"], LAT, LON)
+    assert [(college["uai"], college["nom"], college["distance_m"]) for college in named] == [
+        ("0099001A", "Test", 0.0)
+    ]
+
+
+async def test_tense_zone_is_found_under_any_of_the_commune_codes(
+    pool: asyncpg.Pool, repository: PostgresReferenceRepository
+) -> None:
+    await pool.execute(
+        "INSERT INTO ref_zone_tendue (code_insee, categorie, reference)"
+        " VALUES ('00990', 'touristique', 'test')"
+    )
+    # Un arrondissement n'a pas de ligne : c'est celle de sa commune qui répond.
+    assert await repository.tense_zone(["00991", "00990"]) == {
+        "categorie": "touristique",
+        "reference": "test",
+    }
+    assert await repository.tense_zone(["00998"]) is None

@@ -67,7 +67,17 @@ def test_csv_helpers() -> None:
 
 def test_cli_arguments() -> None:
     selected, options = parse_arguments(["all", "--departements", "49, 2a"])
-    assert selected == ["ssmsi", "dgfip", "ips", "iris", "arcep", "loyers", "sitadel"]
+    assert selected == [
+        "ssmsi",
+        "dgfip",
+        "ips",
+        "iris",
+        "arcep",
+        "loyers",
+        "zone_tendue",
+        "carte_scolaire",
+        "sitadel",
+    ]
     assert options.departements == frozenset({"49", "2A"})
     assert parse_arguments(["ips", "ips"])[0] == ["ips"]
     with pytest.raises(argparse.ArgumentTypeError):

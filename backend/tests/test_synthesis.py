@@ -246,6 +246,12 @@ class Repository:
         self._check()
         return {"ecole": {"departement": 106.0, "national": 104.5}}
 
+    async def school_sector(self, code: str, street: str) -> tuple[list[dict[str, Any]], int]:
+        return [], 0
+
+    async def colleges(self, uais: list[str], lat: float, lon: float) -> list[dict[str, Any]]:
+        return []
+
 
 async def test_providers_attach_benchmarks_to_local_figures() -> None:
     repository = Repository()

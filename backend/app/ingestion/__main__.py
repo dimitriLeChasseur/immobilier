@@ -26,7 +26,9 @@ from app.ingestion.datasets import (
     ingest_iris_housing,
     ingest_property_tax,
     ingest_rents,
+    ingest_school_sectors,
     ingest_schools,
+    ingest_tense_zones,
 )
 from app.ingestion.sitadel import ALL_DEPARTEMENTS, ingest_permits
 from app.repositories.db import create_pool
@@ -43,6 +45,8 @@ DATASETS: dict[str, Ingester] = {
     "iris": ingest_iris_housing,
     "arcep": ingest_connectivity,
     "loyers": ingest_rents,
+    "zone_tendue": ingest_tense_zones,
+    "carte_scolaire": ingest_school_sectors,
     "sitadel": ingest_permits,
 }
 _DOWNLOAD_TIMEOUT_S = 900
@@ -86,7 +90,10 @@ async def run(selected: list[str], options: IngestionOptions) -> bool:
     )
     repository = IngestionRepository(pool)
     options = replace(
-        options, rent_resources=rent_resources(settings), rent_year=settings.loyers_millesime
+        options,
+        rent_resources=rent_resources(settings),
+        rent_year=settings.loyers_millesime,
+        tense_zone_resource=settings.zone_tendue_resource_id,
     )
     succeeded = True
     try:

@@ -317,6 +317,13 @@ export interface EcolesData {
     lat?: number
     distance_m: number
   }[]
+  /** Collège public de secteur d'après la carte scolaire ; absent si la base n'a pas répondu. */
+  college_secteur?: {
+    statut: 'adresse' | 'voie' | 'commune' | 'indetermine' | 'non_couvert'
+    /** Un collège absent du référentiel des établissements n'a que son identifiant. */
+    colleges: { uai: string; nom?: string; ips?: number | null; distance_m?: number }[]
+    nb_colleges_commune: number
+  }
   /** Enseignement supérieur dans un rayon plus large ; absent si le service n'a pas répondu. */
   superieur?: {
     rayon_m: number
@@ -370,6 +377,13 @@ export interface MarcheLocatifData {
   permis_de_louer: { statut: string }
   /** Zonage ABC de la commune ; `tendu` : zones A bis, A et B1. */
   zonage_abc?: { zone: string; tendu: boolean } | null
+  /** Zonage de la taxe sur les logements vacants ; null si la commune n'y figure pas. */
+  zone_tendue?: {
+    categorie: 'tendue' | 'touristique' | 'non_tendue'
+    tendue: boolean
+    /** Liste en vigueur, telle que la nomme le fichier officiel. */
+    reference: string
+  } | null
 }
 
 export interface ConnectiviteData {

@@ -82,6 +82,9 @@ class Repository:
         self.rent_queries.append(code)
         return self.rents
 
+    async def tense_zone(self, codes: list[str]) -> dict[str, Any] | None:
+        return None if self.empty else {"categorie": "non_tendue", "reference": "2025"}
+
     async def property_tax(self, codes: list[str]) -> dict[str, Any] | None:
         return None if self.empty else {"annee": 2025, "taux_tfb_total": 56.65, "taux_teom": 8.71}
 
@@ -250,6 +253,7 @@ async def test_rents_come_from_the_local_reference() -> None:
     assert profile.loyers_fourchette == {}, "une seule zone : pas de fourchette"
     assert profile.loyers_niveau == {"appartement": "commune", "maison": "maille"}
     assert profile.loyers_millesime == 2025
+    assert profile.zone_tendue == "non_tendue"
     assert repository.rent_queries == ["49007"]
 
 

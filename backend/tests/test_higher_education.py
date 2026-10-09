@@ -120,6 +120,12 @@ class Repository:
     async def schools_nearby(self, *args: Any) -> list[dict[str, Any]]:
         return self._schools
 
+    async def school_sector(self, code: str, street: str) -> tuple[list[dict[str, Any]], int]:
+        return [], 0
+
+    async def colleges(self, uais: list[str], lat: float, lon: float) -> list[dict[str, Any]]:
+        return []
+
     async def ips_benchmarks(self, departement: str) -> dict[str, dict[str, float]]:
         return {}
 

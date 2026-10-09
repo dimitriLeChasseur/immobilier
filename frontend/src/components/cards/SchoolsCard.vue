@@ -2,6 +2,7 @@
 import { computed } from 'vue'
 
 import { formatDecimal, formatDistance, formatInteger } from '../../lib/format'
+import { SECTOR_CAVEAT, sectorNotice } from '../../lib/housingRules'
 import { SCHOOL_KIND_LABELS } from '../../lib/sources'
 import type { EcolesData } from '../../types/audit'
 import StatTile from '../StatTile.vue'
@@ -23,6 +24,8 @@ const kinds = computed(() =>
     return [{ id, label, ips_moyen: stats.ips_moyen, hint: `${stats.nb} établissement${stats.nb > 1 ? 's' : ''}${reference}` }]
   }),
 )
+
+const sector = computed(() => (props.data.college_secteur ? sectorNotice(props.data.college_secteur) : null))
 
 const VISIBLE_SCHOOLS = 6
 const VISIBLE_HIGHER = 5
@@ -66,6 +69,30 @@ const VISIBLE_HIGHER = 5
   <p v-if="!data.etablissements.length && !kinds.length" class="text-sm text-slate-500">
     Aucune école, aucun collège ni lycée dans un rayon de {{ formatDistance(data.rayon_m) }}.
   </p>
+
+  <div v-if="sector && data.college_secteur" class="mt-4 border-t border-slate-100 pt-4">
+    <h4 class="text-xs font-medium tracking-wide text-slate-500 uppercase">Collège de secteur</h4>
+    <p class="mt-2 text-sm font-medium text-slate-900">{{ sector.title }}</p>
+    <ul v-if="data.college_secteur.colleges.length" class="mt-1 divide-y divide-slate-100 text-sm">
+      <li
+        v-for="college in data.college_secteur.colleges"
+        :key="college.uai"
+        class="flex items-center justify-between gap-4 py-2"
+      >
+        <div class="min-w-0">
+          <p class="truncate font-medium text-slate-900">{{ college.nom ?? `Collège ${college.uai}` }}</p>
+          <p v-if="college.distance_m !== undefined" class="text-xs text-slate-500">
+            à {{ formatDistance(college.distance_m) }}
+          </p>
+        </div>
+        <span v-if="college.ips != null" class="shrink-0 text-sm font-semibold tabular-nums text-slate-900">
+          {{ formatDecimal(college.ips) }}
+        </span>
+      </li>
+    </ul>
+    <p class="mt-1 text-xs text-slate-600">{{ sector.detail }}</p>
+    <p class="mt-1 text-xs text-slate-500">{{ SECTOR_CAVEAT }}</p>
+  </div>
 
   <div v-if="data.superieur" class="mt-4 border-t border-slate-100 pt-4">
     <h4 class="text-xs font-medium tracking-wide text-slate-500 uppercase">

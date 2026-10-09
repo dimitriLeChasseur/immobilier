@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     breaker_reset_after_s: float = Field(default=30.0, gt=0)
 
     # Cache des rapports
-    report_version: int = Field(default=13, ge=1, le=32767)
+    report_version: int = Field(default=14, ge=1, le=32767)
     cache_ttl_hours: int = Field(default=168, ge=1)
     cache_partial_ttl_minutes: int = Field(default=15, ge=1)
     air_quality_ttl_hours: int = Field(default=12, ge=1)
@@ -66,6 +66,8 @@ class Settings(BaseSettings):
     # « Carte des loyers » : ressource data.gouv du dernier millésime
     loyers_resource_id: str = "55b34088-0964-415f-9df7-d87dd98a09be"
     loyers_millesime: int = 2025
+    # Zonage de la taxe sur les logements vacants (zones tendues) : ressource data.gouv
+    zone_tendue_resource_id: str = "efe71da1-15f8-4526-bcb8-5b9a9419c58c"
     # Même millésime, par typologie : appartements de 1-2 pièces, de 3 pièces et plus, maisons.
     loyers_t1_t2_resource_id: str = "14a1fe11-b2d1-49b3-9f6b-83d12df9482c"
     loyers_t3_plus_resource_id: str = "5e3b28a4-cf56-43a3-ae79-43cceeb27f8c"

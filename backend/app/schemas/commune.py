@@ -62,3 +62,5 @@ class CommuneProfile(BaseModel):
     loyers_niveau: dict[str, str] = {}
     loyers_millesime: int | None = None
     logement: CommuneHousing | None = None
+    # Zonage des zones tendues : « tendue », « touristique » ou « non_tendue » ; None si inconnu.
+    zone_tendue: str | None = None

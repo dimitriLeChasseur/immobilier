@@ -14,6 +14,9 @@ NEAREST = {
             "properties": {
                 "id": "49007_1350_00008",
                 "label": "8 Rue du Canal 49100 Angers",
+                "type": "housenumber",
+                "housenumber": "8 bis",
+                "street": "Rue du Canal",
                 "citycode": "49007",
                 "postcode": "49100",
                 "city": "Angers",
@@ -57,6 +60,7 @@ async def test_the_address_chosen_by_the_user_wins_when_it_stands_at_the_point()
     assert location.adresse_id == "49007_1350_00010"
     # Le rapport porte le nom de l'adresse choisie, pas celui de sa voisine.
     assert location.label == "10 Rue du Canal 49100 Angers"
+    assert (location.voie, location.numero) == ("Rue du Canal", 10)
     assert http.lookups[0].endswith("/lookup/49007_1350_00010")
 
 
@@ -86,3 +90,10 @@ async def test_only_house_number_identifiers_are_looked_up(ban_id: str) -> None:
     assert location is not None
     assert location.adresse_id == "49007_1350_00008"
     assert http.lookups == []
+
+
+async def test_street_and_number_come_from_the_nearest_address_by_default() -> None:
+    location = await BanGeocoder(FakeHttp(None)).reverse(*POINT, "")  # type: ignore[arg-type]
+    assert location is not None
+    # « 8 bis » : seul le numéro situe l'adresse dans un tronçon de voie.
+    assert (location.voie, location.numero) == ("Rue du Canal", 8)

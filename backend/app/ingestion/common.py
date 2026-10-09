@@ -41,6 +41,8 @@ class IngestionOptions:
     # configuration (LOYERS_*) pour suivre une nouvelle édition sans toucher au code.
     rent_resources: Mapping[str, str] = field(default_factory=dict)
     rent_year: int = 0
+    # Zonage des zones tendues : fichier data.gouv (ZONE_TENDUE_RESOURCE_ID).
+    tense_zone_resource: str = ""
 
     def accepts(self, code_insee: str) -> bool:
         return self.departements is None or departement_of(code_insee) in self.departements

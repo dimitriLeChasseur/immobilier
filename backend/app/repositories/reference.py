@@ -108,6 +108,36 @@ _PROPERTY_TAX = """
     LIMIT 1
 """
 
+_TENSE_ZONE = """
+    SELECT categorie, reference
+    FROM ref_zone_tendue
+    WHERE code_insee = ANY($1::text[])
+    LIMIT 1
+"""
+
+# Lignes de la carte scolaire applicables à une voie : celles de la voie, ou celle du secteur
+# unique de la commune. `nb_colleges` compte les collèges de toute la commune.
+_SCHOOL_SECTOR = """
+    SELECT uai, secteur_unique, numero_debut, numero_fin, parite,
+           (SELECT count(DISTINCT uai) FROM ref_carte_scolaire WHERE code_insee = $1)
+               AS nb_colleges
+    FROM ref_carte_scolaire
+    WHERE code_insee = $1 AND (secteur_unique OR voie = $2)
+"""
+
+_COMMUNE_COLLEGE_COUNT = """
+    SELECT count(DISTINCT uai) FROM ref_carte_scolaire WHERE code_insee = $1
+"""
+
+_COLLEGES = f"""
+    SELECT DISTINCT ON (uai)
+           uai, nom, ips, ST_X(geom) AS lon, ST_Y(geom) AS lat,
+           round(ST_Distance(geom::geography, {_POINT_GEOG})) AS distance_m
+    FROM geo_ips_ecoles
+    WHERE uai = ANY($3::text[])
+    ORDER BY uai, rentree_scolaire DESC
+"""  # noqa: S608
+
 _SCHOOLS = f"""
     SELECT * FROM (
         -- Dernière rentrée connue de chaque établissement : écoles et collèges/lycées
@@ -244,6 +274,12 @@ class ReferenceRepository(Protocol):
 
     async def commune_rents(self, code: str) -> dict[str, dict[str, Any]]: ...
 
+    async def tense_zone(self, codes: list[str]) -> dict[str, Any] | None: ...
+
+    async def school_sector(self, code: str, street: str) -> tuple[list[dict[str, Any]], int]: ...
+
+    async def colleges(self, uais: list[str], lat: float, lon: float) -> list[dict[str, Any]]: ...
+
     async def noise_coverage(self, lat: float, lon: float) -> list[str]: ...
 
     async def noise_levels_along(
@@ -334,6 +370,27 @@ class PostgresReferenceRepository:
                 average = round(float(record["ips_moyen"]), 1)
                 benchmarks.setdefault(record["type_etablissement"], {})[scope] = average
         return benchmarks
+
+    async def tense_zone(self, codes: list[str]) -> dict[str, Any] | None:
+        """Classement de la commune au zonage des zones tendues, None si elle n'y figure pas."""
+        async with db_errors():
+            record = await self._pool.fetchrow(_TENSE_ZONE, codes)
+        return _jsonable(record) if record is not None else None
+
+    async def school_sector(self, code: str, street: str) -> tuple[list[dict[str, Any]], int]:
+        """(lignes de la carte scolaire pour cette voie, nombre de collèges de la commune)."""
+        async with db_errors():
+            records = await self._pool.fetch(_SCHOOL_SECTOR, code, street)
+            if records:
+                return [_jsonable(record) for record in records], int(records[0]["nb_colleges"])
+            # Voie absente de la carte : la commune y figure peut-être quand même.
+            return [], int(await self._pool.fetchval(_COMMUNE_COLLEGE_COUNT, code) or 0)
+
+    async def colleges(self, uais: list[str], lat: float, lon: float) -> list[dict[str, Any]]:
+        """Nom, IPS et distance des collèges demandés, du plus proche au plus lointain."""
+        async with db_errors():
+            records = await self._pool.fetch(_COLLEGES, lon, lat, uais)
+        return sorted((_jsonable(record) for record in records), key=lambda row: row["distance_m"])
 
     async def schools_nearby(
         self, lat: float, lon: float, radius_m: int, limit: int

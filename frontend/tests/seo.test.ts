@@ -59,6 +59,14 @@ describe('fiche communale', () => {
       undefined,
       'Estimé sur un groupe de communes voisines au marché comparable',
     ])
+    const housing = (zone: string | null) =>
+      communePage({ ...ANGERS, zone_tendue: zone })
+        .sections.find((section) => section.heading === 'Logement et connexion')
+        ?.facts.find((fact) => fact.label === 'Zone tendue')?.value
+    expect(housing('tendue')).toBe('Oui')
+    expect(housing('touristique')).toBe('Oui, au titre des communes touristiques')
+    expect(housing('non_tendue')).toBe('Non')
+    expect(housing(null)).toBeUndefined()
     expect(first('Fiscalité locale').slice(1)).toEqual([
       '56,65 %',
       'Commune médiane du département : 46,57 % · France : 40,33 %',

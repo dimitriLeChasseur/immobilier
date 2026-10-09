@@ -27,6 +27,9 @@ class AuditContext:
     street: Street | None = None
     # Identifiant BAN de l'adresse la plus proche du point, résolu par le serveur.
     address_id: str | None = None
+    # Voie et numéro de l'adresse ; en mode « rue », seul le nom de la voie est connu.
+    street_name: str | None = None
+    house_number: int | None = None
 
     @property
     def commune_codes(self) -> list[str]:

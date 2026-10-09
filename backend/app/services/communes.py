@@ -101,6 +101,8 @@ class CommuneRepository(Protocol):
 
     async def commune_rents(self, code: str) -> dict[str, dict[str, Any]]: ...
 
+    async def tense_zone(self, codes: list[str]) -> dict[str, Any] | None: ...
+
 
 class RentLookup(Protocol):
     async def rents(self, codes: list[str]) -> dict[str, float]:
@@ -182,6 +184,7 @@ class CommuneService:
         departement = identity.departement_code
         connectivity = await self._repository.connectivity(codes)
         rents = await self._commune_rents(identity.code, codes)
+        tense_zone = await self._repository.tense_zone(codes)
         return CommuneProfile(
             code=identity.code,
             nom=identity.name,
@@ -199,6 +202,7 @@ class CommuneService:
             ),
             logement=await self._housing(commune_prefix(identity.code)),
             **rents,
+            zone_tendue=tense_zone["categorie"] if tense_zone else None,
         )
 
     async def _commune_rents(self, code: str, codes: list[str]) -> dict[str, Any]:

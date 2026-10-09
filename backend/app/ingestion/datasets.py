@@ -17,6 +17,7 @@ from app.ingestion.common import (
     to_number,
 )
 from app.repositories.ingestion import IngestionRepository, Row
+from app.services.street import normalize_street_name
 
 logger = logging.getLogger(__name__)
 
@@ -307,3 +308,77 @@ async def ingest_rents(
         if removed:
             logger.info("loyers : %d lignes d'un millésime antérieur retirées", removed)
     return total
+
+
+# Zonage TLV : la dernière colonne « Zonage TLV … » est la liste en vigueur.
+_TENSE_ZONE_COLUMN = "Zonage TLV"
+_TENSE_ZONE_CATEGORIES = {"1": "tendue", "2": "touristique", "3": "non_tendue"}
+
+
+def parse_tense_zone_row(row: dict[str, str]) -> Row | None:
+    code = next((value for column, value in row.items() if column.startswith("CODGEO")), "")
+    columns = [column for column in row if column.startswith(_TENSE_ZONE_COLUMN)]
+    if not columns or not is_insee_code(code):
+        return None
+    # Valeurs « 1. Zone tendue », « 2. Zone touristique et tendue », « 3. Non tendue ».
+    category = _TENSE_ZONE_CATEGORIES.get((row.get(columns[-1]) or "").strip()[:1])
+    if category is None:
+        return None
+    return (code, category, columns[-1].removeprefix(_TENSE_ZONE_COLUMN).strip())
+
+
+async def ingest_tense_zones(
+    downloader: Downloader, repository: IngestionRepository, options: IngestionOptions
+) -> int:
+    if not options.tense_zone_resource:
+        raise ValueError("fichier du zonage des zones tendues absent de la configuration")
+    text = await downloader.text(_RENT_URL.format(options.tense_zone_resource))
+    rows = [
+        parsed
+        for row in read_csv(text.removeprefix("\ufeff"))
+        if (parsed := parse_tense_zone_row(row)) is not None and options.accepts(parsed[0])
+    ]
+    for batch in batched(rows, _BATCH_SIZE):
+        await repository.upsert_tense_zones(batch)
+    return len(rows)
+
+
+_SCHOOL_MAP_URL = (
+    "https://data.education.gouv.fr/api/explore/v2.1/catalog/datasets/"
+    "fr-en-carte-scolaire-colleges-publics/exports/csv"
+)
+
+
+def parse_school_sector_row(row: dict[str, str]) -> Row | None:
+    code, uai = row.get("code_insee", ""), (row.get("code_rne") or "").strip().upper()
+    if not uai or not is_insee_code(code):
+        return None
+    if row.get("secteur_unique") == "O":
+        return (code, "", None, None, None, uai, True)
+    street = normalize_street_name(row.get("type_et_libelle"))
+    if not street:
+        # Secteur décrit par un lieu-dit seul : inexploitable à partir d'une adresse.
+        return None
+    return (
+        code,
+        street,
+        to_integer(row.get("n_de_voie_debut")),
+        to_integer(row.get("n_de_voie_fin")),
+        (row.get("parite") or "").strip().upper() or None,
+        uai,
+        False,
+    )
+
+
+async def ingest_school_sectors(
+    downloader: Downloader, repository: IngestionRepository, options: IngestionOptions
+) -> int:
+    text = await downloader.text(_SCHOOL_MAP_URL, params={"delimiter": ";"})
+    rows = [
+        parsed
+        for row in read_csv(text.removeprefix("\ufeff"))
+        if (parsed := parse_school_sector_row(row)) is not None and options.accepts(parsed[0])
+    ]
+    if rows:
+        await repository.replace_school_sectors(rows, everything=options.departements is None)
+    return len(rows)

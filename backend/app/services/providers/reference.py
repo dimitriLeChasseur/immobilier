@@ -7,6 +7,8 @@ from app.core.geo import departement_code
 from app.repositories.reference import ReferenceRepository
 from app.services.providers.base import AuditContext, ProviderData
 from app.services.providers.higher_education import HigherEducationFinder
+from app.services.school_sectors import resolve_sector
+from app.services.street import normalize_street_name
 
 _SCHOOL_RADIUS_M = 1500
 _SCHOOL_LIMIT = 15
@@ -142,7 +144,25 @@ class SchoolsProvider:
         }
         if higher is not None:
             data["superieur"] = higher
+        try:
+            data["college_secteur"] = await self._sector(ctx)
+        except RepositoryError:
+            missing = (*missing, "college_secteur")
         return ProviderData(data=data, missing=missing)
+
+    async def _sector(self, ctx: AuditContext) -> dict[str, Any]:
+        """Collège public de secteur de l'adresse, d'après la carte scolaire."""
+        street = normalize_street_name(ctx.street_name)
+        rows, nb_colleges = await self._repository.school_sector(ctx.citycode, street)
+        status, uais = resolve_sector(rows, nb_colleges, ctx.house_number)
+        colleges = await self._repository.colleges(uais, ctx.lat, ctx.lon) if uais else []
+        known = {college["uai"] for college in colleges}
+        return {
+            "statut": status,
+            # Un collège absent du référentiel des établissements garde au moins son identifiant.
+            "colleges": colleges + [{"uai": uai} for uai in uais if uai not in known],
+            "nb_colleges_commune": nb_colleges,
+        }
 
     async def _higher(self, ctx: AuditContext) -> tuple[dict[str, Any] | None, tuple[str, ...]]:
         """Enseignement supérieur à proximité ; son absence de réponse ne retire pas les écoles."""

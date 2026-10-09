@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { sectorNotice, tenseZoneNotice } from '../src/lib/housingRules'
 import { lineForSurface, yieldLines } from '../src/lib/yield'
 import { formatDate, formatDistance, formatPercent, formatPricePerM2, grossYield } from '../src/lib/format'
 import { pdfSafe, reportFileName } from '../src/lib/pdf'
@@ -166,5 +167,34 @@ describe('rendement par type de bien', () => {
     expect(lineForSurface(lines, 35)?.id).toBe('t1_t2')
     expect(lineForSurface(lines, 70)?.id).toBe('appartement')
     expect(lineForSurface([], 70)).toBeNull()
+  })
+})
+
+describe('zone tendue et collège de secteur', () => {
+  const college = (uai: string, nom?: string) => ({ uai, nom, ips: 110, distance_m: 400 })
+
+  it('distingue la zone tendue des agglomérations de celle des communes touristiques', () => {
+    const zone = (categorie: 'tendue' | 'touristique' | 'non_tendue') =>
+      tenseZoneNotice({ categorie, tendue: categorie !== 'non_tendue', reference: '2025' })
+    expect(zone('tendue')?.detail).toContain('Préavis du locataire réduit à un mois')
+    expect(zone('touristique')?.detail).toContain('à vérifier sur le simulateur officiel')
+    expect(zone('non_tendue')?.title).toBe('Hors zone tendue')
+    expect(tenseZoneNotice(null)).toBeNull()
+  })
+
+  it('ne dit du collège de secteur que ce que la carte scolaire permet', () => {
+    const sector = (statut: 'adresse' | 'voie' | 'commune' | 'indetermine' | 'non_couvert', count: number) =>
+      sectorNotice({
+        statut,
+        colleges: Array.from({ length: count }, (_, index) => college(`049000${index}A`)),
+        nb_colleges_commune: 14,
+      })
+    expect(sector('adresse', 1).title).toBe('Collège public de secteur')
+    expect(sector('adresse', 2).title).toBe('Secteur partagé entre 2 collèges publics')
+    expect(sector('commune', 1).detail).toBe('Toute la commune relève de ce secteur.')
+    expect(sector('voie', 2).title).toBe('2 collèges publics selon le numéro dans la voie')
+    expect(sector('voie', 1).title).toBe('Collège public de secteur')
+    expect(sector('indetermine', 0).detail).toContain('14 collèges publics')
+    expect(sector('non_couvert', 0).title).toBe('Collège de secteur non publié')
   })
 })

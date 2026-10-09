@@ -132,6 +132,22 @@ _UPSERT_RENT = """
 """
 
 
+_UPSERT_TENSE_ZONE = """
+    INSERT INTO ref_zone_tendue (code_insee, categorie, reference)
+    VALUES ($1, $2, $3)
+    ON CONFLICT (code_insee) DO UPDATE SET
+        categorie = EXCLUDED.categorie,
+        reference = EXCLUDED.reference,
+        imported_at = now()
+"""
+
+_INSERT_SCHOOL_SECTOR = """
+    INSERT INTO ref_carte_scolaire
+        (code_insee, voie, numero_debut, numero_fin, parite, uai, secteur_unique)
+    VALUES ($1, $2, $3, $4, $5, $6, $7)
+"""
+
+
 class IngestionRepository:
     def __init__(self, pool: asyncpg.Pool) -> None:
         self._pool = pool
@@ -162,6 +178,26 @@ class IngestionRepository:
 
     async def upsert_rents(self, rows: Sequence[Row]) -> None:
         await self._executemany(_UPSERT_RENT, rows)
+
+    async def upsert_tense_zones(self, rows: Sequence[Row]) -> None:
+        await self._executemany(_UPSERT_TENSE_ZONE, rows)
+
+    async def replace_school_sectors(self, rows: Sequence[Row], *, everything: bool) -> None:
+        """Remplace la carte scolaire : entière, ou seulement pour les communes fournies.
+
+        Les lignes n'ont pas de clé naturelle (une voie se découpe en tronçons) : on retire
+        puis on recharge, dans une même transaction pour ne jamais exposer une carte vide.
+        """
+        communes = sorted({row[0] for row in rows})
+        async with db_errors(), self._pool.acquire() as connection, connection.transaction():
+            if everything:
+                await connection.execute("DELETE FROM ref_carte_scolaire")
+            else:
+                await connection.execute(
+                    "DELETE FROM ref_carte_scolaire WHERE code_insee = ANY($1::text[])", communes
+                )
+            # Insertion par lots : COPY n'est pas permis sur une table soumise à la RLS.
+            await connection.executemany(_INSERT_SCHOOL_SECTOR, rows, timeout=900)
 
     async def delete_stale_rents(self, year: int) -> int:
         """Retire les loyers d'un autre millésime ; renvoie le nombre de lignes supprimées."""

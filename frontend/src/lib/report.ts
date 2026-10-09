@@ -24,6 +24,7 @@ import {
   formatPricePerM2,
 } from './format'
 import { inPreventionPlan, riskIndicators } from './insights'
+import { sectorNotice, tenseZoneNotice } from './housingRules'
 import { yieldLines } from './yield'
 import { isFailure, orderedCategories, POI_CATEGORY_LABELS, SCHOOL_KIND_LABELS } from './sources'
 
@@ -334,7 +335,14 @@ function rentalRows(rental: MarcheLocatifData | null | undefined): Rows {
   const ruleRows: Rows = rule
     ? [['Encadrement des loyers', [RENT_CONTROL_LABELS[rule.statut], rule.territoire].filter(Boolean).join(' — ')]]
     : []
-  return [...occupancyRows, ...ruleRows, ['Permis de louer', 'À vérifier en mairie (pas de recensement national)']]
+  const zone = tenseZoneNotice(rental.zone_tendue)
+  const zoneRows: Rows = zone ? [[zone.title, zone.detail]] : []
+  return [
+    ...occupancyRows,
+    ...ruleRows,
+    ...zoneRows,
+    ['Permis de louer', 'À vérifier en mairie (pas de recensement national)'],
+  ]
 }
 
 function connectivityRows(connectivity: ConnectiviteData | null | undefined): Rows {
@@ -359,6 +367,14 @@ function mobileRows(mobile: ReseauMobileData | null | undefined): Rows {
   ]
 }
 
+function sectorRows(schools: EcolesData): Rows {
+  const sector = schools.college_secteur
+  if (!sector) return []
+  const notice = sectorNotice(sector)
+  const names = sector.colleges.map((college) => college.nom ?? `Collège ${college.uai}`).join(' ; ')
+  return [[notice.title, [names, notice.detail].filter(Boolean).join(' — ')]]
+}
+
 function neighbourhood(sources: SourceResults): ReportSection {
   const nearby = sources.proximite?.data
   const schools = sources.ecoles?.data
@@ -375,9 +391,7 @@ function neighbourhood(sources: SourceResults): ReportSection {
         ],
       ]
     : []
-  const schoolRows: Rows = schools
-    ? schoolAverages(schools)
-    : []
+  const schoolRows: Rows = schools ? [...schoolAverages(schools), ...sectorRows(schools)] : []
   return {
     title: 'Vie de quartier',
     rows: [

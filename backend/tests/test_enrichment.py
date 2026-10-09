@@ -360,6 +360,9 @@ class NoHousing:
     async def iris_housing(self, code_iris: str) -> None:
         return None
 
+    async def tense_zone(self, codes: list[str]) -> None:
+        return None
+
 
 async def test_abc_zone_reads_the_dated_column_and_flags_tense_markets() -> None:
     column = "Zonage ABC en vigueur depuis le 26 juin 2026"

@@ -84,11 +84,30 @@ class RentalMarketProvider:
                 "occupation": self._occupancy(ctx),
                 "encadrement_loyers": self._rent_control(ctx),
                 "zonage_abc": self._abc_zone(ctx),
+                "zone_tendue": self._tense_zone(ctx),
             }
         )
         # Aucun recensement national des communes ayant instauré un permis de louer.
         data["permis_de_louer"] = {"statut": "inconnu"}
         return ProviderData(data=data, missing=missing)
+
+    async def _tense_zone(self, ctx: AuditContext) -> dict[str, Any] | None:
+        """Classement au zonage de la taxe sur les logements vacants (« zone tendue »).
+
+        None si la commune ne figure pas dans la liste ingérée.
+        """
+        try:
+            zone = await self._repository.tense_zone(ctx.commune_codes)
+        except RepositoryError as exc:
+            raise SourceError("http_error", str(exc)) from exc
+        if zone is None:
+            return None
+        category = zone["categorie"]
+        return {
+            "categorie": category,
+            "tendue": category != "non_tendue",
+            "reference": zone["reference"],
+        }
 
     async def _abc_zone(self, ctx: AuditContext) -> dict[str, Any] | None:
         """Zone A bis, A, B1, B2 ou C de la commune : tension du marché du logement."""

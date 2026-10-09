@@ -164,6 +164,8 @@ class AuditService:
             region=location.region,
             street=plan.street,
             address_id=location.adresse_id,
+            street_name=plan.street.name if plan.street is not None else location.voie,
+            house_number=None if plan.street is not None else location.numero,
         )
         sources: dict[str, SourceResult] = dict(plan.reused)
         tasks = [asyncio.create_task(self._run_provider(p, context)) for p in plan.pending]

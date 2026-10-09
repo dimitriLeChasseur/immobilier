@@ -53,6 +53,9 @@ class Location(BaseModel):
     # Identifiant BAN de l'adresse la plus proche du point, résolu par le serveur. À la
     # différence de `ban_id` (repris de la requête), il peut fonder un droit d'accès.
     adresse_id: str | None = None
+    # Voie et numéro de cette adresse, pour les référentiels décrits par tronçon de voie.
+    voie: str | None = None
+    numero: int | None = None
     # Présent quand l'audit porte sur une voie entière plutôt que sur un point.
     rue: StreetInfo | None = None
     # Vrai quand une voie était demandée mais n'a pas pu être vérifiée (service d'adresses

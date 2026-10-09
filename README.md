@@ -120,7 +120,7 @@ de compte ; ce n'est pas un secret).
 
 | Jeu | Commande | Fréquence conseillée |
 |---|---|---|
-| Délinquance (SSMSI), taxe foncière (DGFiP), IPS des établissements, logements par IRIS (INSEE), fibre (ARCEP), carte des loyers (ANIL), permis de construire (SITADEL) | `docker compose run --rm backend python -m app.ingestion all` | Trimestrielle ; mensuelle pour `sitadel` |
+| Délinquance (SSMSI), taxe foncière (DGFiP), IPS des établissements, logements par IRIS (INSEE), fibre (ARCEP), carte des loyers (ANIL), zones tendues (zonage TLV), carte scolaire des collèges publics, permis de construire (SITADEL) | `docker compose run --rm backend python -m app.ingestion all` | Trimestrielle ; mensuelle pour `sitadel` |
 | Cartes de bruit stratégiques (Lden) | `uv run scripts/ingest_bruit_lden.py` | Mensuelle |
 
 L'ingestion est idempotente et vide le cache des rapports à la fin. Un jeu ou un département peut

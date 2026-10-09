@@ -51,6 +51,12 @@ class FakeHttp:
 class FakeRepository:
     def __init__(self, housing: dict[str, Any] | None = None, fibre: dict[str, Any] | None = None):
         self._housing, self._fibre = housing, fibre
+        self.zone: dict[str, Any] | None = None
+        self.zone_queries: list[list[str]] = []
+
+    async def tense_zone(self, codes: list[str]) -> dict[str, Any] | None:
+        self.zone_queries.append(codes)
+        return self.zone
 
     async def iris_housing(self, code_iris: str) -> dict[str, Any] | None:
         return self._housing
@@ -96,6 +102,24 @@ async def test_rental_market_without_iris_still_reports_rent_control() -> None:
     output = await provider.fetch(paris)
     assert output.data["occupation"] is None
     assert output.data["encadrement_loyers"]["statut"] == "oui"
+    assert output.data["zone_tendue"] is None, "commune absente de la liste ingérée"
+
+
+async def test_tense_zone_is_read_for_the_commune_of_an_arrondissement() -> None:
+    repository = FakeRepository()
+    repository.zone = {"categorie": "tendue", "reference": "post décret 22/12/2025"}
+    provider = RentalMarketProvider(FakeHttp([], None), repository)  # type: ignore[arg-type]
+    paris = AuditContext(lat=48.85, lon=2.37, citycode="75111", region="Île-de-France")
+    assert (await provider.fetch(paris)).data["zone_tendue"] == {
+        "categorie": "tendue",
+        "tendue": True,
+        "reference": "post décret 22/12/2025",
+    }
+    # Le zonage ne connaît que la commune : Paris, pas son 11e arrondissement.
+    assert repository.zone_queries == [["75111", "75056"]]
+
+    repository.zone = {"categorie": "non_tendue", "reference": "post décret 22/12/2025"}
+    assert (await provider.fetch(paris)).data["zone_tendue"]["tendue"] is False
 
 
 async def test_connectivity_shares_and_missing_commune() -> None:
