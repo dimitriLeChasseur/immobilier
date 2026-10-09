@@ -67,6 +67,8 @@ target="$BACKUP_DIR/immo-$(date +%F-%H%M).dump"
 partial="$target.partiel"
 trap 'rm -f "$partial"' EXIT
 
+# L'entrée standard est fermée : lancé depuis un script lu sur l'entrée, pg_dump ne doit pas
+# en consommer la suite.
 docker compose exec -T db pg_dump -U supabase_admin -d postgres --format=custom \
   --table='auth.*' \
   --exclude-table='auth.schema_migrations' \
@@ -75,7 +77,7 @@ docker compose exec -T db pg_dump -U supabase_admin -d postgres --format=custom 
   --table='immo.user_subscriptions' \
   --table='immo.user_branding' \
   --table='immo.stripe_events' \
-  > "$partial"
+  < /dev/null > "$partial"
 
 # Une sauvegarde illisible est pire qu'une sauvegarde absente : on la relit avant de la garder.
 size="$(stat -c %s "$partial")"
