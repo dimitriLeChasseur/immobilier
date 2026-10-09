@@ -45,6 +45,13 @@ class Settings(BaseSettings):
     # Adresse du frontend : seules destinations de retour possibles après paiement.
     site_url: str = "http://localhost:5173"
 
+    # Suppression de compte : appel d'administration au service d'authentification, sur le
+    # réseau interne. Sans clé, la suppression en libre-service est fermée.
+    supabase_service_role_key: SecretStr | None = None
+    auth_internal_url: str = "http://auth:9999"
+    # Destinataire des alertes d'exploitation (sauvegarde ou test de fumée en échec).
+    alert_email: str | None = None
+
     # Envoi d'e-mails (reçus de paiement). Sans serveur configuré, aucun message n'est envoyé.
     smtp_host: str | None = None
     smtp_port: int = 587

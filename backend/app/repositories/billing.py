@@ -16,6 +16,33 @@ _RECORD_EVENT = """
     RETURNING event_id
 """
 
+# Un remboursement retire ce que l'achat avait ouvert : l'adresse, et les crédits non utilisés.
+_REVOKE = f"""
+    DELETE FROM audit_entitlements
+    WHERE user_id = $1::uuid AND origin IN ('unit', 'pack')
+      AND (geohash = {_GEOHASH} OR ban_id = $4::text)
+"""  # noqa: S608
+
+_REMOVE_CREDITS = """
+    UPDATE user_credits SET credits = greatest(credits - $2, 0), updated_at = now()
+    WHERE user_id = $1::uuid
+"""
+
+_ACTIVE_SUBSCRIPTION = """
+    SELECT stripe_subscription_id FROM user_subscriptions
+    WHERE user_id = $1::uuid AND status IN ('active', 'trialing', 'past_due')
+"""
+
+_HISTORY = """
+    SELECT label, ban_id, viewed_at,
+           ST_X(ST_PointFromGeoHash(geohash, 4326)) AS lon,
+           ST_Y(ST_PointFromGeoHash(geohash, 4326)) AS lat
+    FROM audit_history
+    WHERE user_id = $1::uuid
+    ORDER BY viewed_at DESC
+    LIMIT $2
+"""
+
 _IS_RECORDED = "SELECT EXISTS (SELECT 1 FROM stripe_events WHERE event_id = $1)"
 
 _GRANT = f"""
@@ -158,6 +185,20 @@ class BillingRepository(Protocol):
 
     async def is_recorded(self, event_id: str) -> bool: ...
 
+    async def revoke_purchase(
+        self,
+        *,
+        event_id: str,
+        event_type: str,
+        user_id: str,
+        lat: float | None,
+        lon: float | None,
+        address_id: str | None,
+        credits: int,
+    ) -> bool: ...
+
+    async def subscription_id(self, user_id: str) -> str | None: ...
+
     async def record_event(self, event_id: str, event_type: str) -> bool: ...
 
     async def is_entitled(
@@ -171,6 +212,8 @@ class AccountRepository(Protocol):
     async def account(self, user_id: str) -> dict[str, Any]: ...
 
     async def audits(self, user_id: str, limit: int) -> list[dict[str, Any]]: ...
+
+    async def history(self, user_id: str, limit: int) -> list[dict[str, Any]]: ...
 
     async def branding(self, user_id: str) -> dict[str, Any] | None: ...
 
@@ -247,6 +290,39 @@ class PostgresBillingRepository:
         async with db_errors():
             record = await self._pool.fetchrow(_ACCOUNT, user_id)
         return dict(record) if record is not None else {"credits": 0, "subscription_active": False}
+
+    async def revoke_purchase(
+        self,
+        *,
+        event_id: str,
+        event_type: str,
+        user_id: str,
+        lat: float | None,
+        lon: float | None,
+        address_id: str | None,
+        credits: int,
+    ) -> bool:
+        """Annule un achat remboursé. Renvoie False si l'évènement était déjà traité."""
+        async with db_errors(), self._pool.acquire() as connection, connection.transaction():
+            if await connection.fetchval(_RECORD_EVENT, event_id, event_type) is None:
+                return False
+            if lat is not None and lon is not None:
+                await connection.execute(_REVOKE, user_id, lon, lat, address_id)
+            if credits > 0:
+                await connection.execute(_REMOVE_CREDITS, user_id, credits)
+            return True
+
+    async def subscription_id(self, user_id: str) -> str | None:
+        """Abonnement en cours de l'utilisateur chez Stripe, None s'il n'en a pas."""
+        async with db_errors():
+            value: str | None = await self._pool.fetchval(_ACTIVE_SUBSCRIPTION, user_id)
+        return value
+
+    async def history(self, user_id: str, limit: int) -> list[dict[str, Any]]:
+        """Rapports complets consultés, le plus récent d'abord."""
+        async with db_errors():
+            records = await self._pool.fetch(_HISTORY, user_id, limit)
+        return [dict(record) for record in records]
 
     async def is_recorded(self, event_id: str) -> bool:
         """Vrai si cet évènement Stripe a déjà été traité."""

@@ -25,10 +25,22 @@ _HAS_ACCESS = f"""
 """  # noqa: S608
 
 
+_RECORD_VIEW = f"""
+    INSERT INTO audit_history (user_id, geohash, label, ban_id)
+    VALUES ($1::uuid, {_GEOHASH}, $4, $5)
+    ON CONFLICT (user_id, geohash) DO UPDATE SET
+        label = EXCLUDED.label, ban_id = EXCLUDED.ban_id, viewed_at = now()
+"""  # noqa: S608
+
+
 class EntitlementRepository(Protocol):
     async def has_access(
         self, user_id: str, lat: float, lon: float, address_id: str | None = None
     ) -> bool: ...
+
+    async def record_view(
+        self, user_id: str, lat: float, lon: float, label: str, address_id: str | None
+    ) -> None: ...
 
 
 class PostgresEntitlementRepository:
@@ -40,3 +52,10 @@ class PostgresEntitlementRepository:
     ) -> bool:
         async with db_errors():
             return bool(await self._pool.fetchval(_HAS_ACCESS, user_id, lon, lat, address_id))
+
+    async def record_view(
+        self, user_id: str, lat: float, lon: float, label: str, address_id: str | None
+    ) -> None:
+        """Note la consultation d'un rapport complet dans l'historique de l'utilisateur."""
+        async with db_errors():
+            await self._pool.execute(_RECORD_VIEW, user_id, lon, lat, label[:300], address_id)

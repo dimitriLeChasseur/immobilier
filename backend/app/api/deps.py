@@ -13,6 +13,7 @@ from app.core.security import AuthenticatedUser, InvalidTokenError, decode_acces
 from app.repositories.billing import AccountRepository, BillingRepository
 from app.repositories.entitlements import EntitlementRepository
 from app.schemas.audit import Location
+from app.services.accounts import AccountDeleter
 from app.services.audit_service import AuditService
 from app.services.billing import BillingService
 
@@ -91,12 +92,26 @@ class AccessCheck:
         if self._user is None:
             return False
         try:
-            return await self._entitlements.has_access(
+            allowed = await self._entitlements.has_access(
                 self._user.id, location.lat, location.lon, location.adresse_id
             )
         except RepositoryError:
             logger.warning("Vérification des droits impossible : accès restreint par défaut")
             return False
+        if allowed:
+            await self._remember(location)
+        return allowed
+
+    async def _remember(self, location: Location) -> None:
+        """Garde la trace du rapport complet servi ; un échec ici ne retire pas l'accès."""
+        if self._user is None:
+            return
+        try:
+            await self._entitlements.record_view(
+                self._user.id, location.lat, location.lon, location.label, location.adresse_id
+            )
+        except RepositoryError:
+            logger.warning("Historique des consultations indisponible")
 
 
 def get_access_check(
@@ -125,6 +140,11 @@ def get_account_repository(request: Request) -> AccountRepository:
     return repository
 
 
+def get_account_deleter(request: Request) -> AccountDeleter:
+    deleter: AccountDeleter = request.app.state.account_deleter
+    return deleter
+
+
 def get_billing_repository(request: Request) -> BillingRepository:
     repository: BillingRepository = request.app.state.billing_repository
     return repository
@@ -135,4 +155,5 @@ RequiredUserDep = Annotated[AuthenticatedUser, Depends(require_user)]
 BillingServiceDep = Annotated[BillingService, Depends(get_billing_service)]
 BillingRepositoryDep = Annotated[BillingRepository, Depends(get_billing_repository)]
 AccountRepositoryDep = Annotated[AccountRepository, Depends(get_account_repository)]
+AccountDeleterDep = Annotated[AccountDeleter, Depends(get_account_deleter)]
 AccessCheckDep = Annotated[AccessCheck, Depends(get_access_check)]

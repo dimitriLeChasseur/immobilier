@@ -142,7 +142,9 @@ async def test_commune_housing_sums_its_iris_and_follows_arrondissement_prefixes
 async def add_school(pool: asyncpg.Pool, uai: str, code: str, kind: str, score: float) -> None:
     await pool.execute(
         "INSERT INTO geo_ips_ecoles (uai, rentree_scolaire, nom, type_etablissement, secteur,"
-        " code_insee, ips, geom) VALUES ($1, (SELECT max(rentree_scolaire) FROM geo_ips_ecoles),"
+        " code_insee, ips, geom) VALUES ($1,"
+        # Sur une base vierge (CI), aucune rentrée n'existe encore : on en fixe une.
+        " (SELECT coalesce(max(rentree_scolaire), 2025) FROM geo_ips_ecoles),"
         " 'Test', $2, 'public', $3, $4, ST_SetSRID(ST_MakePoint($5, $6), 4326))",
         uai,
         kind,

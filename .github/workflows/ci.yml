@@ -67,3 +67,42 @@ jobs:
           npm run lint
           npm run test
           npm run build
+
+  integration:
+    name: Requêtes SQL sur PostGIS
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v7
+
+      - name: Configurer Python 3.11 et uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Installer les dépendances du backend
+        working-directory: backend
+        run: uv sync --frozen
+
+      # Base jetable, créée pour cette exécution avec le schéma du dépôt : les secrets sont
+      # générés sur place et disparaissent avec la machine.
+      - name: Démarrer la base PostGIS
+        run: |
+          ./scripts/generate-env.sh
+          docker compose up -d --wait db
+
+      - name: Exécuter les tests d'intégration SQL
+        working-directory: backend
+        run: |
+          password="$(grep '^IMMO_APP_DB_PASSWORD=' ../.env | cut -d= -f2-)"
+          export IMMO_TEST_DATABASE_URL="postgresql://immo_app:${password}@127.0.0.1:5433/postgres"
+          export DATABASE_URL="$IMMO_TEST_DATABASE_URL" SUPABASE_JWT_SECRET=test
+          uv run pytest tests/test_integration_sql.py -v
+
+      - name: Afficher les journaux de la base en cas d'échec
+        if: failure()
+        run: docker compose logs db | tail -n 80

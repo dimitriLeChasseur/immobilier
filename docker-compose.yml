@@ -91,6 +91,10 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       STRIPE_PRO_TAX_RATE_ID: ${STRIPE_PRO_TAX_RATE_ID:-}
       SITE_URL: ${SITE_URL}
+      # Suppression de compte en libre-service (appel d'administration interne).
+      SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
+      # Alertes d'exploitation : sauvegarde ou test de fumée en échec.
+      ALERT_EMAIL: ${ALERT_EMAIL:-}
       # Envoi des reçus de paiement : même serveur SMTP que le service d'authentification.
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}

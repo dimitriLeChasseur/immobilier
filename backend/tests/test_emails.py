@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 from app.api.routers import emails
 from app.core.mailer import Email, MailError, SmtpMailer
 from app.core.security import AuthenticatedUser
+from app.notify import alert_email
 from app.services.billing import OFFERS, BillingService, CheckoutTarget, checkout_params
 from app.services.emails import (
     AUTH_TEMPLATES,
@@ -222,3 +223,14 @@ async def test_smtp_message_has_both_parts_and_negotiates_encryption(
     monkeypatch.setattr(aiosmtplib, "send", refused)
     with pytest.raises(MailError):
         await mailer.send(Email(to="a@b.fr", subject="x", html="x", text="x"))
+
+
+def test_alert_message_quotes_the_end_of_the_log_safely() -> None:
+    log = "ligne ancienne\n" * 2000 + "Erreur : sauvegarde <illisible>"
+    email = alert_email("Sauvegarde en échec", log, to="exploitant@example.org", site_url=SITE)
+    assert email.subject == "[Audit Immobilier] Sauvegarde en échec"
+    assert email.to == "exploitant@example.org"
+    # La fin du journal, là où se trouve l'erreur, est conservée et échappée.
+    assert "sauvegarde &lt;illisible&gt;" in email.html
+    assert len(email.text) < 7000
+    assert alert_email("x", "", to="a@b.fr", site_url=SITE).text.endswith("(aucun détail)")

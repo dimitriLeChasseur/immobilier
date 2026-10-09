@@ -200,6 +200,21 @@ docker compose exec -T backend python -m app.smoke   # code de retour 1 en cas d
 - Le logo est contrôlé par le serveur d'après son contenu réel : PNG ou JPEG de 200 Ko au
   plus, jamais de SVG. Il n'est servi qu'aux abonnés actifs.
 
+## Compte client : mot de passe, suppression, remboursement
+
+- **Mot de passe oublié** : lien dans la fenêtre de connexion, e-mail à la charte du site, puis
+  page `/mot-de-passe` pour en choisir un nouveau.
+- **Suppression du compte** par son titulaire depuis `/compte` : l'abonnement en cours est
+  arrêté chez Stripe, puis le compte est supprimé par l'interface d'administration du service
+  d'authentification (clé de service, réseau interne). Droits, crédits, marque blanche et
+  historique partent avec lui.
+- **Remboursement** : un remboursement intégral dans Stripe (`charge.refunded`) retire l'adresse
+  débloquée par l'achat et les crédits de pack encore disponibles. Un remboursement partiel ne
+  retire rien. Les paiements antérieurs à cette version ne portent pas les informations
+  nécessaires : leur remboursement n'a pas d'effet automatique.
+- **Historique** : chaque rapport complet servi est noté, pour qu'un abonné retrouve les
+  adresses qu'il a étudiées.
+
 ## E-mails
 
 Deux familles de messages, à la charte du site (`backend/app/services/emails.py`) :
@@ -222,6 +237,9 @@ sudo ./deploy/backup.sh                    # sauvegarde immédiate dans /srv/imm
 sudo ./deploy/restore.sh <fichier.dump>    # remplace comptes et droits par ceux du fichier
 ./scripts/deploy-backend.sh root@<serveur> # met à jour le backend depuis ce poste
 ```
+
+Chaque tâche planifiée passe par `deploy/run-task.sh` : sa sortie est journalisée dans
+`/var/log/immo-*.log` et un échec envoie un e-mail à `ALERT_EMAIL` (dernières lignes du journal).
 
 La sauvegarde quotidienne contient ce qui ne se reconstruit pas : comptes, droits d'accès,
 crédits, abonnements, marque blanche. Les référentiels publics en sont exclus (ils se

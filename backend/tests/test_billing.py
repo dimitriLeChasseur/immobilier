@@ -51,6 +51,8 @@ class FakeRepository:
         self.unlocked_ids: list[str | None] = []
         self.customer: str | None = None
         self.already_unlocked = False
+        self.refunds: list[dict[str, Any]] = []
+        self.active_subscription: str | None = None
 
     def _is_new(self, event_id: str) -> bool:
         if event_id in self.events:
@@ -95,6 +97,16 @@ class FakeRepository:
     async def is_recorded(self, event_id: str) -> bool:
         return event_id in self.events
 
+    async def revoke_purchase(self, *, event_id: str, **refund: Any) -> bool:
+        if not self._is_new(event_id):
+            return False
+        self.refunds.append(refund)
+        self.credits = max(self.credits - refund["credits"], 0)
+        return True
+
+    async def subscription_id(self, user_id: str) -> str | None:
+        return self.active_subscription
+
     async def record_event(self, event_id: str, event_type: str) -> bool:
         return self._is_new(event_id)
 
@@ -102,7 +114,16 @@ class FakeRepository:
 class FakeHttp:
     def __init__(self) -> None:
         self.calls: list[tuple[str, dict[str, str], dict[str, str]]] = []
+        self.deleted: list[str] = []
         self.fail = False
+
+    async def delete(
+        self, source: str, url: str, *, headers: Mapping[str, str] | None = None
+    ) -> Any:
+        if self.fail:
+            raise SourceError("http_error", "500")
+        self.deleted.append(url)
+        return None
 
     async def post_form_json(
         self,
@@ -542,3 +563,65 @@ def test_webhook_applies_signed_events_only(
     assert genuine.status_code == 200
     assert genuine.json() == {"status": "fulfilled"}
     assert len(repository.purchases) == 1
+
+
+def refund_event(offer: str, *, refunded: bool = True, address: bool = True) -> dict[str, Any]:
+    metadata = {"user_id": USER.id, "offer": offer}
+    if address:
+        metadata |= {"lat": "48.86", "lon": "2.33", "ban_id": RESOLVED_ID}
+    charge = {"id": "ch_1", "refunded": refunded, "metadata": metadata}
+    return {"id": f"evt_refund_{offer}", "type": "charge.refunded", "data": {"object": charge}}
+
+
+async def test_a_full_refund_takes_back_the_address_and_the_unused_credits(
+    service: BillingService, repository: FakeRepository
+) -> None:
+    repository.credits = 9
+    assert await service.handle_event(refund_event("pack")) == "refunded"
+    assert repository.refunds == [
+        {
+            "event_type": "charge.refunded",
+            "user_id": USER.id,
+            "lat": 48.86,
+            "lon": 2.33,
+            "address_id": RESOLVED_ID,
+            "credits": 9,
+        }
+    ]
+    assert repository.credits == 0
+    assert await service.handle_event(refund_event("pack")) == "duplicate"
+
+    await service.handle_event(refund_event("unit"))
+    assert repository.refunds[-1]["credits"] == 0
+
+
+async def test_partial_refunds_and_unknown_charges_take_nothing_back(
+    service: BillingService, repository: FakeRepository
+) -> None:
+    assert await service.handle_event(refund_event("unit", refunded=False)) == "ignored"
+    # Paiement antérieur à l'ajout des métadonnées : rien ne permet de savoir quoi retirer.
+    legacy = {"id": "evt_x", "type": "charge.refunded", "data": {"object": {"refunded": True}}}
+    assert await service.handle_event(legacy) == "ignored"
+    assert repository.refunds == []
+
+
+def test_payment_carries_what_a_refund_needs_to_identify_the_purchase() -> None:
+    params = checkout_params(
+        OFFERS["unit"], USER, TARGET, site_url="https://a.fr", address_id="x_1"
+    )
+    assert params["payment_intent_data[metadata][user_id]"] == USER.id
+    assert params["payment_intent_data[metadata][offer]"] == "unit"
+    assert params["payment_intent_data[metadata][lat]"] == "48.86"
+    assert params["payment_intent_data[metadata][ban_id]"] == "x_1"
+    pro = checkout_params(OFFERS["pro"], USER, None, site_url="https://a.fr")
+    assert not any(key.startswith("payment_intent_data") for key in pro)
+
+
+async def test_deleting_an_account_stops_its_subscription_first(
+    service: BillingService, repository: FakeRepository, http: FakeHttp
+) -> None:
+    await service.cancel_subscription(USER.id)
+    assert http.deleted == []
+    repository.active_subscription = "sub_1"
+    await service.cancel_subscription(USER.id)
+    assert http.deleted == ["https://stripe.test/v1/subscriptions/sub_1"]

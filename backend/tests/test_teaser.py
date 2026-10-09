@@ -90,6 +90,7 @@ class Entitlements:
     def __init__(self, granted: bool = False, broken: bool = False) -> None:
         self.granted, self.broken = granted, broken
         self.checked: list[tuple[str, float, float, str | None]] = []
+        self.viewed: list[tuple[str, str]] = []
 
     async def has_access(
         self, user_id: str, lat: float, lon: float, address_id: str | None = None
@@ -98,6 +99,11 @@ class Entitlements:
         if self.broken:
             raise RepositoryError("down")
         return self.granted
+
+    async def record_view(
+        self, user_id: str, lat: float, lon: float, label: str, address_id: str | None
+    ) -> None:
+        self.viewed.append((user_id, label))
 
 
 def make_client(entitlements: Entitlements) -> Iterator[TestClient]:
@@ -155,11 +161,21 @@ def test_logged_in_user_without_purchase_still_gets_the_teaser(
 
 
 def test_buyer_of_this_address_gets_the_full_report() -> None:
-    client = next(make_client(Entitlements(granted=True)))
+    entitlements = Entitlements(granted=True)
+    client = next(make_client(entitlements))
     body = client.get("/api/v1/audit", params=PARAMS, headers=bearer(token())).json()
     assert body["meta"]["access"] == "full"
+    # Le rapport complet servi entre dans l'historique de l'utilisateur.
+    assert entitlements.viewed == [(USER_ID, "Angers")]
     assert body["sources"]["dvf"]["data"]["prix_m2_median"] == 3859
     assert LOCKED not in json.dumps(body)
+
+
+def test_a_teaser_view_leaves_no_trace_in_the_history(
+    client: TestClient, entitlements: Entitlements
+) -> None:
+    client.get("/api/v1/audit", params=PARAMS, headers=bearer(token()))
+    assert entitlements.viewed == []
 
 
 def test_stream_is_masked_like_the_json_endpoint(client: TestClient) -> None:

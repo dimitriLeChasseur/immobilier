@@ -76,9 +76,38 @@ export function useAuth() {
     return { ok: true, needsConfirmation: false }
   }
 
+  /** Envoie le lien de réinitialisation ; la réponse est la même que le compte existe ou non. */
+  async function requestPasswordReset(email: string): Promise<AuthOutcome> {
+    if (!supabase) return { ok: false, message: NOT_CONFIGURED }
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/mot-de-passe`,
+    })
+    if (error) return { ok: false, message: 'L’envoi a échoué. Réessayez dans un instant.' }
+    return { ok: true, needsConfirmation: false }
+  }
+
+  /** Change le mot de passe de l'utilisateur connecté (arrivé par le lien de réinitialisation). */
+  async function updatePassword(password: string): Promise<AuthOutcome> {
+    if (!supabase) return { ok: false, message: NOT_CONFIGURED }
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) return { ok: false, message: 'Le mot de passe n’a pas pu être changé. Redemandez un lien.' }
+    return { ok: true, needsConfirmation: false }
+  }
+
   async function signOut(): Promise<void> {
     await supabase?.auth.signOut()
   }
 
-  return { user, accessToken, ready, available, signUp, signIn, signInWithGoogle, signOut }
+  return {
+    user,
+    accessToken,
+    ready,
+    available,
+    signUp,
+    signIn,
+    signInWithGoogle,
+    requestPasswordReset,
+    updatePassword,
+    signOut,
+  }
 }

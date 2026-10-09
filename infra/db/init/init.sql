@@ -362,6 +362,20 @@ BEGIN
 END
 $$;
 
+-- Historique des rapports complets consultés : permet à un abonné, qui n'a rien à
+-- « débloquer », de retrouver les adresses qu'il a étudiées.
+CREATE TABLE IF NOT EXISTS immo.audit_history (
+    user_id    uuid        NOT NULL REFERENCES auth.users (id) ON DELETE CASCADE,
+    geohash    text        NOT NULL,
+    label      text,
+    ban_id     text,
+    viewed_at  timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT audit_history_pkey PRIMARY KEY (user_id, geohash),
+    CONSTRAINT audit_history_geohash_check CHECK (char_length(geohash) = 9)
+);
+CREATE INDEX IF NOT EXISTS audit_history_recent_idx
+    ON immo.audit_history (user_id, viewed_at DESC);
+
 -- Évènements Stripe déjà traités : Stripe peut livrer deux fois le même évènement.
 CREATE TABLE IF NOT EXISTS immo.stripe_events (
     event_id     text        NOT NULL,
@@ -392,7 +406,8 @@ BEGIN
         'api_reports_cache', 'insee_ssmsi', 'insee_dgfip', 'geo_ips_ecoles', 'geo_sitadel',
         'insee_iris_logement', 'arcep_connectivite', 'geo_bruit_lden', 'geo_osm_poi',
         'audit_entitlements',
-        'user_credits', 'user_subscriptions', 'stripe_events', 'user_branding'
+        'user_credits', 'user_subscriptions', 'stripe_events', 'user_branding',
+        'audit_history'
     ]
     LOOP
         EXECUTE format('ALTER TABLE immo.%I OWNER TO postgres', tbl);

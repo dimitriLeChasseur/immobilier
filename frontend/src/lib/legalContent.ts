@@ -199,7 +199,7 @@ const confidentialite: LegalDocument = {
     {
       heading: 'Vos droits',
       paragraphs: [
-        `Vous disposez d’un droit d’accès, de rectification, d’effacement, de limitation, d’opposition et de portabilité. Pour les exercer, ou pour supprimer votre compte, écrivez à ${P.email}. Une réponse vous est apportée sous un mois.`,
+        `Vous disposez d’un droit d’accès, de rectification, d’effacement, de limitation, d’opposition et de portabilité. Vous pouvez supprimer votre compte vous-même depuis « Mon compte ». Pour exercer vos autres droits, écrivez à ${P.email}. Une réponse vous est apportée sous un mois.`,
         'Vous pouvez introduire une réclamation auprès de la CNIL (www.cnil.fr).',
       ],
     },

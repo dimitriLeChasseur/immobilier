@@ -12,6 +12,7 @@ from app.core.mailer import SmtpMailer
 from app.repositories.billing import BillingRepository
 from app.repositories.reference import PostgresReferenceRepository
 from app.repositories.report_cache import PostgresReportCache, ReportCache
+from app.services.accounts import AccountDeleter
 from app.services.audit_service import AuditPolicy, AuditService
 from app.services.billing import BillingService
 from app.services.communes import CommuneService, TabularRents
@@ -164,3 +165,18 @@ def rent_resources(settings: Settings) -> dict[str, str]:
         "t3_plus": settings.loyers_t3_plus_resource_id,
         "maison": settings.loyers_maison_resource_id,
     }
+
+
+def build_account_deleter(settings: Settings, session: aiohttp.ClientSession) -> AccountDeleter:
+    http = HttpClient(
+        session,
+        timeout_s=settings.http_timeout_s,
+        failure_threshold=settings.breaker_failure_threshold,
+        reset_after_s=settings.breaker_reset_after_s,
+    )
+    key = settings.supabase_service_role_key
+    return AccountDeleter(
+        http,
+        auth_url=settings.auth_internal_url,
+        service_key=key.get_secret_value() if key else None,
+    )

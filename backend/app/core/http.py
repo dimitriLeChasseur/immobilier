@@ -108,6 +108,12 @@ class HttpClient:
         """POST d'un corps JSON renvoyant le JSON décodé."""
         return await self._request(source, "POST", url, json=payload, headers=headers)
 
+    async def delete(
+        self, source: str, url: str, *, headers: Mapping[str, str] | None = None
+    ) -> Any:
+        """DELETE renvoyant le JSON décodé (None si le corps est vide)."""
+        return await self._request(source, "DELETE", url, headers=headers)
+
     def _breaker(self, source: str) -> CircuitBreaker:
         breaker = self._breakers.get(source)
         if breaker is None:

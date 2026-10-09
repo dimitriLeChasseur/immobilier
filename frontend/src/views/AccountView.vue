@@ -1,8 +1,17 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
-import { RouterLink } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 
-import { deleteBranding, fetchAudits, fetchBranding, saveBranding, type UnlockedAudit } from '../api/account'
+import {
+  deleteAccount,
+  deleteBranding,
+  fetchAudits,
+  fetchBranding,
+  fetchHistory,
+  saveBranding,
+  type UnlockedAudit,
+  type ViewedAudit,
+} from '../api/account'
 import { openBillingPortal } from '../api/billing'
 import AuthModal from '../components/AuthModal.vue'
 import { useAccount } from '../composables/useAccount'
@@ -17,10 +26,17 @@ const ORIGINS: Record<UnlockedAudit['origin'], string> = {
   admin: 'Offert',
 }
 
-const { user, accessToken, ready, available } = useAuth()
+const { user, accessToken, ready, available, signOut } = useAuth()
+const router = useRouter()
 const { account, refresh } = useAccount()
 
 const audits = ref<UnlockedAudit[]>([])
+const history = ref<ViewedAudit[]>([])
+// Suppression du compte : le mot à saisir évite un clic malheureux.
+const DELETE_WORD = 'SUPPRIMER'
+const deleteConfirmation = ref('')
+const deleting = ref(false)
+const deleteError = ref<string | null>(null)
 const loading = ref(false)
 const loadFailed = ref(false)
 const authOpen = ref(false)
@@ -46,7 +62,7 @@ const brandingNotice = ref<string | null>(null)
 const credits = computed(() => account.value?.credits ?? 0)
 const subscribed = computed(() => account.value?.subscription_active ?? false)
 
-function auditLink(audit: UnlockedAudit) {
+function auditLink(audit: Pick<UnlockedAudit, 'lat' | 'lon' | 'ban_id' | 'label'>) {
   const query: Record<string, string> = { lat: String(audit.lat), lon: String(audit.lon) }
   if (audit.ban_id) query.ban_id = audit.ban_id
   if (audit.label) query.q = audit.label
@@ -58,8 +74,13 @@ async function load(token: string): Promise<void> {
   loadFailed.value = false
   try {
     await refresh()
-    const [list, branding] = await Promise.all([fetchAudits(token), fetchBranding(token)])
+    const [list, viewed, branding] = await Promise.all([
+      fetchAudits(token),
+      fetchHistory(token),
+      fetchBranding(token),
+    ])
     audits.value = list
+    history.value = viewed
     company.value = branding?.company ?? ''
     color.value = branding?.color ?? DEFAULT_COLOR
     for (const { key } of CONTACT_FIELDS) contact.value[key] = branding?.[key] ?? ''
@@ -131,6 +152,21 @@ function remove(): Promise<void> {
   }, 'Marque supprimée.')
 }
 
+async function removeAccount(): Promise<void> {
+  if (!accessToken.value || deleteConfirmation.value !== DELETE_WORD) return
+  deleting.value = true
+  deleteError.value = null
+  try {
+    await deleteAccount(accessToken.value)
+    await signOut()
+    await router.push({ name: 'audit' })
+  } catch (failure) {
+    deleteError.value = failure instanceof Error ? failure.message : 'La suppression a échoué.'
+  } finally {
+    deleting.value = false
+  }
+}
+
 async function manageSubscription(): Promise<void> {
   if (!accessToken.value) return
   try {
@@ -198,6 +234,24 @@ async function manageSubscription(): Promise<void> {
           {{ subscribed ? 'Votre abonnement ouvre toutes les adresses : il n’y a rien à débloquer une par une.' : 'Aucune adresse débloquée pour l’instant.' }}
           <RouterLink :to="{ name: 'audit' }" class="ml-1 font-medium text-brand-700 underline">Analyser une adresse</RouterLink>
         </p>
+      </div>
+
+      <div v-if="history.length" class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <h2 class="text-lg font-semibold text-slate-900">Dernières consultations</h2>
+        <ul class="mt-3 divide-y divide-slate-100">
+          <li v-for="item in history.slice(0, 20)" :key="`${item.lat}-${item.lon}`" class="flex items-center justify-between gap-4 py-3">
+            <div class="min-w-0">
+              <p class="truncate text-sm font-medium text-slate-900">{{ item.label ?? 'Adresse sans libellé' }}</p>
+              <p class="text-xs text-slate-500">Consulté le {{ formatDate(item.viewed_at) }}</p>
+            </div>
+            <RouterLink
+              :to="auditLink(item)"
+              class="shrink-0 rounded-lg border border-slate-300 px-3 py-1.5 text-sm font-medium text-slate-700 hover:bg-slate-50"
+            >
+              Rouvrir
+            </RouterLink>
+          </li>
+        </ul>
       </div>
 
       <div class="mt-6 rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
@@ -283,6 +337,33 @@ async function manageSubscription(): Promise<void> {
             Les sources des données restent citées en pied de page : leurs licences l’exigent.
           </p>
         </form>
+      </div>
+      <div class="mt-6 rounded-2xl border border-rose-200 bg-white p-6">
+        <h2 class="text-lg font-semibold text-slate-900">Supprimer mon compte</h2>
+        <p class="mt-2 text-sm text-slate-600">
+          Votre compte, vos audits débloqués, vos crédits restants et votre marque blanche seront supprimés
+          définitivement. Un abonnement en cours est arrêté aussitôt. Les factures déjà émises sont conservées
+          par notre prestataire de paiement, comme la loi l’exige.
+        </p>
+        <form class="mt-4 flex flex-wrap items-end gap-3" @submit.prevent="removeAccount">
+          <label class="text-sm text-slate-700">
+            Saisissez {{ DELETE_WORD }} pour confirmer
+            <input
+              v-model="deleteConfirmation"
+              type="text"
+              autocomplete="off"
+              class="mt-1 block w-48 rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-rose-500 focus:ring-4 focus:ring-rose-100 focus:outline-none"
+            />
+          </label>
+          <button
+            type="submit"
+            class="rounded-lg bg-rose-700 px-4 py-2 text-sm font-medium text-white hover:bg-rose-800 disabled:cursor-not-allowed disabled:opacity-50"
+            :disabled="deleting || deleteConfirmation !== DELETE_WORD"
+          >
+            Supprimer définitivement
+          </button>
+        </form>
+        <p v-if="deleteError" class="mt-3 text-sm text-rose-700" role="alert">{{ deleteError }}</p>
       </div>
     </template>
 

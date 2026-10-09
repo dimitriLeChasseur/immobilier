@@ -40,3 +40,21 @@ export function saveBranding(accessToken: string, branding: Branding): Promise<B
 export async function deleteBranding(accessToken: string): Promise<void> {
   await call<unknown>('account/branding', accessToken, undefined, 'DELETE')
 }
+
+/** Rapport complet consulté (historique). */
+export interface ViewedAudit {
+  label: string | null
+  lat: number
+  lon: number
+  ban_id: string | null
+  viewed_at: string
+}
+
+export function fetchHistory(accessToken: string): Promise<ViewedAudit[]> {
+  return call<ViewedAudit[]>('account/history', accessToken)
+}
+
+/** Supprime le compte, ses audits et sa marque ; l'abonnement est arrêté d'abord. */
+export async function deleteAccount(accessToken: string): Promise<void> {
+  await call<unknown>('account', accessToken, undefined, 'DELETE')
+}

@@ -11,11 +11,17 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.deps import get_account_repository, get_rate_limiter
+from app.api.deps import (
+    get_account_deleter,
+    get_account_repository,
+    get_billing_service,
+    get_rate_limiter,
+)
 from app.api.routers import account
-from app.core.errors import RepositoryError
+from app.core.errors import RepositoryError, SourceError
 from app.core.rate_limit import SlidingWindowRateLimiter
 from app.repositories.billing import BrandingDetails
+from app.services.accounts import AccountDeleter
 from app.services.branding import MAX_LOGO_BYTES, InvalidLogoError, decode_logo, encode_logo
 
 NO_DETAILS: dict[str, Any] = {
@@ -85,6 +91,18 @@ class Repository:
             }
         ]
 
+    async def history(self, user_id: str, limit: int) -> list[dict[str, Any]]:
+        self._check()
+        return [
+            {
+                "label": "17 Rue Saint-Aubin 49100 Angers",
+                "lat": 47.4696,
+                "lon": -0.5536,
+                "ban_id": "49007_7050_00017",
+                "viewed_at": datetime(2026, 10, 8, tzinfo=UTC),
+            }
+        ]
+
     async def branding(self, user_id: str) -> dict[str, Any] | None:
         return self.stored
 
@@ -142,10 +160,44 @@ def token() -> str:
 AUTH = {"Authorization": f"Bearer {token()}"}
 
 
-def make_client(repository: Repository) -> Iterator[TestClient]:
+class Billing:
+    def __init__(self) -> None:
+        self.cancelled: list[str] = []
+
+    async def cancel_subscription(self, user_id: str) -> None:
+        self.cancelled.append(user_id)
+
+
+class AuthAdmin:
+    """Interface d'administration du service d'authentification, simulée."""
+
+    def __init__(self, outcome: Exception | None = None) -> None:
+        self.outcome = outcome
+        self.calls: list[tuple[str, dict[str, str]]] = []
+
+    async def delete(self, source: str, url: str, *, headers: Any = None) -> None:
+        self.calls.append((url, dict(headers or {})))
+        if self.outcome is not None:
+            raise self.outcome
+
+
+BILLING = Billing()
+AUTH_ADMIN = AuthAdmin()
+SERVICE_KEY = "cle-de-service"
+
+
+def make_client(
+    repository: Repository, service_key: str | None = SERVICE_KEY
+) -> Iterator[TestClient]:
     app = FastAPI()
     app.include_router(account.router)
     limiter = SlidingWindowRateLimiter(limit=30, window_s=60)
+    BILLING.cancelled.clear()
+    AUTH_ADMIN.calls.clear()
+    AUTH_ADMIN.outcome = None
+    deleter = AccountDeleter(AUTH_ADMIN, auth_url="http://auth:9999/", service_key=service_key)  # type: ignore[arg-type]
+    app.dependency_overrides[get_billing_service] = lambda: BILLING
+    app.dependency_overrides[get_account_deleter] = lambda: deleter
     app.dependency_overrides[get_account_repository] = lambda: repository
     app.dependency_overrides[get_rate_limiter] = lambda: limiter
     with TestClient(app) as client:
@@ -156,6 +208,8 @@ def make_client(repository: Repository) -> Iterator[TestClient]:
     ("method", "path"),
     [
         ("get", "/api/v1/account/audits"),
+        ("get", "/api/v1/account/history"),
+        ("delete", "/api/v1/account"),
         ("get", "/api/v1/account/branding"),
         ("put", "/api/v1/account/branding"),
         ("delete", "/api/v1/account/branding"),
@@ -247,3 +301,38 @@ def test_invalid_branding_is_rejected_before_being_stored(body: dict[str, Any]) 
     client = next(make_client(repository))
     assert client.put("/api/v1/account/branding", json=body, headers=AUTH).status_code == 422
     assert repository.stored is None
+
+
+def test_history_lists_the_full_reports_viewed() -> None:
+    client = next(make_client(Repository()))
+    response = client.get("/api/v1/account/history", headers=AUTH)
+    assert response.status_code == 200
+    assert response.json() == [
+        {
+            "label": "17 Rue Saint-Aubin 49100 Angers",
+            "lat": 47.4696,
+            "lon": -0.5536,
+            "ban_id": "49007_7050_00017",
+            "viewed_at": "2026-10-08T00:00:00Z",
+        }
+    ]
+
+
+def test_account_deletion_stops_billing_then_removes_the_account() -> None:
+    client = next(make_client(Repository()))
+    assert client.delete("/api/v1/account", headers=AUTH).status_code == 204
+    assert BILLING.cancelled == [USER_ID]
+    url, headers = AUTH_ADMIN.calls[0]
+    # L'identifiant supprimé est celui du jeton, jamais un paramètre fourni par le client.
+    assert url == f"http://auth:9999/admin/users/{USER_ID}"
+    assert headers == {"Authorization": f"Bearer {SERVICE_KEY}", "apikey": SERVICE_KEY}
+
+
+def test_account_deletion_reports_when_it_cannot_be_done() -> None:
+    closed = next(make_client(Repository(), service_key=None))
+    assert closed.delete("/api/v1/account", headers=AUTH).status_code == 503
+    assert AUTH_ADMIN.calls == []
+
+    client = next(make_client(Repository()))
+    AUTH_ADMIN.outcome = SourceError("timeout")
+    assert client.delete("/api/v1/account", headers=AUTH).status_code == 502

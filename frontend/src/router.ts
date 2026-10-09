@@ -71,6 +71,12 @@ export const router = createRouter({
       component: () => import('./views/AccountView.vue'),
       meta: { title: `Mon compte | ${SITE_NAME}`, private: true },
     },
+    {
+      path: '/mot-de-passe',
+      name: 'password',
+      component: () => import('./views/ResetPasswordView.vue'),
+      meta: { title: `Nouveau mot de passe | ${SITE_NAME}`, private: true },
+    },
     ...LEGAL_ROUTES,
     // La fiche fixe elle-même ses balises, une fois la commune chargée.
     { path: '/commune/:slug', name: 'commune', component: () => import('./views/CommuneView.vue') },

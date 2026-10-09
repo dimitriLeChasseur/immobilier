@@ -9,7 +9,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.routers import account, audit, billing, communes, emails, health
-from app.container import build_audit_service, build_billing_service, build_commune_service
+from app.container import (
+    build_account_deleter,
+    build_audit_service,
+    build_billing_service,
+    build_commune_service,
+)
 from app.core.config import get_settings
 from app.core.rate_limit import SlidingWindowRateLimiter
 from app.repositories.billing import PostgresBillingRepository
@@ -33,6 +38,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.billing_service = build_billing_service(
         settings, app.state.billing_repository, session
     )
+    app.state.account_deleter = build_account_deleter(settings, session)
     app.state.rate_limiter = SlidingWindowRateLimiter(
         settings.rate_limit_requests, settings.rate_limit_window_s
     )

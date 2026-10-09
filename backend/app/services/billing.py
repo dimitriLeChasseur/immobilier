@@ -33,6 +33,7 @@ _CHECKOUT_EVENTS = frozenset(
 # « created » est ignoré : il peut arriver après l'activation avec un statut provisoire.
 _SUBSCRIPTION_EVENTS = frozenset({"customer.subscription.updated", "customer.subscription.deleted"})
 _INVOICE_EVENTS = frozenset({"invoice.paid"})
+_REFUND_EVENTS = frozenset({"charge.refunded"})
 _MAX_LABEL_LENGTH = 300
 
 
@@ -159,6 +160,10 @@ def checkout_params(
         if address_id:
             params["metadata[ban_id]"] = address_id
     if offer.mode == "payment":
+        # Reportées sur le paiement lui-même : un remboursement désigne ainsi ce qu'il annule.
+        for key in ("user_id", "offer", "lat", "lon", "ban_id"):
+            if f"metadata[{key}]" in params:
+                params[f"payment_intent_data[metadata][{key}]"] = params[f"metadata[{key}]"]
         # Une facture est émise pour chaque achat : son paiement déclenche l'envoi du reçu.
         params["invoice_creation[enabled]"] = "true"
         params["invoice_creation[invoice_data][description]"] = offer.name
@@ -315,7 +320,50 @@ class BillingService:
             return await self._on_subscription(event, payload)
         if event_type in _INVOICE_EVENTS:
             return await self._send_receipt(event_id, str(event_type), payload)
+        if event_type in _REFUND_EVENTS:
+            return await self._on_refund(event_id, str(event_type), payload)
         return "ignored"
+
+    async def _on_refund(self, event_id: str, event_type: str, charge: dict[str, Any]) -> str:
+        """Retire ce qu'un achat intégralement remboursé avait ouvert.
+
+        Un remboursement partiel est un geste commercial : il ne retire rien. Pour un pack,
+        l'adresse débloquée à l'achat et les crédits encore disponibles sont repris ; les
+        adresses déjà débloquées avec des crédits restent acquises.
+        """
+        metadata = charge.get("metadata") or {}
+        user_id, offer = metadata.get("user_id"), OFFERS.get(str(metadata.get("offer")))
+        if not charge.get("refunded") or not isinstance(user_id, str) or offer is None:
+            return "ignored"
+        lat, lon = _coordinate(metadata.get("lat")), _coordinate(metadata.get("lon"))
+        has_address = lat is not None and lon is not None
+        credits = offer.extra_credits if has_address else (_PACK_SIZE if offer.id == "pack" else 0)
+        applied = await self._repository.revoke_purchase(
+            event_id=event_id,
+            event_type=event_type,
+            user_id=user_id,
+            lat=lat if has_address else None,
+            lon=lon if has_address else None,
+            address_id=metadata.get("ban_id") if has_address else None,
+            credits=credits,
+        )
+        return "refunded" if applied else "duplicate"
+
+    async def cancel_subscription(self, user_id: str) -> None:
+        """Arrête l'abonnement en cours, pour qu'un compte supprimé ne soit plus facturé."""
+        subscription_id = await self._repository.subscription_id(user_id)
+        if subscription_id is None or not self._secret_key:
+            return
+        try:
+            await self._http.delete(
+                "stripe",
+                f"{self._api_url}/v1/subscriptions/{subscription_id}",
+                headers={"Authorization": f"Bearer {self._secret_key}"},
+            )
+        except SourceError as exc:
+            # Déjà résilié ou inconnu de Stripe : rien à arrêter.
+            if exc.kind != "not_found":
+                raise
 
     async def _send_receipt(self, event_id: str, event_type: str, invoice: dict[str, Any]) -> str:
         """Envoie le reçu d'une facture payée, une seule fois.

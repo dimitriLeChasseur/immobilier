@@ -7,10 +7,10 @@ const props = defineProps<{ initialMode?: 'signup' | 'signin' }>()
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ authenticated: [] }>()
 
-const { available, signUp, signIn, signInWithGoogle } = useAuth()
+const { available, signUp, signIn, signInWithGoogle, requestPasswordReset } = useAuth()
 
 const dialog = ref<HTMLDialogElement | null>(null)
-const mode = ref<'signup' | 'signin'>(props.initialMode ?? 'signup')
+const mode = ref<'signup' | 'signin' | 'reset'>(props.initialMode ?? 'signup')
 const email = ref('')
 const password = ref('')
 const busy = ref(false)
@@ -18,7 +18,9 @@ const error = ref<string | null>(null)
 const notice = ref<string | null>(null)
 
 const isSignup = computed(() => mode.value === 'signup')
-const title = computed(() => (isSignup.value ? 'Créer votre compte' : 'Se connecter'))
+const isReset = computed(() => mode.value === 'reset')
+const TITLES = { signup: 'Créer votre compte', signin: 'Se connecter', reset: 'Mot de passe oublié' } as const
+const title = computed(() => TITLES[mode.value])
 
 // <dialog> natif : piège le focus, se ferme avec Échap et rend le reste de la page inerte.
 watch(
@@ -55,6 +57,14 @@ async function submit(): Promise<void> {
   busy.value = true
   error.value = null
   notice.value = null
+  if (isReset.value) {
+    const outcome = await requestPasswordReset(email.value.trim())
+    // Même message que le compte existe ou non : on ne révèle pas qui est inscrit.
+    if (outcome.ok) notice.value = 'Si un compte existe pour cette adresse, un e-mail vient de partir avec un lien.'
+    else error.value = outcome.message
+    busy.value = false
+    return
+  }
   const action = isSignup.value ? signUp : signIn
   handle(await action(email.value.trim(), password.value))
   busy.value = false
@@ -133,7 +143,7 @@ async function withGoogle(): Promise<void> {
               class="mt-1 w-full rounded-lg border border-slate-300 px-3 py-2 text-slate-900 focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
             />
           </label>
-          <label class="block text-sm font-medium text-slate-700">
+          <label v-if="!isReset" class="block text-sm font-medium text-slate-700">
             Mot de passe
             <input
               v-model="password"
@@ -156,18 +166,23 @@ async function withGoogle(): Promise<void> {
             class="w-full rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-900 disabled:opacity-50"
             :disabled="busy"
           >
-            {{ isSignup ? 'Créer mon compte' : 'Me connecter' }}
+            {{ isReset ? 'Recevoir le lien' : isSignup ? 'Créer mon compte' : 'Me connecter' }}
           </button>
+          <p v-if="mode === 'signin'" class="text-center text-sm">
+            <button type="button" class="text-slate-600 underline hover:text-slate-900" @click="mode = 'reset'">
+              Mot de passe oublié ?
+            </button>
+          </p>
         </form>
 
         <p class="mt-4 text-center text-sm text-slate-600">
-          {{ isSignup ? 'Déjà un compte ?' : 'Pas encore de compte ?' }}
+          {{ mode === 'signin' ? 'Pas encore de compte ?' : isReset ? 'Vous vous en souvenez ?' : 'Déjà un compte ?' }}
           <button
             type="button"
             class="font-medium text-brand-700 underline hover:text-brand-900"
-            @click="mode = isSignup ? 'signin' : 'signup'"
+            @click="mode = mode === 'signin' ? 'signup' : 'signin'"
           >
-            {{ isSignup ? 'Se connecter' : 'Créer un compte' }}
+            {{ mode === 'signin' ? 'Créer un compte' : 'Se connecter' }}
           </button>
         </p>
       </template>

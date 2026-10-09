@@ -7,9 +7,16 @@ from typing import Annotated
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel, ConfigDict, Field, field_validator
 
-from app.api.deps import AccountRepositoryDep, RequiredUserDep, enforce_rate_limit
-from app.core.errors import RepositoryError
+from app.api.deps import (
+    AccountDeleterDep,
+    AccountRepositoryDep,
+    BillingServiceDep,
+    RequiredUserDep,
+    enforce_rate_limit,
+)
+from app.core.errors import RepositoryError, SourceError
 from app.repositories.billing import BrandingDetails
+from app.services.accounts import AccountDeletionUnavailableError
 from app.services.branding import InvalidLogoError, decode_logo, encode_logo
 
 logger = logging.getLogger(__name__)
@@ -19,6 +26,7 @@ router = APIRouter(
 )
 
 _MAX_AUDITS = 200
+_MAX_HISTORY = 100
 # Une URL « data: » en base64 pèse un tiers de plus que le fichier.
 _MAX_LOGO_CHARS = 300_000
 _UNAVAILABLE = "Compte indisponible."
@@ -65,6 +73,14 @@ class BrandingFields(BaseModel):
         )
 
 
+class ViewedAudit(BaseModel):
+    label: str | None
+    lat: float
+    lon: float
+    ban_id: str | None
+    viewed_at: datetime
+
+
 class Branding(BrandingFields):
     # URL « data: » du logo, prête à être insérée dans le PDF ; None sans logo.
     logo: str | None = None
@@ -95,6 +111,39 @@ async def list_audits(
     except RepositoryError as exc:
         raise _unavailable(exc) from exc
     return [UnlockedAudit(**row) for row in rows]
+
+
+@router.get("/history")
+async def list_history(
+    user: RequiredUserDep, repository: AccountRepositoryDep
+) -> list[ViewedAudit]:
+    """Rapports complets consultés par l'utilisateur, le plus récent d'abord."""
+    try:
+        rows = await repository.history(user.id, _MAX_HISTORY)
+    except RepositoryError as exc:
+        raise _unavailable(exc) from exc
+    return [ViewedAudit(**row) for row in rows]
+
+
+@router.delete("", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_account(
+    user: RequiredUserDep, billing: BillingServiceDep, accounts: AccountDeleterDep
+) -> Response:
+    """Supprime le compte et tout ce qui lui est rattaché ; l'abonnement est arrêté d'abord."""
+    try:
+        await billing.cancel_subscription(user.id)
+        await accounts.delete(user.id)
+    except AccountDeletionUnavailableError as exc:
+        raise HTTPException(
+            status.HTTP_503_SERVICE_UNAVAILABLE,
+            "La suppression en ligne n'est pas disponible : écrivez-nous.",
+        ) from exc
+    except (SourceError, RepositoryError) as exc:
+        logger.warning("Suppression de compte impossible : %s", exc)
+        raise HTTPException(
+            status.HTTP_502_BAD_GATEWAY, "La suppression a échoué, réessayez dans un instant."
+        ) from exc
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
 @router.get("/branding")
