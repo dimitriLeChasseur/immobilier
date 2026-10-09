@@ -226,7 +226,12 @@ sudo ./deploy/restore.sh <fichier.dump>    # remplace comptes et droits par ceux
 La sauvegarde quotidienne contient ce qui ne se reconstruit pas : comptes, droits d'accès,
 crédits, abonnements, marque blanche. Les référentiels publics en sont exclus (ils se
 rechargent par ingestion). Elle est relue avant d'être gardée, et 14 jours sont conservés.
-**Elle reste sur le même serveur** : une copie hors site est à prévoir.
+**Copie hors site** : si `R2_BUCKET`, `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID` et
+`R2_SECRET_ACCESS_KEY` sont renseignés dans le `.env` du serveur, chaque sauvegarde est aussi
+envoyée sur Cloudflare R2, puis sa taille est relue sur le stockage. Un envoi en échec fait
+sortir le script en erreur, la copie locale étant conservée. La durée de conservation sur R2
+se règle par une règle de cycle de vie du bucket. Pour repartir d'un serveur neuf :
+`./deploy/backup-fetch.sh immo-AAAA-MM-JJ-HHMM.dump`, puis `./deploy/restore.sh`.
 
 ## Référencement
 
