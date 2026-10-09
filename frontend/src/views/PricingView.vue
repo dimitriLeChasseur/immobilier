@@ -170,6 +170,11 @@ function manageSubscription(): Promise<void> {
     <p class="mt-8 text-center text-xs text-slate-500">
       Paiement sécurisé par Stripe. Vos coordonnées bancaires ne transitent pas par nos serveurs.
     </p>
+    <p class="mx-auto mt-2 max-w-2xl text-center text-xs text-slate-500">
+      En payant, vous acceptez les
+      <RouterLink :to="{ name: 'terms' }" class="underline">conditions générales de vente</RouterLink>, vous demandez
+      l’accès immédiat à l’audit et vous reconnaissez renoncer à votre droit de rétractation pour les audits débloqués.
+    </p>
 
     <p class="mt-8 text-center text-sm text-slate-600">
       <RouterLink

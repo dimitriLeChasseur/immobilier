@@ -65,6 +65,11 @@ const authOpen = ref(false)
           Chiffres clés par commune
         </RouterLink>
       </p>
+      <nav class="mx-auto flex max-w-6xl flex-wrap gap-x-5 gap-y-1 px-4 pb-5 text-xs sm:px-6" aria-label="Informations légales">
+        <RouterLink :to="{ name: 'legal-notice' }" class="text-slate-600 hover:underline">Mentions légales</RouterLink>
+        <RouterLink :to="{ name: 'terms' }" class="text-slate-600 hover:underline">Conditions générales de vente</RouterLink>
+        <RouterLink :to="{ name: 'privacy' }" class="text-slate-600 hover:underline">Confidentialité</RouterLink>
+      </nav>
     </footer>
 
     <AuthModal v-model:open="authOpen" initial-mode="signin" @authenticated="authOpen = false" />

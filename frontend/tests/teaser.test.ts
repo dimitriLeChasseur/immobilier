@@ -123,6 +123,7 @@ describe('grille tarifaire', () => {
     routes: [
       { path: '/', name: 'audit', component: { template: '<div />' } },
       { path: '/tarifs', name: 'pricing', component: PricingView },
+      { path: '/cgv', name: 'terms', component: { template: '<div />' } },
     ],
   })
   beforeEach(() => localStorage.clear())

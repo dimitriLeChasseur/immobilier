@@ -14,11 +14,14 @@ import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { communePage, type CommunePage, type CommuneProfile } from '../src/lib/commune.ts'
+import { LEGAL_INCOMPLETE } from '../src/lib/legal.ts'
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), '..')
 const DIST = join(ROOT, 'dist')
 const COMMUNES_FILE = join(ROOT, 'seo', 'communes.json')
-const STATIC_PATHS = ['/', '/tarifs', '/communes']
+// Les pages légales n'entrent au plan du site qu'une fois l'identité de l'éditeur complétée.
+const LEGAL_PATHS = LEGAL_INCOMPLETE ? [] : ['/mentions-legales', '/cgv', '/confidentialite']
+const STATIC_PATHS = ['/', '/tarifs', '/communes', ...LEGAL_PATHS]
 
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')

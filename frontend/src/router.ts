@@ -1,5 +1,7 @@
-import { createRouter, createWebHistory } from 'vue-router'
+import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
+import { LEGAL_INCOMPLETE } from './lib/legal'
+import { LEGAL_DOCUMENTS, type LegalKey } from './lib/legalContent'
 import { DEFAULT_DESCRIPTION, setPageMeta, SITE_NAME } from './lib/seo'
 import AuditView from './views/AuditView.vue'
 
@@ -12,6 +14,25 @@ declare module 'vue-router' {
     private?: boolean
   }
 }
+
+// Pages légales : une même vue, trois documents. Elles ne sont proposées à l'indexation
+// qu'une fois l'identité de l'éditeur complétée.
+const LEGAL_PAGES: [path: string, name: string, key: LegalKey][] = [
+  ['/mentions-legales', 'legal-notice', 'mentions'],
+  ['/cgv', 'terms', 'cgv'],
+  ['/confidentialite', 'privacy', 'confidentialite'],
+]
+const LEGAL_ROUTES: RouteRecordRaw[] = LEGAL_PAGES.map(([path, name, key]) => ({
+  path,
+  name,
+  component: () => import('./views/LegalView.vue'),
+  props: { document: key },
+  meta: {
+    title: `${LEGAL_DOCUMENTS[key].title} | ${SITE_NAME}`,
+    description: LEGAL_DOCUMENTS[key].description,
+    private: LEGAL_INCOMPLETE,
+  },
+}))
 
 export const router = createRouter({
   history: createWebHistory(),
@@ -50,6 +71,7 @@ export const router = createRouter({
       component: () => import('./views/AccountView.vue'),
       meta: { title: `Mon compte | ${SITE_NAME}`, private: true },
     },
+    ...LEGAL_ROUTES,
     // La fiche fixe elle-même ses balises, une fois la commune chargée.
     { path: '/commune/:slug', name: 'commune', component: () => import('./views/CommuneView.vue') },
     { path: '/:pathMatch(.*)*', redirect: { name: 'audit' } },
