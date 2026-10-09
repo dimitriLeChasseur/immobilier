@@ -317,6 +317,45 @@ async def test_rents_are_detailed_by_dwelling_type() -> None:
     assert result.missing == ("maison",)
 
 
+class LocalRents:
+    def __init__(self, rents: dict[str, dict[str, Any]]) -> None:
+        self.rents = rents
+
+    async def commune_rents(self, code: str) -> dict[str, dict[str, Any]]:
+        return self.rents
+
+
+async def test_rents_are_read_locally_before_any_online_call() -> None:
+    row = {"borne_basse": 11.2, "borne_haute": 18.9, "niveau_prediction": "commune"}
+    local = LocalRents(
+        {
+            "appartement": {**row, "loyer_m2": 14.5737, "nb_observations": 812, "millesime": 2025},
+            "maison": {**row, "loyer_m2": 11.04, "nb_observations": 90, "millesime": 2025},
+        }
+    )
+    http = FakeHttp({})
+    provider = RentsProvider(http, resource_id="principal", millesime=2025, repository=local)  # type: ignore[arg-type]
+    data = (await provider.fetch(CTX)).data
+    assert data["loyer_m2_charges_comprises"] == 14.57
+    assert data["intervalle_prediction"] == [11.2, 18.9]
+    assert data["par_typologie"] == {
+        "maison": {
+            "loyer_m2_charges_comprises": 11.04,
+            "nb_observations": 90,
+            "niveau_prediction": "commune",
+        }
+    }
+
+    # Référentiel vide : l'API en ligne reprend la main.
+    fallback = RentsProvider(
+        FakeHttp({"principal": rent(14.6)}),  # type: ignore[arg-type]
+        resource_id="principal",
+        millesime=2025,
+        repository=LocalRents({}),  # type: ignore[arg-type]
+    )
+    assert (await fallback.fetch(CTX)).data["loyer_m2_charges_comprises"] == 14.6
+
+
 class NoHousing:
     async def iris_housing(self, code_iris: str) -> None:
         return None

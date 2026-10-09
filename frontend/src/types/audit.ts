@@ -258,7 +258,10 @@ export interface LoyersData {
   millesime: number
   /** Loyer par taille de logement ; une typologie sans réponse est absente. */
   par_typologie?: Partial<
-    Record<'t1_t2' | 't3_plus' | 'maison', { loyer_m2_charges_comprises: number; nb_observations: number | null }>
+    Record<
+      't1_t2' | 't3_plus' | 'maison',
+      { loyer_m2_charges_comprises: number; nb_observations: number | null; niveau_prediction?: string | null }
+    >
   >
 }
 

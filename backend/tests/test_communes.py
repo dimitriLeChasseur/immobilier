@@ -13,10 +13,8 @@ from app.api.routers.communes import get_commune_service
 from app.core.errors import SourceError
 from app.core.geo import commune_prefix
 from app.core.rate_limit import SlidingWindowRateLimiter
-from app.seo import parse_rents
 from app.services.communes import (
     CommuneService,
-    StaticRents,
     TabularRents,
     code_from_slug,
     parse_identity,
@@ -75,8 +73,14 @@ def test_identity_parsing_tolerates_missing_optional_fields() -> None:
 
 
 class Repository:
-    def __init__(self, empty: bool = False) -> None:
+    def __init__(self, empty: bool = False, rents: dict[str, dict[str, Any]] | None = None) -> None:
         self.empty = empty
+        self.rents = rents or {}
+        self.rent_queries: list[str] = []
+
+    async def commune_rents(self, code: str) -> dict[str, dict[str, Any]]:
+        self.rent_queries.append(code)
+        return self.rents
 
     async def property_tax(self, codes: list[str]) -> dict[str, Any] | None:
         return None if self.empty else {"annee": 2025, "taux_tfb_total": 56.65, "taux_teom": 8.71}
@@ -218,14 +222,50 @@ def test_route_rejects_malformed_codes_and_reports_unknown_or_unreachable() -> N
     assert down.get("/api/v1/communes/49007").status_code == 503
 
 
-async def test_rents_join_the_profile_and_their_absence_is_harmless() -> None:
-    rents = StaticRents({"49007": {"appartement": 14.6, "t1_t2": 16.6}})
-    service = CommuneService(FakeHttp(ANGERS), Repository(), rents)  # type: ignore[arg-type]
+def rent_row(
+    rent: float, low: float, high: float, zones: int = 1, level: str = "commune"
+) -> dict[str, Any]:
+    return {
+        "loyer_m2": rent,
+        "loyer_min": low,
+        "loyer_max": high,
+        "nb_zones": zones,
+        "niveau_prediction": level,
+        "millesime": 2025,
+    }
+
+
+async def test_rents_come_from_the_local_reference() -> None:
+    repository = Repository(
+        rents={
+            "appartement": rent_row(14.5737, 14.5737, 14.5737),
+            "maison": rent_row(13.3, 13.3, 13.3, level="maille"),
+        }
+    )
+    service = CommuneService(FakeHttp(ANGERS), repository)  # type: ignore[arg-type]
     identity = await service.identity("49007")
     assert identity is not None
-    assert (await service.profile(identity)).loyers == {"appartement": 14.6, "t1_t2": 16.6}
-    assert await rents.rents(["99999"]) == {}
+    profile = await service.profile(identity)
+    assert profile.loyers == {"appartement": 14.6, "maison": 13.3}
+    assert profile.loyers_fourchette == {}, "une seule zone : pas de fourchette"
+    assert profile.loyers_niveau == {"appartement": "commune", "maison": "maille"}
+    assert profile.loyers_millesime == 2025
+    assert repository.rent_queries == ["49007"]
 
+
+async def test_arrondissement_cities_get_an_average_and_a_range() -> None:
+    paris = {**ANGERS, "code": "75056", "nom": "Paris", "codeDepartement": "75"}
+    repository = Repository(rents={"appartement": rent_row(31.42, 26.31, 38.94, zones=20)})
+    service = CommuneService(FakeHttp(paris), repository)  # type: ignore[arg-type]
+    identity = await service.identity("75056")
+    assert identity is not None
+    profile = await service.profile(identity)
+    assert repository.rent_queries == ["751"], "les arrondissements sont lus par leur préfixe"
+    assert profile.loyers == {"appartement": 31.4}
+    assert profile.loyers_fourchette == {"appartement": (26.3, 38.9)}
+
+
+async def test_rents_fall_back_to_the_online_source_without_local_reference() -> None:
     class Tabular:
         async def get_json(self, source: str, url: str, *, params: Any = None) -> Any:
             if "maisons" in url:
@@ -234,13 +274,7 @@ async def test_rents_join_the_profile_and_their_absence_is_harmless() -> None:
 
     live = TabularRents(Tabular(), {"appartement": "apparts", "maison": "maisons", "t1_t2": "vide"})  # type: ignore[arg-type]
     assert await live.rents(["49007"]) == {"appartement": 14.6}
-
-
-def test_bulk_rent_file_uses_semicolons_and_decimal_commas() -> None:
-    content = (
-        b'"id_zone";"INSEE_C";"LIBGEO";"loypredm2"\r\n'
-        b'"1";"49007";"Angers";14,5737\r\n'
-        b'"2";"05066";"La Haute-Beaume";9,7576\r\n'
-        b'"3";"00000";"Sans valeur";\r\n'
-    )
-    assert parse_rents(content) == {"49007": 14.6, "05066": 9.8}
+    service = CommuneService(FakeHttp(ANGERS), Repository(), live)  # type: ignore[arg-type]
+    identity = await service.identity("49007")
+    assert identity is not None
+    assert (await service.profile(identity)).loyers == {"appartement": 14.6}

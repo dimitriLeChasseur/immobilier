@@ -99,6 +99,8 @@ class CommuneRepository(Protocol):
 
     async def connectivity(self, codes: list[str]) -> dict[str, Any] | None: ...
 
+    async def commune_rents(self, code: str) -> dict[str, dict[str, Any]]: ...
+
 
 class RentLookup(Protocol):
     async def rents(self, codes: list[str]) -> dict[str, float]:
@@ -135,19 +137,6 @@ class TabularRents:
                 if rent is not None:
                     return round(rent, 1)
         return None
-
-
-class StaticRents:
-    """Loyers chargés une fois pour toutes (export en masse des fiches)."""
-
-    def __init__(self, by_commune: Mapping[str, Mapping[str, float]]) -> None:
-        self._by_commune = by_commune
-
-    async def rents(self, codes: list[str]) -> dict[str, float]:
-        for code in codes:
-            if code in self._by_commune:
-                return dict(self._by_commune[code])
-        return {}
 
 
 def _share(part: Any, total: Any) -> float | None:
@@ -192,6 +181,7 @@ class CommuneService:
         codes = commune_codes(identity.code)
         departement = identity.departement_code
         connectivity = await self._repository.connectivity(codes)
+        rents = await self._commune_rents(identity.code, codes)
         return CommuneProfile(
             code=identity.code,
             nom=identity.name,
@@ -208,8 +198,31 @@ class CommuneService:
                 (connectivity or {}).get("eligibles_fibre"), (connectivity or {}).get("nb_locaux")
             ),
             logement=await self._housing(commune_prefix(identity.code)),
-            loyers=await self._rents.rents(codes) if self._rents is not None else {},
+            **rents,
         )
+
+    async def _commune_rents(self, code: str, codes: list[str]) -> dict[str, Any]:
+        """Loyers de la commune : valeur, échelle d'estimation et fourchette des arrondissements."""
+        rows = await self._repository.commune_rents(commune_prefix(code))
+        if not rows:
+            # Référentiel non ingéré : repli éventuel sur une lecture en ligne.
+            return {"loyers": await self._rents.rents(codes) if self._rents is not None else {}}
+        return {
+            "loyers": {kind: round(float(row["loyer_m2"]), 1) for kind, row in rows.items()},
+            "loyers_fourchette": {
+                kind: (round(float(row["loyer_min"]), 1), round(float(row["loyer_max"]), 1))
+                for kind, row in rows.items()
+                if row["nb_zones"] > 1
+            },
+            "loyers_niveau": {
+                kind: row["niveau_prediction"]
+                for kind, row in rows.items()
+                if row.get("niveau_prediction")
+            },
+            "loyers_millesime": max(
+                (row["millesime"] for row in rows.values() if row.get("millesime")), default=None
+            ),
+        }
 
     async def _tax(self, codes: list[str], departement: str) -> CommuneTax | None:
         row = await self._repository.property_tax(codes)

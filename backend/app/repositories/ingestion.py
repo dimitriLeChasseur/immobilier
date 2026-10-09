@@ -116,6 +116,22 @@ _UPSERT_CONNECTIVITY = """
 """
 
 
+_UPSERT_RENT = """
+    INSERT INTO ref_loyers
+        (code_insee, type_bien, loyer_m2, borne_basse, borne_haute, nb_observations,
+         niveau_prediction, millesime)
+    VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+    ON CONFLICT (code_insee, type_bien) DO UPDATE SET
+        loyer_m2 = EXCLUDED.loyer_m2,
+        borne_basse = EXCLUDED.borne_basse,
+        borne_haute = EXCLUDED.borne_haute,
+        nb_observations = EXCLUDED.nb_observations,
+        niveau_prediction = EXCLUDED.niveau_prediction,
+        millesime = EXCLUDED.millesime,
+        imported_at = now()
+"""
+
+
 class IngestionRepository:
     def __init__(self, pool: asyncpg.Pool) -> None:
         self._pool = pool
@@ -143,6 +159,15 @@ class IngestionRepository:
 
     async def upsert_connectivity(self, rows: Sequence[Row]) -> None:
         await self._executemany(_UPSERT_CONNECTIVITY, rows)
+
+    async def upsert_rents(self, rows: Sequence[Row]) -> None:
+        await self._executemany(_UPSERT_RENT, rows)
+
+    async def delete_stale_rents(self, year: int) -> int:
+        """Retire les loyers d'un autre millésime ; renvoie le nombre de lignes supprimées."""
+        async with db_errors():
+            status = await self._pool.execute("DELETE FROM ref_loyers WHERE millesime <> $1", year)
+        return int(status.rsplit(" ", 1)[-1])
 
     async def purge_permits_before(self, cutoff: date) -> None:
         async with db_errors():

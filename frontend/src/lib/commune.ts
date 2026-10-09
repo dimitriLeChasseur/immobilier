@@ -25,6 +25,11 @@ export interface CommuneProfile {
   part_fibre_pct: number | null
   /** Loyers d'annonce au m², charges comprises, par type de bien. */
   loyers?: Partial<Record<string, number>>
+  /** Paris, Lyon, Marseille : loyers du moins cher et du plus cher des arrondissements. */
+  loyers_fourchette?: Partial<Record<string, [number, number]>>
+  /** Échelle de l'estimation par type de bien : « commune », « EPCI » ou « maille ». */
+  loyers_niveau?: Partial<Record<string, string>>
+  loyers_millesime?: number | null
   logement: {
     annee: number
     logements: number
@@ -97,12 +102,46 @@ const RENT_KINDS: [id: string, label: string][] = [
   ['maison', 'Maison'],
 ]
 
+/** Précision à donner quand le loyer n'est pas estimé sur les annonces de la commune seule. */
+export function rentScope(level: string | null | undefined): string | undefined {
+  if (level === 'maille') return 'Estimé sur un groupe de communes voisines au marché comparable'
+  if (level === 'EPCI') return 'Estimé à l’échelle de l’intercommunalité'
+  return undefined
+}
+
+function rentNote(profile: CommuneProfile, id: string): string | undefined {
+  const range = profile.loyers_fourchette?.[id]
+  const notes = [
+    range ? `De ${decimal(range[0])} à ${decimal(range[1])} €/m² selon l’arrondissement` : undefined,
+    rentScope(profile.loyers_niveau?.[id]),
+  ].filter((note) => note !== undefined)
+  return notes.length ? notes.join(' · ') : undefined
+}
+
 function rentSection(profile: CommuneProfile): CommuneSection | null {
   const facts = RENT_KINDS.flatMap(([id, label]): CommuneFact[] => {
     const rent = profile.loyers?.[id]
-    return typeof rent === 'number' ? [{ label, value: `${decimal(rent)} €/m² par mois, charges comprises` }] : []
+    if (typeof rent !== 'number') return []
+    return [{ label, value: `${decimal(rent)} €/m² par mois, charges comprises`, note: rentNote(profile, id) }]
   })
-  return facts.length ? { heading: 'Loyers d’annonce', facts } : null
+  const year = profile.loyers_millesime
+  const heading = year ? `Loyers d’annonce (estimation ${year})` : 'Loyers d’annonce'
+  return facts.length ? { heading, facts } : null
+}
+
+/** Les territoires que la carte des loyers ne couvre pas le disent, au lieu d'un silence. */
+function rentGap(profile: CommuneProfile, hasOtherFigures: boolean): CommuneSection | null {
+  if (!hasOtherFigures || Object.keys(profile.loyers ?? {}).length) return null
+  return {
+    heading: 'Loyers d’annonce',
+    facts: [
+      {
+        label: 'Loyers',
+        value: 'Non disponibles',
+        note: 'Cette commune ne figure pas dans la carte des loyers (ANIL), qui ne couvre ni Mayotte ni les collectivités d’outre-mer.',
+      },
+    ],
+  }
 }
 
 function taxSection(profile: CommuneProfile): CommuneSection | null {
@@ -173,16 +212,17 @@ function housingSection(profile: CommuneProfile): CommuneSection | null {
 /** Titre, description et contenu de la fiche d'une commune. */
 export function communePage(profile: CommuneProfile): CommunePage {
   const place = `${profile.nom} (${profile.departement_code})`
-  const sections = [
+  const figures = [
     rentSection(profile),
     taxSection(profile),
     crimeSection(profile),
     schoolSection(profile),
     housingSection(profile),
-  ].filter(
-    (section): section is CommuneSection => section !== null,
-  )
-  const topics = sections.map((section) => section.heading.toLowerCase()).join(', ')
+  ].filter((section): section is CommuneSection => section !== null)
+  const gap = rentGap(profile, figures.length > 0)
+  const sections = gap ? [gap, ...figures] : figures
+  // Le millésime entre parenthèses reste dans le titre de rubrique, pas dans la description.
+  const topics = figures.map((section) => section.heading.replace(/ \(.*\)$/, '').toLowerCase()).join(', ')
   const population = profile.population === null ? '' : `, ${integer(profile.population)} habitants`
   return {
     title: `Immobilier à ${place} : loyers, taxe foncière, sécurité, écoles | ${SITE_NAME}`,

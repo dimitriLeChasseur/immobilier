@@ -12,9 +12,11 @@ import logging
 import sys
 import time
 from collections.abc import Awaitable, Callable
+from dataclasses import replace
 
 import aiohttp
 
+from app.container import rent_resources
 from app.core.config import get_settings
 from app.core.errors import RepositoryError
 from app.ingestion.common import Downloader, IngestionOptions
@@ -23,6 +25,7 @@ from app.ingestion.datasets import (
     ingest_crime,
     ingest_iris_housing,
     ingest_property_tax,
+    ingest_rents,
     ingest_schools,
 )
 from app.ingestion.sitadel import ALL_DEPARTEMENTS, ingest_permits
@@ -39,6 +42,7 @@ DATASETS: dict[str, Ingester] = {
     "ips": ingest_schools,
     "iris": ingest_iris_housing,
     "arcep": ingest_connectivity,
+    "loyers": ingest_rents,
     "sitadel": ingest_permits,
 }
 _DOWNLOAD_TIMEOUT_S = 900
@@ -81,6 +85,9 @@ async def run(selected: list[str], options: IngestionOptions) -> bool:
         timeout=aiohttp.ClientTimeout(total=_DOWNLOAD_TIMEOUT_S),
     )
     repository = IngestionRepository(pool)
+    options = replace(
+        options, rent_resources=rent_resources(settings), rent_year=settings.loyers_millesime
+    )
     succeeded = True
     try:
         for name in selected:

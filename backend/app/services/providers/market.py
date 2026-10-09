@@ -3,8 +3,9 @@
 from collections.abc import Mapping
 from typing import Any
 
-from app.core.errors import NoDataError, SourceError
+from app.core.errors import NoDataError, RepositoryError, SourceError
 from app.core.http import HttpClient
+from app.repositories.reference import ReferenceRepository
 from app.services.providers.base import (
     AuditContext,
     ProviderData,
@@ -28,13 +29,19 @@ class RentsProvider:
         resource_id: str,
         millesime: int,
         typology_resources: Mapping[str, str] | None = None,
+        repository: ReferenceRepository | None = None,
     ) -> None:
         self._http = http
+        self._repository = repository
         self._url = f"{_TABULAR_URL}/{resource_id}/data/"
         self._millesime = millesime
         self._typologies = dict(typology_resources or {})
 
     async def fetch(self, ctx: AuditContext) -> ProviderData:
+        local = await self._local(ctx)
+        if local is not None:
+            return ProviderData(data=local)
+        # Référentiel non ingéré ou commune absente : repli sur l'API tabulaire de data.gouv.
         row = await self._row(self._url, ctx)
         if row is None:
             raise NoDataError
@@ -43,6 +50,19 @@ class RentsProvider:
         typologies, missing = await self._by_typology(ctx)
         data["par_typologie"] = typologies
         return ProviderData(data=data, missing=missing)
+
+    async def _local(self, ctx: AuditContext) -> dict[str, Any] | None:
+        """Loyers lus dans le référentiel local, None s'il ne connaît pas cette commune."""
+        if self._repository is None:
+            return None
+        try:
+            for code in ctx.commune_codes:
+                rents = await self._repository.commune_rents(code)
+                if "appartement" in rents:
+                    return _from_reference(rents)
+        except RepositoryError:
+            return None
+        return None
 
     async def _row(self, url: str, ctx: AuditContext) -> dict[str, Any] | None:
         for code in ctx.commune_codes:
@@ -91,3 +111,30 @@ class RentsProvider:
             "niveau_prediction": row.get("TYPPRED"),
             "millesime": self._millesime,
         }
+
+
+def _rounded(value: Any) -> float | None:
+    number = to_float(value)
+    return round(number, 2) if number is not None else None
+
+
+def _from_reference(rents: Mapping[str, Mapping[str, Any]]) -> dict[str, Any]:
+    """Même forme que la réponse de l'API tabulaire, à partir du référentiel local."""
+    flat = rents["appartement"]
+    return {
+        "type_bien": "appartement",
+        "loyer_m2_charges_comprises": _rounded(flat["loyer_m2"]),
+        "intervalle_prediction": [_rounded(flat["borne_basse"]), _rounded(flat["borne_haute"])],
+        "nb_observations": flat["nb_observations"],
+        "niveau_prediction": flat["niveau_prediction"],
+        "millesime": flat["millesime"],
+        "par_typologie": {
+            kind: {
+                "loyer_m2_charges_comprises": _rounded(row["loyer_m2"]),
+                "nb_observations": row["nb_observations"],
+                "niveau_prediction": row["niveau_prediction"],
+            }
+            for kind, row in rents.items()
+            if kind != "appartement"
+        },
+    }

@@ -42,6 +42,23 @@ describe('fiche communale', () => {
       return [fact?.label, fact?.value, fact?.note].map((text) => text?.replace(/\s/g, ' '))
     }
     expect(first('Loyers d’annonce')).toEqual(['Appartement', '14,6 €/m² par mois, charges comprises', undefined])
+    const paris = communePage({
+      ...ANGERS,
+      loyers: { appartement: 32.1 },
+      loyers_fourchette: { appartement: [27.7, 37.9] },
+    }).sections.find((section) => section.heading === 'Loyers d’annonce')
+    expect(paris?.facts[0]?.note?.replace(/\s/g, ' ')).toBe('De 27,7 à 37,9 €/m² selon l’arrondissement')
+    const grouped = communePage({
+      ...ANGERS,
+      loyers_niveau: { appartement: 'commune', t1_t2: 'maille' },
+      loyers_millesime: 2025,
+    }).sections[0]
+    expect(grouped?.heading).toBe('Loyers d’annonce (estimation 2025)')
+    expect(communePage({ ...ANGERS, loyers_millesime: 2025 }).description).toContain('loyers d’annonce, fiscalité')
+    expect(grouped?.facts.map((fact) => fact.note)).toEqual([
+      undefined,
+      'Estimé sur un groupe de communes voisines au marché comparable',
+    ])
     expect(first('Fiscalité locale').slice(1)).toEqual([
       '56,65 %',
       'Commune médiane du département : 46,57 % · France : 40,33 %',
@@ -65,6 +82,10 @@ describe('fiche communale', () => {
       population: null,
     })
     expect(page.sections).toEqual([])
+    // Une fiche qui a des chiffres mais pas de loyer le dit, sans le compter parmi ses sujets.
+    const uncovered = communePage({ ...ANGERS, loyers: {} })
+    expect(uncovered.sections[0]?.facts[0]?.value).toBe('Non disponibles')
+    expect(uncovered.description).not.toContain('loyers d’annonce')
     expect(page.description).toContain('données publiques')
     expect(page.intro).not.toContain('habitants')
   })

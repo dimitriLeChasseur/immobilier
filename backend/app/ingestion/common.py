@@ -8,7 +8,7 @@ import logging
 import re
 import zlib
 from collections.abc import AsyncIterator, Awaitable, Callable, Iterable, Iterator, Mapping
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import date
 from typing import TypeVar
 
@@ -37,6 +37,10 @@ class IngestionOptions:
     crime_years: int = 3
     # Ancienneté maximale des autorisations d'urbanisme, en années.
     permit_years: int = 5
+    # Carte des loyers : fichier data.gouv par type de bien et millésime, lus dans la
+    # configuration (LOYERS_*) pour suivre une nouvelle édition sans toucher au code.
+    rent_resources: Mapping[str, str] = field(default_factory=dict)
+    rent_year: int = 0
 
     def accepts(self, code_insee: str) -> bool:
         return self.departements is None or departement_of(code_insee) in self.departements

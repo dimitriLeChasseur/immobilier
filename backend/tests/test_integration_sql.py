@@ -31,6 +31,7 @@ _CLEANUP = (
     ("geo_osm_poi", "source = $1", SOURCE),
     ("insee_iris_logement", "code_insee LIKE $1", "0099%"),
     ("geo_ips_ecoles", "code_insee LIKE $1", "0099%"),
+    ("ref_loyers", "code_insee LIKE $1", "0099%"),
 )
 
 
@@ -199,3 +200,34 @@ async def test_points_of_interest_measure_the_distance_to_the_outline_of_a_park(
     # Secteur ingéré mais sans équipement à portée : liste vide, et non « non couvert ».
     assert await repository.pois_nearby(LAT + 0.05, LON, 500, 10) == []
     assert await repository.pois_nearby(LAT + 5, LON, 500, 10) is None
+
+
+async def test_commune_rents_weight_arrondissements_by_their_observations(
+    pool: asyncpg.Pool, repository: PostgresReferenceRepository
+) -> None:
+    rows = [
+        ("00991", "appartement", 30.0, 25.0, 36.0, 300, "commune"),
+        ("00992", "appartement", 20.0, 16.0, 24.0, 100, "maille"),
+        # Sans annonce observée, la zone compte pour une : elle ne disparaît pas de la moyenne.
+        ("00993", "maison", 12.0, 9.0, 15.0, 0, "commune"),
+    ]
+    await pool.executemany(
+        "INSERT INTO ref_loyers (code_insee, type_bien, loyer_m2, borne_basse, borne_haute,"
+        " nb_observations, niveau_prediction, millesime) VALUES ($1, $2, $3, $4, $5, $6,"
+        " $7, 2025)",
+        rows,
+    )
+
+    city = await repository.commune_rents("0099")
+    assert city["appartement"]["loyer_m2"] == pytest.approx(27.5)
+    assert (city["appartement"]["loyer_min"], city["appartement"]["loyer_max"]) == (20.0, 30.0)
+    assert (city["appartement"]["borne_basse"], city["appartement"]["borne_haute"]) == (16.0, 36.0)
+    assert city["appartement"]["nb_zones"] == 2
+    assert city["appartement"]["niveau_prediction"] == "maille", "le niveau le moins précis"
+    assert city["maison"]["niveau_prediction"] == "commune"
+    assert city["maison"]["loyer_m2"] == pytest.approx(12.0)
+
+    single = await repository.commune_rents("00992")
+    assert set(single) == {"appartement"}
+    assert single["appartement"]["nb_zones"] == 1
+    assert await repository.commune_rents("00999") == {}

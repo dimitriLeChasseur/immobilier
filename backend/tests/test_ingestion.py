@@ -24,6 +24,7 @@ from app.ingestion.datasets import (
     parse_crime_row,
     parse_iris_housing_row,
     parse_property_tax_row,
+    parse_rent_row,
     parse_school_row,
 )
 from app.ingestion.sitadel import (
@@ -66,7 +67,7 @@ def test_csv_helpers() -> None:
 
 def test_cli_arguments() -> None:
     selected, options = parse_arguments(["all", "--departements", "49, 2a"])
-    assert selected == ["ssmsi", "dgfip", "ips", "iris", "arcep", "sitadel"]
+    assert selected == ["ssmsi", "dgfip", "ips", "iris", "arcep", "loyers", "sitadel"]
     assert options.departements == frozenset({"49", "2A"})
     assert parse_arguments(["ips", "ips"])[0] == ["ips"]
     with pytest.raises(argparse.ArgumentTypeError):
@@ -304,3 +305,19 @@ def test_connectivity_row_keeps_only_the_all_premises_line() -> None:
     )  # fmt: skip
     assert parse_connectivity_row(row | {"type": "res"}) is None
     assert parse_connectivity_row(row | {"nbr": "0"}) is None
+
+
+def test_rent_row_reads_decimal_commas_and_skips_unusable_lines() -> None:
+    row = {
+        "INSEE_C": "75101",
+        "loypredm2": "34,5212",
+        "lwr.IPm2": "27,1",
+        "upr.IPm2": "43,958",
+        "TYPPRED": "commune",
+        "nbobs_com": "1520",
+    }
+    assert parse_rent_row(row, "appartement", 2025) == (
+        "75101", "appartement", 34.5212, 27.1, 43.958, 1520, "commune", 2025,
+    )  # fmt: skip
+    assert parse_rent_row({**row, "loypredm2": ""}, "maison", 2025) is None
+    assert parse_rent_row({**row, "INSEE_C": "7510"}, "maison", 2026) is None

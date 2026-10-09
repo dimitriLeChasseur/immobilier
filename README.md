@@ -120,7 +120,7 @@ de compte ; ce n'est pas un secret).
 
 | Jeu | Commande | Fréquence conseillée |
 |---|---|---|
-| Délinquance (SSMSI), taxe foncière (DGFiP), IPS des établissements, logements par IRIS (INSEE), fibre (ARCEP), permis de construire (SITADEL) | `docker compose run --rm backend python -m app.ingestion all` | Trimestrielle ; mensuelle pour `sitadel` |
+| Délinquance (SSMSI), taxe foncière (DGFiP), IPS des établissements, logements par IRIS (INSEE), fibre (ARCEP), carte des loyers (ANIL), permis de construire (SITADEL) | `docker compose run --rm backend python -m app.ingestion all` | Trimestrielle ; mensuelle pour `sitadel` |
 | Cartes de bruit stratégiques (Lden) | `uv run scripts/ingest_bruit_lden.py` | Mensuelle |
 
 L'ingestion est idempotente et vide le cache des rapports à la fin. Un jeu ou un département peut
@@ -149,7 +149,8 @@ Données © les contributeurs d'OpenStreetMap (ODbL), extraits fournis par Geofa
 | Plans de prévention, territoires à risque d'inondation | Géorisques (`gaspar/pprn`, `gaspar/tri`) | plans listés à l'échelle de la commune |
 | Anciens sites industriels, cavités, mouvements de terrain | Géorisques (`ssp/casias`, `cavites`, `mvt`), rayon de 500 m | inventaires non exhaustifs |
 | Servitudes d'utilité publique, prescriptions | API Carto, Géoportail de l'urbanisme | selon les documents versés par la commune |
-| Zonage ABC, loyers par typologie | API tabulaire de data.gouv.fr | identifiants de ressource millésimés dans la configuration |
+| Zonage ABC | API tabulaire de data.gouv.fr | identifiants de ressource millésimés dans la configuration |
+| Loyers par typologie | table `ref_loyers` (toutes les communes, Paris/Lyon/Marseille par arrondissement) ; API tabulaire de data.gouv.fr en repli | `python -m app.ingestion loyers`. Nouvelle édition : mettre à jour `LOYERS_MILLESIME` et les quatre `LOYERS_*_RESOURCE_ID`, puis relancer (les lignes de l'ancien millésime sont retirées) |
 
 ### Tâche planifiée du bruit Lden
 

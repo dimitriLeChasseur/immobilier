@@ -183,6 +183,11 @@ async def ingest_schools(
             await repository.upsert_schools(batch)
         logger.info("IPS %s : %d lignes chargées sur %d lues", kind, len(rows), len(source_rows))
         total += len(rows)
+    if total and options.departements is None:
+        # Une commune sortie de la nouvelle édition ne garde pas son loyer de l'ancienne.
+        removed = await repository.delete_stale_rents(options.rent_year)
+        if removed:
+            logger.info("loyers : %d lignes d'un millésime antérieur retirées", removed)
     return total
 
 
@@ -256,3 +261,49 @@ async def ingest_connectivity(
     for batch in batched(rows, _BATCH_SIZE):
         await repository.upsert_connectivity(batch)
     return len(rows)
+
+
+# Carte des loyers : un fichier par type de bien (liens stables de data.gouv), en latin-1.
+_RENT_URL = "https://www.data.gouv.fr/api/1/datasets/r/{}"
+
+
+def parse_rent_row(row: dict[str, str], kind: str, year: int) -> Row | None:
+    code, rent = row.get("INSEE_C", ""), to_number(row.get("loypredm2"))
+    if rent is None or rent <= 0 or not is_insee_code(code):
+        return None
+    low, high = to_number(row.get("lwr.IPm2")), to_number(row.get("upr.IPm2"))
+    return (
+        code,
+        kind,
+        rent,
+        low,
+        high,
+        to_integer(row.get("nbobs_com")),
+        row.get("TYPPRED") or None,
+        year,
+    )
+
+
+async def ingest_rents(
+    downloader: Downloader, repository: IngestionRepository, options: IngestionOptions
+) -> int:
+    if not options.rent_resources or not options.rent_year:
+        raise ValueError("fichiers ou millésime de la carte des loyers absents de la configuration")
+    total = 0
+    for kind, resource in options.rent_resources.items():
+        content = await downloader.content(_RENT_URL.format(resource))
+        rows = [
+            parsed
+            for row in read_csv(content.decode("latin-1"))
+            if (parsed := parse_rent_row(row, kind, options.rent_year)) is not None
+            and options.accepts(parsed[0])
+        ]
+        for batch in batched(rows, _BATCH_SIZE):
+            await repository.upsert_rents(batch)
+        total += len(rows)
+    if total and options.departements is None:
+        # Une commune sortie de la nouvelle édition ne garde pas son loyer de l'ancienne.
+        removed = await repository.delete_stale_rents(options.rent_year)
+        if removed:
+            logger.info("loyers : %d lignes d'un millésime antérieur retirées", removed)
+    return total

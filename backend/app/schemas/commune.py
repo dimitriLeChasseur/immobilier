@@ -55,4 +55,10 @@ class CommuneProfile(BaseModel):
     part_fibre_pct: float | None = None
     # Loyers d'annonce au m², charges comprises, par type de bien (carte des loyers).
     loyers: dict[str, float] = {}
+    # Paris, Lyon, Marseille : loyers extrêmes des arrondissements, par type de bien.
+    loyers_fourchette: dict[str, tuple[float, float]] = {}
+    # Échelle de l'estimation par type de bien : « commune », « EPCI » ou « maille » (groupe
+    # de communes voisines), quand les annonces de la commune seule ne suffisent pas.
+    loyers_niveau: dict[str, str] = {}
+    loyers_millesime: int | None = None
     logement: CommuneHousing | None = None

@@ -277,6 +277,28 @@ CREATE INDEX IF NOT EXISTS geo_osm_poi_geog_gist
 CREATE INDEX IF NOT EXISTS geo_osm_poi_source_idx
     ON immo.geo_osm_poi (source);
 
+-- Carte des loyers (ANIL, ministère chargé du logement) : loyer d'annonce au m², charges
+-- comprises, par commune et par type de bien. Paris, Lyon et Marseille y figurent par
+-- arrondissement. Ingérée par `python -m app.ingestion loyers`.
+CREATE TABLE IF NOT EXISTS immo.ref_loyers (
+    code_insee         immo.code_insee NOT NULL,
+    -- 'appartement', 't1_t2', 't3_plus' ou 'maison'
+    type_bien          text        NOT NULL,
+    -- Précision de la source conservée : l'arrondi se fait une seule fois, à l'affichage.
+    loyer_m2           numeric(8,4) NOT NULL,
+    borne_basse        numeric(8,4),
+    borne_haute        numeric(8,4),
+    nb_observations    integer,
+    -- 'commune' : estimé sur les annonces de la commune ; 'maille' : sur un groupe de communes.
+    niveau_prediction  text,
+    millesime          smallint    NOT NULL,
+    imported_at        timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT ref_loyers_pkey PRIMARY KEY (code_insee, type_bien),
+    CONSTRAINT ref_loyers_type_check
+        CHECK (type_bien IN ('appartement', 't1_t2', 't3_plus', 'maison')),
+    CONSTRAINT ref_loyers_loyer_check CHECK (loyer_m2 > 0)
+);
+
 -- Droits d'accès aux audits complets : une ligne par utilisateur et par adresse achetée.
 -- Alimentée après paiement (intégration Stripe à venir) ; sans ligne, l'API ne renvoie
 -- que la version « teaser » du rapport.
@@ -405,6 +427,7 @@ BEGIN
     FOREACH tbl IN ARRAY ARRAY[
         'api_reports_cache', 'insee_ssmsi', 'insee_dgfip', 'geo_ips_ecoles', 'geo_sitadel',
         'insee_iris_logement', 'arcep_connectivite', 'geo_bruit_lden', 'geo_osm_poi',
+        'ref_loyers',
         'audit_entitlements',
         'user_credits', 'user_subscriptions', 'stripe_events', 'user_branding',
         'audit_history'

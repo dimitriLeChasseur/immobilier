@@ -70,6 +70,7 @@ def build_audit_service(
         RentsProvider(
             http,
             resource_id=settings.loyers_resource_id,
+            repository=reference,
             typology_resources={
                 "t1_t2": settings.loyers_t1_t2_resource_id,
                 "t3_plus": settings.loyers_t3_plus_resource_id,

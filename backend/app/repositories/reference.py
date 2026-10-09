@@ -81,6 +81,25 @@ _COMMUNE_HOUSING = """
     WHERE left(code_iris, length($1)) = $1
 """
 
+# $1 : code de la commune, ou préfixe des arrondissements pour Paris, Lyon et Marseille. Sur
+# plusieurs zones, le loyer est la moyenne pondérée par le nombre d'annonces observées.
+_COMMUNE_RENTS = """
+    SELECT type_bien,
+           sum(loyer_m2 * greatest(coalesce(nb_observations, 0), 1))
+               / sum(greatest(coalesce(nb_observations, 0), 1)) AS loyer_m2,
+           min(loyer_m2) AS loyer_min, max(loyer_m2) AS loyer_max,
+           min(borne_basse) AS borne_basse, max(borne_haute) AS borne_haute,
+           sum(nb_observations) AS nb_observations, count(*) AS nb_zones,
+           max(millesime) AS millesime,
+           -- Niveau le moins précis des zones réunies : commune, puis EPCI, puis maille.
+           CASE WHEN bool_and(niveau_prediction = 'commune') THEN 'commune'
+                WHEN bool_and(niveau_prediction IN ('commune', 'EPCI')) THEN 'EPCI'
+                ELSE 'maille' END AS niveau_prediction
+    FROM ref_loyers
+    WHERE left(code_insee, length($1)) = $1
+    GROUP BY type_bien
+"""
+
 _PROPERTY_TAX = """
     SELECT annee, libelle_commune, taux_tfb_commune, taux_tfb_epci, taux_tfb_total, taux_teom
     FROM insee_dgfip
@@ -222,6 +241,8 @@ class ReferenceRepository(Protocol):
     async def connectivity(self, codes: list[str]) -> dict[str, Any] | None: ...
 
     async def noise_levels(self, lat: float, lon: float) -> list[dict[str, Any]]: ...
+
+    async def commune_rents(self, code: str) -> dict[str, dict[str, Any]]: ...
 
     async def noise_coverage(self, lat: float, lon: float) -> list[str]: ...
 
@@ -377,6 +398,12 @@ class PostgresReferenceRepository:
                 return [_jsonable(record) for record in records]
             covered = await self._pool.fetchval(_POI_COVERAGE, lon, lat, _POI_COVERAGE_M)
         return [] if covered else None
+
+    async def commune_rents(self, code: str) -> dict[str, dict[str, Any]]:
+        """Loyers par type de bien pour une commune (ou un préfixe d'arrondissements)."""
+        async with db_errors():
+            records = await self._pool.fetch(_COMMUNE_RENTS, code)
+        return {record["type_bien"]: _jsonable(record) for record in records}
 
     async def commune_schools(self, code: str) -> list[dict[str, Any]]:
         """Nombre d'établissements et IPS moyen par niveau dans la commune."""
