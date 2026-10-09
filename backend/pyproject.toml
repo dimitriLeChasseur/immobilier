@@ -10,6 +10,7 @@ dependencies = [
     "asyncpg>=0.30",
     "aiohttp>=3.11",
     "pyjwt>=2.9",
+    "aiosmtplib>=4",
 ]
 
 [dependency-groups]
@@ -40,6 +41,8 @@ max-complexity = 14
 
 [tool.ruff.lint.per-file-ignores]
 "tests/*" = ["S101"]
+# Gabarits HTML d'e-mail : les lignes de balisage ne se coupent pas sans nuire à la lecture.
+"app/services/emails.py" = ["E501"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"

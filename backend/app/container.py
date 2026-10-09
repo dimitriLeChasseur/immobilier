@@ -8,6 +8,7 @@ from pydantic import SecretStr
 
 from app.core.config import Settings
 from app.core.http import HttpClient
+from app.core.mailer import SmtpMailer
 from app.repositories.billing import BillingRepository
 from app.repositories.reference import PostgresReferenceRepository
 from app.repositories.report_cache import PostgresReportCache, ReportCache
@@ -123,6 +124,21 @@ def build_billing_service(
         api_url=settings.stripe_api_url,
         site_url=settings.site_url,
         pro_tax_rate_id=settings.stripe_pro_tax_rate_id,
+        mailer=build_mailer(settings),
+    )
+
+
+def build_mailer(settings: Settings) -> SmtpMailer | None:
+    """Envoi d'e-mails, ou None tant qu'aucun serveur SMTP n'est configuré."""
+    if not settings.smtp_host or not settings.smtp_admin_email:
+        return None
+    return SmtpMailer(
+        host=settings.smtp_host,
+        port=settings.smtp_port,
+        username=settings.smtp_user,
+        password=settings.smtp_pass.get_secret_value() if settings.smtp_pass else None,
+        sender_email=settings.smtp_admin_email,
+        sender_name=settings.smtp_sender_name,
     )
 
 

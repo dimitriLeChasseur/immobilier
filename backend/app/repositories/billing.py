@@ -16,6 +16,8 @@ _RECORD_EVENT = """
     RETURNING event_id
 """
 
+_IS_RECORDED = "SELECT EXISTS (SELECT 1 FROM stripe_events WHERE event_id = $1)"
+
 _GRANT = f"""
     INSERT INTO audit_entitlements (user_id, geohash, origin, label, ban_id)
     VALUES ($1::uuid, {_GEOHASH}, $4, $5, $6)
@@ -154,6 +156,10 @@ class BillingRepository(Protocol):
 
     async def customer_id(self, user_id: str) -> str | None: ...
 
+    async def is_recorded(self, event_id: str) -> bool: ...
+
+    async def record_event(self, event_id: str, event_type: str) -> bool: ...
+
     async def is_entitled(
         self, user_id: str, lat: float, lon: float, address_id: str | None
     ) -> bool: ...
@@ -241,6 +247,16 @@ class PostgresBillingRepository:
         async with db_errors():
             record = await self._pool.fetchrow(_ACCOUNT, user_id)
         return dict(record) if record is not None else {"credits": 0, "subscription_active": False}
+
+    async def is_recorded(self, event_id: str) -> bool:
+        """Vrai si cet évènement Stripe a déjà été traité."""
+        async with db_errors():
+            return bool(await self._pool.fetchval(_IS_RECORDED, event_id))
+
+    async def record_event(self, event_id: str, event_type: str) -> bool:
+        """Note l'évènement comme traité ; faux s'il l'était déjà."""
+        async with db_errors():
+            return await self._pool.fetchval(_RECORD_EVENT, event_id, event_type) is not None
 
     async def is_entitled(
         self, user_id: str, lat: float, lon: float, address_id: str | None

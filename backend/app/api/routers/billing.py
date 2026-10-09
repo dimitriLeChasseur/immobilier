@@ -13,6 +13,7 @@ from app.api.deps import (
     enforce_rate_limit,
 )
 from app.core.errors import RepositoryError, SourceError
+from app.core.mailer import MailError
 from app.services.billing import (
     AlreadySubscribedError,
     AlreadyUnlockedError,
@@ -148,7 +149,7 @@ async def stripe_webhook(
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Signature invalide.") from exc
     try:
         outcome = await billing.handle_event(event)
-    except RepositoryError as exc:
+    except (RepositoryError, MailError) as exc:
         # 500 : Stripe renverra l'évènement plus tard, rien n'est perdu.
         raise HTTPException(status.HTTP_500_INTERNAL_SERVER_ERROR, "Traitement différé.") from exc
     logger.info("Évènement Stripe %s (%s) : %s", event.get("id"), event.get("type"), outcome)

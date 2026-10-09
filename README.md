@@ -200,6 +200,34 @@ docker compose exec -T backend python -m app.smoke   # code de retour 1 en cas d
 - Le logo est contrôlé par le serveur d'après son contenu réel : PNG ou JPEG de 200 Ko au
   plus, jamais de SVG. Il n'est servi qu'aux abonnés actifs.
 
+## E-mails
+
+Deux familles de messages, à la charte du site (`backend/app/services/emails.py`) :
+
+- **authentification** (confirmation d'adresse, mot de passe oublié) : envoyés par le service
+  d'authentification, qui lit ses gabarits auprès du backend sur le réseau interne ;
+- **reçu de paiement** : envoyé par le backend quand Stripe signale une facture payée
+  (`invoice.paid`), avec le récapitulatif et le lien vers la facture PDF émise par Stripe.
+
+Les deux utilisent le même serveur SMTP (`SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASS`,
+`SMTP_ADMIN_EMAIL` pour l'expéditeur). Sans serveur configuré, aucun reçu n'est envoyé ; pour
+exiger la confirmation des comptes, passer `ENABLE_EMAIL_AUTOCONFIRM=false`. Le webhook Stripe
+doit aussi recevoir l'évènement `invoice.paid`.
+
+## Sauvegardes et tâches planifiées
+
+```bash
+sudo ./deploy/install-cron.sh              # installe toutes les tâches (--dry-run pour voir)
+sudo ./deploy/backup.sh                    # sauvegarde immédiate dans /srv/immo-backups
+sudo ./deploy/restore.sh <fichier.dump>    # remplace comptes et droits par ceux du fichier
+./scripts/deploy-backend.sh root@<serveur> # met à jour le backend depuis ce poste
+```
+
+La sauvegarde quotidienne contient ce qui ne se reconstruit pas : comptes, droits d'accès,
+crédits, abonnements, marque blanche. Les référentiels publics en sont exclus (ils se
+rechargent par ingestion). Elle est relue avant d'être gardée, et 14 jours sont conservés.
+**Elle reste sur le même serveur** : une copie hors site est à prévoir.
+
 ## Référencement
 
 Une application monopage ne livre aux robots qu'une coquille vide. Le site expose donc :

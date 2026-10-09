@@ -17,8 +17,10 @@ from urllib.parse import urlencode
 
 from app.core.errors import SourceError
 from app.core.http import HttpClient
+from app.core.mailer import Mailer
 from app.core.security import AuthenticatedUser
 from app.repositories.billing import BillingRepository
+from app.services.emails import receipt_email
 from app.services.geocoding import Geocoder
 
 logger = logging.getLogger(__name__)
@@ -30,6 +32,7 @@ _CHECKOUT_EVENTS = frozenset(
 )
 # « created » est ignoré : il peut arriver après l'activation avec un statut provisoire.
 _SUBSCRIPTION_EVENTS = frozenset({"customer.subscription.updated", "customer.subscription.deleted"})
+_INVOICE_EVENTS = frozenset({"invoice.paid"})
 _MAX_LABEL_LENGTH = 300
 
 
@@ -155,6 +158,14 @@ def checkout_params(
         params["metadata[label]"] = target.label[:_MAX_LABEL_LENGTH]
         if address_id:
             params["metadata[ban_id]"] = address_id
+    if offer.mode == "payment":
+        # Une facture est émise pour chaque achat : son paiement déclenche l'envoi du reçu.
+        params["invoice_creation[enabled]"] = "true"
+        params["invoice_creation[invoice_data][description]"] = offer.name
+        if target is not None:
+            params["invoice_creation[invoice_data][metadata][label]"] = target.label[
+                :_MAX_LABEL_LENGTH
+            ]
     if offer.mode == "subscription":
         params[f"{item}[price_data][recurring][interval]"] = "month"
         # Reporté sur l'abonnement : ses évènements futurs désignent ainsi l'utilisateur.
@@ -214,6 +225,7 @@ class BillingService:
         api_url: str,
         site_url: str,
         pro_tax_rate_id: str | None = None,
+        mailer: Mailer | None = None,
     ) -> None:
         self._http = http
         self._repository = repository
@@ -223,6 +235,7 @@ class BillingService:
         self._api_url = api_url.rstrip("/")
         self._site_url = site_url
         self._pro_tax_rate_id = pro_tax_rate_id
+        self._mailer = mailer
 
     async def start_checkout(
         self, user: AuthenticatedUser, offer_id: str, target: CheckoutTarget | None
@@ -300,7 +313,26 @@ class BillingService:
             return await self._on_checkout(event, payload)
         if event_type in _SUBSCRIPTION_EVENTS:
             return await self._on_subscription(event, payload)
+        if event_type in _INVOICE_EVENTS:
+            return await self._send_receipt(event_id, str(event_type), payload)
         return "ignored"
+
+    async def _send_receipt(self, event_id: str, event_type: str, invoice: dict[str, Any]) -> str:
+        """Envoie le reçu d'une facture payée, une seule fois.
+
+        Le message part avant que l'évènement soit noté comme traité : si l'envoi échoue,
+        l'erreur remonte et Stripe représentera l'évènement plus tard.
+        """
+        if self._mailer is None:
+            return "email_disabled"
+        if await self._repository.is_recorded(event_id):
+            return "duplicate"
+        email = receipt_email(invoice, site_url=self._site_url)
+        if email is None:
+            return "ignored"
+        await self._mailer.send(email)
+        await self._repository.record_event(event_id, event_type)
+        return "receipt_sent"
 
     async def _on_checkout(self, event: dict[str, Any], session: dict[str, Any]) -> str:
         event_id, event_type = str(event["id"]), str(event["type"])

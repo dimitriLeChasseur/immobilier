@@ -50,7 +50,12 @@ export function useAuth() {
 
   async function signUp(email: string, password: string): Promise<AuthOutcome> {
     if (!supabase) return { ok: false, message: NOT_CONFIGURED }
-    const { data, error } = await supabase.auth.signUp({ email, password })
+    // Le lien de confirmation ramène sur la page Tarifs, où l'adresse mémorisée attend.
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo: `${window.location.origin}/tarifs` },
+    })
     if (error) return { ok: false, message: translate(error.message) }
     // Sans session immédiate, le serveur attend la confirmation de l'adresse e-mail.
     return { ok: true, needsConfirmation: data.session === null }

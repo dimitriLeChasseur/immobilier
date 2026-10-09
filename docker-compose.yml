@@ -91,6 +91,13 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       STRIPE_PRO_TAX_RATE_ID: ${STRIPE_PRO_TAX_RATE_ID:-}
       SITE_URL: ${SITE_URL}
+      # Envoi des reçus de paiement : même serveur SMTP que le service d'authentification.
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USER: ${SMTP_USER:-}
+      SMTP_PASS: ${SMTP_PASS:-}
+      SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-}
+      SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-Audit Immobilier}
     healthcheck:
       test:
         [
@@ -218,6 +225,15 @@ services:
       GOTRUE_SMTP_USER: ${SMTP_USER:-}
       GOTRUE_SMTP_PASS: ${SMTP_PASS:-}
       GOTRUE_SMTP_SENDER_NAME: ${SMTP_SENDER_NAME:-Audit Immobilier}
+      # Messages à la charte du site : gabarits servis par le backend sur le réseau interne.
+      GOTRUE_MAILER_TEMPLATES_CONFIRMATION: http://backend:8000/emails/confirmation.html
+      GOTRUE_MAILER_TEMPLATES_RECOVERY: http://backend:8000/emails/recovery.html
+      GOTRUE_MAILER_TEMPLATES_MAGIC_LINK: http://backend:8000/emails/magic_link.html
+      GOTRUE_MAILER_TEMPLATES_EMAIL_CHANGE: http://backend:8000/emails/email_change.html
+      GOTRUE_MAILER_SUBJECTS_CONFIRMATION: "Confirmez votre adresse e-mail"
+      GOTRUE_MAILER_SUBJECTS_RECOVERY: "Réinitialisez votre mot de passe"
+      GOTRUE_MAILER_SUBJECTS_MAGIC_LINK: "Votre lien de connexion"
+      GOTRUE_MAILER_SUBJECTS_EMAIL_CHANGE: "Confirmez votre nouvelle adresse e-mail"
       GOTRUE_MAILER_URLPATHS_INVITE: /auth/v1/verify
       GOTRUE_MAILER_URLPATHS_CONFIRMATION: /auth/v1/verify
       GOTRUE_MAILER_URLPATHS_RECOVERY: /auth/v1/verify

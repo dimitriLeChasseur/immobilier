@@ -45,6 +45,14 @@ class Settings(BaseSettings):
     # Adresse du frontend : seules destinations de retour possibles après paiement.
     site_url: str = "http://localhost:5173"
 
+    # Envoi d'e-mails (reçus de paiement). Sans serveur configuré, aucun message n'est envoyé.
+    smtp_host: str | None = None
+    smtp_port: int = 587
+    smtp_user: str | None = None
+    smtp_pass: SecretStr | None = None
+    smtp_admin_email: str | None = None
+    smtp_sender_name: str = "Audit Immobilier"
+
     # OpenRouteService : temps de marche réels si la clé est fournie, estimation sinon.
     ors_api_key: SecretStr | None = None
 

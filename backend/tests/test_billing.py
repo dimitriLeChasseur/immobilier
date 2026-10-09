@@ -92,6 +92,12 @@ class FakeRepository:
     ) -> bool:
         return self.already_unlocked
 
+    async def is_recorded(self, event_id: str) -> bool:
+        return event_id in self.events
+
+    async def record_event(self, event_id: str, event_type: str) -> bool:
+        return self._is_new(event_id)
+
 
 class FakeHttp:
     def __init__(self) -> None:
