@@ -260,6 +260,29 @@ def _median_price(sales: list[Sale]) -> int:
     return round(median(sale.price_m2 for sale in sales))
 
 
+# Mêmes classes que la carte des loyers : le rendement rapproche des biens comparables.
+_SMALL_FLAT_MAX_ROOMS = 2
+
+
+def _by_size(sales: list[Sale]) -> dict[str, dict[str, int]]:
+    """Prix des appartements selon leur taille : une ou deux pièces, trois pièces et plus.
+
+    Les ventes sans nombre de pièces publié sont écartées de ce détail.
+    """
+    groups: dict[str, list[Sale]] = defaultdict(list)
+    for sale in sales:
+        if sale.kind == "appartement" and sale.rooms:
+            groups["t1_t2" if sale.rooms <= _SMALL_FLAT_MAX_ROOMS else "t3_plus"].append(sale)
+    return {
+        size: {
+            "nb_ventes": len(items),
+            "prix_m2_median": _median_price(items),
+            "surface_mediane_m2": round(median(sale.surface_m2 for sale in items)),
+        }
+        for size, items in sorted(groups.items())
+    }
+
+
 def _spread(sales: list[Sale]) -> dict[str, int]:
     """Étendue des prix au m² : extrêmes et quartiles (moitié centrale des ventes)."""
     prices = sorted(sale.price_m2 for sale in sales)
@@ -310,6 +333,7 @@ def _recent(sales: list[Sale]) -> dict[str, Any] | None:
             kind: {"nb_ventes": len(items), "prix_m2_median": _median_price(items)}
             for kind, items in sorted(by_kind.items())
         },
+        "par_taille": _by_size(recent),
         **_trend(median_recent, len(recent), previous),
     }
 
@@ -369,6 +393,7 @@ def summarize(sales: list[Sale]) -> dict[str, Any]:
             kind: {"nb_ventes": len(items), "prix_m2_median": _median_price(items)}
             for kind, items in sorted(by_kind.items())
         },
+        "par_taille": _by_size(sales),
         "historique": [
             {"annee": int(year), "nb_ventes": len(items), "prix_m2_median": _median_price(items)}
             for year, items in sorted(by_year.items())

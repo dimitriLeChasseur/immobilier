@@ -27,7 +27,7 @@ class Settings(BaseSettings):
     breaker_reset_after_s: float = Field(default=30.0, gt=0)
 
     # Cache des rapports
-    report_version: int = Field(default=12, ge=1, le=32767)
+    report_version: int = Field(default=13, ge=1, le=32767)
     cache_ttl_hours: int = Field(default=168, ge=1)
     cache_partial_ttl_minutes: int = Field(default=15, ge=1)
     air_quality_ttl_hours: int = Field(default=12, ge=1)

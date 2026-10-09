@@ -21,11 +21,10 @@ import {
   formatEuros,
   formatInteger,
   formatPercent,
-  flatPrice,
   formatPricePerM2,
-  grossYield,
 } from './format'
 import { inPreventionPlan, riskIndicators } from './insights'
+import { yieldLines } from './yield'
 import { isFailure, orderedCategories, POI_CATEGORY_LABELS, SCHOOL_KIND_LABELS } from './sources'
 
 export interface ReportSection {
@@ -113,14 +112,14 @@ function taxRows(tax: TaxeFonciereData | null | undefined): Rows {
 function market(sources: SourceResults): ReportSection {
   const dvf = sources.dvf?.data
   const rent = sources.loyers?.data
-  const gross = grossYield(rent?.loyer_m2_charges_comprises, flatPrice(dvf))
   const rentRows: Rows = rent
     ? [['Loyer d’annonce, appartement', `${formatDecimal(rent.loyer_m2_charges_comprises)} €/m²`]]
     : []
-  const yieldRows: Rows =
-    gross === null
-      ? []
-      : [['Rendement locatif brut des appartements (avant taxe foncière et charges)', formatPercent(gross)]]
+  // Une ligne par type de bien : loyer de ce type rapporté au prix des biens du même type.
+  const yieldRows: Rows = yieldLines(rent, dvf).map((line) => [
+    `Rendement locatif brut, ${line.label.toLowerCase()} (avant taxe foncière et charges)`,
+    `${formatPercent(line.gross)} — ${formatDecimal(line.rentPerM2)} €/m² pour ${formatPricePerM2(line.pricePerM2)}`,
+  ])
   const condo = sources.copropriete?.data
   const condoRows: Rows = condo
     ? [

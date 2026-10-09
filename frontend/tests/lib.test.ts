@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
+import { lineForSurface, yieldLines } from '../src/lib/yield'
 import { formatDate, formatDistance, formatPercent, formatPricePerM2, grossYield } from '../src/lib/format'
 import { pdfSafe, reportFileName } from '../src/lib/pdf'
 import { buildReportSections, unavailableSources } from '../src/lib/report'
@@ -85,7 +86,7 @@ describe('rapport', () => {
     expect(sections.map((section) => section.title)).toEqual(['Marché immobilier'])
     const rows = Object.fromEntries(sections[0]?.rows ?? [])
     // Loyer d'appartement rapporté au prix des appartements (4 300 €/m²), non à la médiane tous types.
-    expect(rows['Rendement locatif brut des appartements (avant taxe foncière et charges)']).toBe(
+    expect(rows['Rendement locatif brut, appartement, toutes tailles (avant taxe foncière et charges)']).toContain(
       formatPercent((14 * 12 * 100) / 4300),
     )
     expect(sections[0]?.table?.body).toHaveLength(1)
@@ -124,47 +125,46 @@ describe('ordre d’affichage indépendant de l’ordre des clés reçues', () =
   })
 })
 
-describe('prix de référence du rendement', () => {
-  it('ne retient que le prix des appartements, comparable au loyer d’appartement', async () => {
-    const { flatPrice } = await import('../src/lib/format')
-    const flats = (count: number) => ({ par_type: { appartement: { prix_m2_median: 4300, nb_ventes: count } } })
-    expect(flatPrice(flats(40))).toBe(4300)
-    // Trop peu de ventes pour parler d'un prix de marché.
-    expect(flatPrice(flats(4))).toBeNull()
-    // Les 24 derniers mois priment dès qu'ils comptent assez de ventes d'appartements.
-    const recent = (count: number) => ({ ...flats(40), recent: flats(count) })
-    expect(flatPrice({ ...recent(12), recent: { par_type: { appartement: { prix_m2_median: 4100, nb_ventes: 12 } } } })).toBe(4100)
-    expect(flatPrice(recent(2))).toBe(4300)
-    expect(flatPrice({ par_type: { maison: { prix_m2_median: 3000 } } })).toBeNull()
-    expect(flatPrice({ par_type: '***LOCKED***' })).toBeNull()
-    expect(flatPrice(null)).toBeNull()
-  })
-})
-
-describe('médiane récente dans le PDF', () => {
-  const dvf = (recent: object | null) =>
-    ({
-      rayon_m: 300,
-      nb_ventes: 603,
-      prix_m2_median: 3750,
-      dispersion: { min: 1000, q1: 3100, q3: 4500, max: 9000 },
-      par_type: {},
-      historique: [],
-      dernieres_ventes: [],
-      sections_interrogees: 6,
-      recent,
-    }) as unknown as NonNullable<SourceResults['dvf']>['data']
-  const row = (recent: object | null) => {
-    const result = { status: 'ok', data: dvf(recent), missing: [], error: null, duration_ms: 1 } as SourceResults['dvf']
-    const rows = buildReportSections({ dvf: result })[0]?.rows ?? []
-    return rows.find(([label]) => label.includes('24 derniers mois'))?.[1].replace(/\s/g, ' ')
+describe('rendement par type de bien', () => {
+  const group = (price: number, count: number) => ({ prix_m2_median: price, nb_ventes: count })
+  const rents = {
+    loyer_m2_charges_comprises: 14,
+    par_typologie: { t1_t2: { loyer_m2_charges_comprises: 17 }, maison: { loyer_m2_charges_comprises: 11 } },
   }
-  const window = { mois: 24, jusqu_au: '2025-12-31', nb_ventes: 235, prix_m2_median: 3684 }
 
-  it('chiffre l’évolution quand elle est connue, sinon en donne le sens', () => {
-    expect(row({ ...window, tendance: 'en baisse', tendance_pct: -6.8 })).toBe('3 684 €/m² (235 ventes, -6,8 % en deux ans)')
-    expect(row({ ...window, tendance: 'stable', tendance_pct: null })).toBe('3 684 €/m² (235 ventes, stable sur deux ans)')
-    expect(row({ ...window, tendance: null, tendance_pct: null })).toBe('3 684 €/m² (235 ventes)')
-    expect(row(null)).toBeUndefined()
+  it('rapporte chaque loyer au prix des biens du même type', () => {
+    const dvf = {
+      par_type: { appartement: group(4300, 40), maison: group(3300, 8) },
+      par_taille: { t1_t2: group(4800, 15), t3_plus: group(4000, 20) },
+    }
+    const lines = yieldLines(rents, dvf)
+    // Pas de loyer connu pour les trois pièces et plus : la ligne est absente.
+    expect(lines.map((line) => line.id)).toEqual(['appartement', 't1_t2', 'maison'])
+    expect(lines[1]?.gross).toBeCloseTo((17 * 12 * 100) / 4800, 5)
+    expect(lines[2]?.gross).toBeCloseTo(4, 5)
+  })
+
+  it('exige assez de ventes et préfère les 24 derniers mois', () => {
+    const flats = (count: number) => ({ par_type: { appartement: group(4300, count) } })
+    expect(yieldLines(rents, flats(40))[0]?.pricePerM2).toBe(4300)
+    // Trop peu de ventes pour parler d'un prix de marché.
+    expect(yieldLines(rents, flats(4))).toEqual([])
+    const recent = (count: number) => ({ ...flats(40), recent: { par_type: { appartement: group(4100, count) } } })
+    expect(yieldLines(rents, recent(12))[0]?.pricePerM2).toBe(4100)
+    expect(yieldLines(rents, recent(2))[0]?.pricePerM2).toBe(4300)
+  })
+
+  it('ne calcule rien sur des valeurs masquées ou absentes', () => {
+    expect(yieldLines(rents, { par_type: '***LOCKED***', par_taille: '***LOCKED***' })).toEqual([])
+    expect(yieldLines({ loyer_m2_charges_comprises: '***LOCKED***' }, { par_type: { appartement: group(4300, 40) } })).toEqual([])
+    expect(yieldLines(null, null)).toEqual([])
+  })
+
+  it('associe une surface au type d’appartement, à défaut à l’ensemble des appartements', () => {
+    const dvf = { par_type: { appartement: group(4300, 40) }, par_taille: { t1_t2: group(4800, 15) } }
+    const lines = yieldLines(rents, dvf)
+    expect(lineForSurface(lines, 35)?.id).toBe('t1_t2')
+    expect(lineForSurface(lines, 70)?.id).toBe('appartement')
+    expect(lineForSurface([], 70)).toBeNull()
   })
 })

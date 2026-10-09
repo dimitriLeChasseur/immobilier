@@ -167,6 +167,10 @@ export interface DvfSale {
   distance_m: number
 }
 
+export type DvfBySize = Partial<
+  Record<'t1_t2' | 't3_plus', { nb_ventes: number; prix_m2_median: number; surface_mediane_m2: number }>
+>
+
 export interface DvfData {
   /** « rue » : ventes de la voie auditée ; « rayon » (ou absent) : ventes autour du point. */
   perimetre?: 'rue' | 'rayon'
@@ -181,6 +185,7 @@ export interface DvfData {
     nb_ventes: number
     prix_m2_median: number
     par_type?: Record<string, { nb_ventes: number; prix_m2_median: number }>
+    par_taille?: DvfBySize
     /** Sens de l'évolution sur deux ans ; null s'il y a trop peu de ventes pour en juger. */
     tendance?: 'en hausse' | 'en baisse' | 'stable' | null
     /** Chiffrée seulement avec assez de ventes dans chaque période. */
@@ -193,6 +198,8 @@ export interface DvfData {
   prix_m2_median: number
   dispersion: { min: number; q1: number; q3: number; max: number }
   par_type: Record<string, { nb_ventes: number; prix_m2_median: number }>
+  /** Appartements selon leur taille, pour un rendement entre biens comparables. */
+  par_taille?: DvfBySize
   historique: { annee: number; nb_ventes: number; prix_m2_median: number }[]
   dernieres_ventes: DvfSale[]
   sections_interrogees: number

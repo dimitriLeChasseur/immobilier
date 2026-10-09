@@ -1,7 +1,8 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
 
-import { formatEuros, formatPercent, grossYield, netYield } from '../../lib/format'
+import { formatDecimal, formatEuros, formatInteger, formatPercent, formatPricePerM2, netYield } from '../../lib/format'
+import { lineForSurface, type YieldKind, type YieldLine } from '../../lib/yield'
 import LockedTeaser from '../LockedTeaser.vue'
 import StatTile from '../StatTile.vue'
 
@@ -9,8 +10,8 @@ const props = defineProps<{
   loading: boolean
   /** Prix ou loyer masqués par le serveur : le rendement n'est pas calculable côté client. */
   locked?: boolean
-  rentPerM2: number | null
-  pricePerM2: number | null
+  /** Rendement par type de bien ; vide si le loyer ou un prix de marché manque. */
+  lines: YieldLine[]
   /** Charges annuelles issues du bloc copropriété ; reprises tant que le champ n'est pas modifié. */
   condoChargesEstimate: number | null
   propertyTaxRate: number | null
@@ -31,19 +32,25 @@ function amount(value: number | null): number {
 }
 
 const taxKnown = computed(() => typeof propertyTax.value === 'number')
-const gross = computed(() => grossYield(props.rentPerM2, props.pricePerM2))
+// « auto » : le type d'appartement suit la surface saisie, tant qu'aucun n'est choisi.
+const kind = ref<YieldKind | 'auto'>('auto')
+const selected = computed(
+  () => props.lines.find((line) => line.id === kind.value) ?? lineForSurface(props.lines, surface.value),
+)
+const gross = computed(() => selected.value?.gross ?? null)
 const net = computed(() => {
-  if (props.rentPerM2 === null || props.pricePerM2 === null) return null
+  const line = selected.value
+  if (!line) return null
   return netYield({
-    rentPerM2: props.rentPerM2,
-    pricePerM2: props.pricePerM2,
+    rentPerM2: line.rentPerM2,
+    pricePerM2: line.pricePerM2,
     surfaceM2: surface.value,
     propertyTax: amount(propertyTax.value),
     condoCharges: amount(condoCharges.value),
   })
 })
-const price = computed(() => (props.pricePerM2 === null ? null : props.pricePerM2 * surface.value))
-const yearlyRent = computed(() => (props.rentPerM2 === null ? null : props.rentPerM2 * 12 * surface.value))
+const price = computed(() => (selected.value ? selected.value.pricePerM2 * surface.value : null))
+const yearlyRent = computed(() => (selected.value ? selected.value.rentPerM2 * 12 * surface.value : null))
 
 watch(
   () => props.condoChargesEstimate,
@@ -87,10 +94,35 @@ function onChargesInput(): void {
 
     <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div>
-        <StatTile label="Rendement brut" :value="formatPercent(gross)" />
+        <StatTile label="Rendement brut" :value="formatPercent(gross)" :hint="selected?.label" />
+        <table class="mt-3 w-full text-xs">
+          <caption class="sr-only">Rendement brut par type de bien</caption>
+          <thead>
+            <tr class="text-left text-brand-900/70">
+              <th scope="col" class="pb-1 font-medium">Type de bien</th>
+              <th scope="col" class="pb-1 text-right font-medium">Loyer</th>
+              <th scope="col" class="pb-1 text-right font-medium">Prix</th>
+              <th scope="col" class="pb-1 text-right font-medium">Brut</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="line in lines"
+              :key="line.id"
+              :class="line.id === selected?.id ? 'font-semibold text-brand-900' : 'text-brand-900/80'"
+            >
+              <th scope="row" class="py-0.5 pr-2 text-left font-[inherit]">{{ line.label }}</th>
+              <td class="py-0.5 text-right tabular-nums">{{ formatDecimal(line.rentPerM2) }} €/m²</td>
+              <td class="py-0.5 pl-2 text-right tabular-nums" :title="`${formatInteger(line.sales)} ventes`">
+                {{ formatPricePerM2(line.pricePerM2) }}
+              </td>
+              <td class="py-0.5 pl-2 text-right tabular-nums">{{ formatPercent(line.gross) }}</td>
+            </tr>
+          </tbody>
+        </table>
         <p class="mt-2 text-xs text-brand-900/70">
-          Loyer d’annonce des appartements de la commune × 12, rapporté au prix médian des
-          appartements vendus à proximité.
+          Loyer d’annonce de la commune × 12, rapporté au prix médian des biens du même type vendus
+          à proximité (au moins cinq ventes).
           <strong class="font-semibold">Avant</strong> taxe foncière, charges de copropriété, travaux
           et périodes sans locataire.
         </p>
@@ -100,6 +132,16 @@ function onChargesInput(): void {
         <p class="text-xs text-brand-900/80 sm:col-span-3">
           Affinez avec vos chiffres pour estimer le rendement net de charges :
         </p>
+        <label class="text-xs font-medium text-brand-900 sm:col-span-3">
+          Type de bien
+          <select
+            v-model="kind"
+            class="mt-1 w-full rounded-lg border border-brand-100 bg-white px-3 py-2 text-sm text-slate-900"
+          >
+            <option value="auto">Appartement, selon la surface saisie</option>
+            <option v-for="line in lines" :key="line.id" :value="line.id">{{ line.label }}</option>
+          </select>
+        </label>
         <label class="text-xs font-medium text-brand-900">
           Surface (m²)
           <input

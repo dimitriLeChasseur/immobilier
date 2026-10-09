@@ -2,7 +2,6 @@
 import { computed, ref } from 'vue'
 
 import { SOURCE_INFO } from '../lib/sources'
-import { flatPrice } from '../lib/format'
 import { inPreventionPlan } from '../lib/insights'
 import { isLocked, teaserHook } from '../lib/teaser'
 import type { SourceDataMap, SourceName, SourceResult, SourceResults } from '../types/audit'
@@ -25,6 +24,7 @@ import RisksCard from './cards/RisksCard.vue'
 import SchoolsCard from './cards/SchoolsCard.vue'
 import SunlightCard from './cards/SunlightCard.vue'
 import YieldCard from './cards/YieldCard.vue'
+import { yieldLines } from '../lib/yield'
 import ZoningCard from './cards/ZoningCard.vue'
 import SourceCard from './SourceCard.vue'
 
@@ -61,10 +61,9 @@ function numeric(value: unknown): number | null {
   return typeof value === 'number' ? value : null
 }
 
-const rentPerM2 = computed(() => numeric(props.sources.loyers?.data?.loyer_m2_charges_comprises))
-// Le loyer de référence est celui des appartements : il se rapporte au prix des appartements
-// vendus à proximité, et non à une médiane mêlant maisons et appartements.
-const pricePerM2 = computed(() => numeric(flatPrice(props.sources.dvf?.data)))
+// Chaque loyer se rapporte au prix de biens du même type vendus à proximité, et non à une
+// médiane mêlant maisons et appartements.
+const yieldRows = computed(() => yieldLines(props.sources.loyers?.data, props.sources.dvf?.data))
 const yieldLocked = computed(() => isLocked(props.sources.loyers?.data) || isLocked(props.sources.dvf?.data))
 // Surface et charges partagées entre le bloc copropriété et le simulateur de rendement.
 const surfaceM2 = ref(DEFAULT_SURFACE_M2)
@@ -113,8 +112,7 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
           class="lg:col-span-3"
           :loading="yieldPending"
           :locked="yieldLocked"
-          :rent-per-m2="rentPerM2"
-          :price-per-m2="pricePerM2"
+          :lines="yieldRows"
           :condo-charges-estimate="condoCharges"
           :property-tax-rate="propertyTaxRate"
           :property-tax-estimate="estimatedPropertyTax"

@@ -58,6 +58,27 @@ def test_dvf_rejects_unusable_mutations(overrides: dict[str, Any]) -> None:
     assert build_sales([dvf_row(**overrides)], *ORIGIN, radius_m=300) == []
 
 
+def test_dvf_summary_details_flats_by_size() -> None:
+    rows = [
+        dvf_row(id_mutation="a", valeur_fonciere="400000.0"),  # 2 pièces, 50 m²
+        dvf_row(id_mutation="b", valeur_fonciere="300000.0", surface_reelle_bati="30.0"),
+        dvf_row(
+            id_mutation="c",
+            valeur_fonciere="630000.0",
+            surface_reelle_bati="90.0",
+            nombre_pieces_principales="4.0",
+        ),
+        # Sans nombre de pièces, ou maison : hors du détail par taille.
+        dvf_row(id_mutation="d", nombre_pieces_principales=""),
+        dvf_row(id_mutation="e", type_local="Maison", nombre_pieces_principales="5.0"),
+    ]
+    summary = summarize(build_sales(rows, *ORIGIN, radius_m=300))
+    assert summary["par_taille"] == {
+        "t1_t2": {"nb_ventes": 2, "prix_m2_median": 9000, "surface_mediane_m2": 40},
+        "t3_plus": {"nb_ventes": 1, "prix_m2_median": 7000, "surface_mediane_m2": 90},
+    }
+
+
 def test_dvf_summary_medians_by_year_and_kind() -> None:
     rows = [
         dvf_row(id_mutation="a", date_mutation="2023-05-01", valeur_fonciere="400000.0"),

@@ -10,6 +10,7 @@ import PropertyTaxCard from '../src/components/cards/PropertyTaxCard.vue'
 import RentalMarketCard from '../src/components/cards/RentalMarketCard.vue'
 import SourceCard from '../src/components/SourceCard.vue'
 import VisitChecklist from '../src/components/VisitChecklist.vue'
+import type { YieldLine } from '../src/lib/yield'
 import YieldCard from '../src/components/cards/YieldCard.vue'
 import { formatEuros, formatPercent, netYield } from '../src/lib/format'
 import { inPreventionPlan, riskIndicators } from '../src/lib/insights'
@@ -18,6 +19,10 @@ import { SOURCE_INFO } from '../src/lib/sources'
 import { buildSteps } from '../src/lib/steps'
 import { estimatePropertyTax } from '../src/lib/tax'
 import type { SourceName, SourceResult } from '../src/types/audit'
+
+const FLATS: YieldLine[] = [
+  { id: 'appartement', label: 'Appartement, toutes tailles', rentPerM2: 14, pricePerM2: 4200, sales: 40, gross: 4 },
+]
 
 describe('risques', () => {
   it('reprend la recommandation calculée par le serveur', () => {
@@ -180,7 +185,7 @@ describe('rendement net', () => {
 
   it('reprend les charges du bloc copropriété et recalcule quand la taxe foncière est saisie', async () => {
     const card = mount(YieldCard, {
-      props: { loading: false, rentPerM2: 14, pricePerM2: 4200, surface: 50, condoChargesEstimate: 1000, propertyTaxRate: 56.65 },
+      props: { loading: false, lines: FLATS, surface: 50, condoChargesEstimate: 1000, propertyTaxRate: 56.65 },
     })
     const inputs = card.findAll('input')
     expect((inputs[2]?.element as HTMLInputElement).value).toBe('1000')
@@ -194,7 +199,7 @@ describe('rendement net', () => {
 
   it('suit le bloc copropriété tant que le champ du simulateur n’est pas modifié', async () => {
     const card = mount(YieldCard, {
-      props: { loading: false, rentPerM2: 14, pricePerM2: 4200, surface: 50, condoChargesEstimate: 1000, propertyTaxRate: null },
+      props: { loading: false, lines: FLATS, surface: 50, condoChargesEstimate: 1000, propertyTaxRate: null },
     })
     const chargesInput = card.findAll('input')[2]
     await card.setProps({ condoChargesEstimate: 1450 })
@@ -424,7 +429,7 @@ describe('simulateur de taxe foncière', () => {
 
   it('alimente le calcul de rendement tant que l’utilisateur n’a pas saisi son propre montant', async () => {
     const card = mount(YieldCard, {
-      props: { loading: false, rentPerM2: 14, pricePerM2: 4200, surface: 50, condoChargesEstimate: null, propertyTaxRate: 56.65 },
+      props: { loading: false, lines: FLATS, surface: 50, condoChargesEstimate: null, propertyTaxRate: 56.65 },
     })
     await card.setProps({ propertyTaxEstimate: 906 })
     const taxInput = card.findAll('input')[1]
