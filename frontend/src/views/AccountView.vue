@@ -21,7 +21,7 @@ import { logoProblem, MAX_LOGO_BYTES, readAsDataUrl } from '../lib/logo'
 
 const ORIGINS: Record<UnlockedAudit['origin'], string> = {
   unit: 'Achat à l’unité',
-  pack: 'Pack Investisseur',
+  pack: 'Pack',
   subscription: 'Abonnement',
   admin: 'Offert',
 }

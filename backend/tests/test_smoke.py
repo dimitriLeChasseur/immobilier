@@ -3,7 +3,7 @@
 from datetime import UTC, datetime
 
 from app.schemas.audit import AuditReport, Location, ReportMeta, SourceResult, StreetInfo
-from app.smoke import CASES, EXPECTED_KEYS, check_report, check_source
+from app.smoke import CASES, EXPECTED_KEYS, check_report, check_source, persistent
 
 ADDRESS, STREET = CASES
 META = ReportMeta(
@@ -51,3 +51,10 @@ def test_street_case_requires_the_street_mode() -> None:
     )
     recognised = report.model_copy(update={"location": point.model_copy(update={"rue": street})})
     assert check_report(recognised, STREET, list(EXPECTED_KEYS)) == []
+
+
+def test_only_anomalies_seen_twice_on_the_same_source_are_kept() -> None:
+    first = ["ecoles : timeout (Délai dépassé)", "dvf : champs absents : prix_m2_median"]
+    second = ["dvf : http_error (500)", "bruit : timeout (Délai dépassé)"]
+    assert persistent(first, second) == ["dvf : http_error (500)"]
+    assert persistent(first, []) == []

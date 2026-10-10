@@ -5,6 +5,7 @@ import io
 import json
 import logging
 import zipfile
+from collections.abc import Iterator
 from datetime import date
 
 from app.ingestion.common import (
@@ -393,6 +394,18 @@ _IRIS_INCOME_URL = (
 _IRIS_INCOME_YEAR = 2021
 _INCOME_SUFFIX = f"{_IRIS_INCOME_YEAR % 100}"
 
+# INSEE Filosofi — mêmes revenus par commune et arrondissement municipal. L'archive sépare
+# la distribution des niveaux de vie et les taux de pauvreté en deux fichiers.
+_COMMUNE_INCOME_URL = (
+    "https://www.insee.fr/fr/statistiques/fichier/7756855/"
+    "indic-struct-distrib-revenu-2021-COMMUNES_csv.zip"
+)
+_COMMUNE_INCOME_YEAR = 2021
+_COMMUNE_INCOME_FILE = "FILO2021_DISP_COM.csv"
+_COMMUNE_POVERTY_FILE = "FILO2021_DISP_PAUVRES_COM.csv"
+_COMMUNE_INCOME_COLUMNS = ("Q221", "Q121", "Q321")
+_COMMUNE_POVERTY_COLUMN = "TP6021"
+
 # INSEE — recensement, base communale « Évolution et structure de la population ».
 _POPULATION_URL = (
     "https://www.insee.fr/fr/statistiques/fichier/8581696/base-cc-evol-struct-pop-2022_csv.zip"
@@ -445,6 +458,54 @@ async def ingest_iris_income(
     for batch in batched(rows, _BATCH_SIZE):
         await repository.upsert_iris_income(batch)
     return len(rows)
+
+
+def _columns(
+    archive: zipfile.ZipFile, name: str, columns: tuple[str, ...]
+) -> Iterator[tuple[str, list[str]]]:
+    """Code de la commune et colonnes voulues d'un fichier INSEE, lues par rang."""
+    with archive.open(name) as raw:
+        reader = csv.reader(io.TextIOWrapper(raw, encoding="utf-8"), delimiter=";")
+        header = next(reader)
+        code_at = header.index("CODGEO")
+        wanted = [header.index(column) for column in columns]
+        for line in reader:
+            yield line[code_at], [line[at] for at in wanted]
+
+
+def parse_commune_income_row(code: str, incomes: list[str], poverty: str | None) -> Row | None:
+    """Revenus d'une commune ; « s » (secret statistique) et « nd » deviennent None."""
+    if not is_insee_code(code):
+        return None
+    median, first, third = (
+        round(value) if (value := to_number(text)) is not None and value > 0 else None
+        for text in incomes
+    )
+    rate = to_number(poverty)
+    if median is None and rate is None:
+        return None
+    return (code, _COMMUNE_INCOME_YEAR, median, first, third, rate)
+
+
+async def ingest_commune_income(
+    downloader: Downloader, repository: IngestionRepository, options: IngestionOptions
+) -> int:
+    archive = zipfile.ZipFile(io.BytesIO(await downloader.content(_COMMUNE_INCOME_URL)))
+    poverty = {
+        code: values[0]
+        for code, values in _columns(archive, _COMMUNE_POVERTY_FILE, (_COMMUNE_POVERTY_COLUMN,))
+    }
+    rows = (
+        parsed
+        for code, incomes in _columns(archive, _COMMUNE_INCOME_FILE, _COMMUNE_INCOME_COLUMNS)
+        if (parsed := parse_commune_income_row(code, incomes, poverty.get(code))) is not None
+        and options.accepts(str(parsed[0]))
+    )
+    total = 0
+    for batch in batched(rows, _BATCH_SIZE):
+        await repository.upsert_commune_income(batch)
+        total += len(batch)
+    return total
 
 
 def parse_population_row(code: str, counts: list[str]) -> Row | None:

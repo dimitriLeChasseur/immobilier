@@ -1,0 +1,72 @@
+# Contrôles de sécurité : dépendances vulnérables et secrets commités.
+# Ils ne conditionnent pas la mise en ligne : une faille publiée dans une dépendance ne doit
+# pas bloquer un correctif sans rapport. L'exécution hebdomadaire signale celles qui paraissent
+# entre deux commits ; un échec déclenche l'e-mail « workflow en échec » de GitHub.
+name: Sécurité
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: "23 5 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: securite-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  dependances:
+    name: Dépendances vulnérables
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+
+      - name: Configurer Python 3.11 et uv
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
+        with:
+          python-version: "3.11"
+
+      # Seules les dépendances livrées en production sont auditées, telles que verrouillées.
+      - name: Auditer les dépendances du backend (pip-audit)
+        working-directory: backend
+        run: |
+          uv export --frozen --no-dev --no-emit-project --quiet --output-file "$RUNNER_TEMP/requirements.txt"
+          uv tool run pip-audit --requirement "$RUNNER_TEMP/requirements.txt" --require-hashes --disable-pip
+
+      - name: Configurer Node.js
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: 22
+
+      - name: Auditer les dépendances du frontend (npm audit)
+        working-directory: frontend
+        run: npm audit --omit=dev --audit-level=high
+
+  secrets:
+    name: Secrets commités
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      # Tout l'historique : un secret retiré depuis reste lisible dans un ancien commit.
+      - name: Récupérer le code et son historique
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+
+      # Faux positifs connus : .gitleaksignore.
+      - name: Chercher des secrets dans l'historique (gitleaks)
+        run: >
+          docker run --rm --volume "$PWD:/repo:ro" --workdir /repo
+          ghcr.io/gitleaks/gitleaks:v8.30.1@sha256:c00b6bd0aeb3071cbcb79009cb16a60dd9e0a7c60e2be9ab65d25e6bc8abbb7f
+          git /repo --no-banner --redact --verbose

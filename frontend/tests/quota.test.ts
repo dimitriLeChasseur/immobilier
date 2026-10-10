@@ -52,7 +52,7 @@ describe('offre gratuite et rapport d’exemple', () => {
     expect(FREE_OFFER.price).toBe('0 €')
     expect(FREE_OFFER.features.join(' ')).toContain('taxe foncière')
     expect(OFFERS[0]?.price).toBe(UNIT_PRICE)
-    expect(OFFERS[2]?.features[0]).toContain(String(PRO_DAILY_ADDRESSES))
+    expect(OFFERS.find((offer) => offer.id === 'pro')?.features[0]).toContain(String(PRO_DAILY_ADDRESSES))
   })
 
   it('pointe le rapport d’exemple par un lien que la page d’accueil sait relire', () => {

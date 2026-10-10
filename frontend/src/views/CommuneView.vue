@@ -2,8 +2,8 @@
 import { computed, ref, watch } from 'vue'
 import { RouterLink, useRoute } from 'vue-router'
 
-import { fetchCommune } from '../api/communes'
-import { codeFromSlug, communePage, type CommuneProfile } from '../lib/commune'
+import { communeLinks, fetchCommune } from '../api/communes'
+import { codeFromSlug, communePage, relatedCommunes, type CommuneProfile } from '../lib/commune'
 import { DEFAULT_DESCRIPTION, setPageMeta, SITE_NAME } from '../lib/seo'
 
 const route = useRoute()
@@ -11,6 +11,7 @@ const profile = ref<CommuneProfile | null>(null)
 const state = ref<'loading' | 'ready' | 'missing' | 'error'>('loading')
 
 const page = computed(() => (profile.value ? communePage(profile.value) : null))
+const related = computed(() => (profile.value ? relatedCommunes(communeLinks(), profile.value) : []))
 // Audit lancé depuis le centre de la commune : l'utilisateur précise ensuite son adresse.
 const auditLink = computed(() => {
   const centre = profile.value?.centre
@@ -66,6 +67,13 @@ watch([page, state], updateMeta, { immediate: true })
       <h1 class="mt-2 text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">{{ page.heading }}</h1>
       <p class="mt-3 text-base text-slate-600">{{ page.intro }}</p>
 
+      <section v-if="page.summary.length" class="mt-8" aria-labelledby="commune-summary">
+        <h2 id="commune-summary" class="text-lg font-semibold text-slate-900">En bref</h2>
+        <ul class="mt-3 list-disc space-y-1.5 pl-5 text-base text-slate-700">
+          <li v-for="sentence in page.summary" :key="sentence">{{ sentence }}</li>
+        </ul>
+      </section>
+
       <section
         v-for="section in page.sections"
         :key="section.heading"
@@ -94,6 +102,18 @@ watch([page, state], updateMeta, { immediate: true })
           Auditer une adresse à {{ profile?.nom }}
         </RouterLink>
       </div>
+      <nav v-if="related.length" class="mt-8" aria-labelledby="commune-related">
+        <h2 id="commune-related" class="text-lg font-semibold text-slate-900">
+          Autres communes du département {{ profile?.departement_nom || profile?.departement_code }}
+        </h2>
+        <ul class="mt-3 flex flex-wrap gap-x-4 gap-y-1 text-sm">
+          <li v-for="commune in related" :key="commune.slug">
+            <RouterLink :to="{ name: 'commune', params: { slug: commune.slug } }" class="text-brand-700 hover:underline">
+              {{ commune.nom }}
+            </RouterLink>
+          </li>
+        </ul>
+      </nav>
       <p class="mt-6 text-xs text-slate-500">
         Sources : carte des loyers (ANIL, ministère chargé du logement), DGFiP, SSMSI, Éducation nationale, INSEE,
         ARCEP. Données publiques, sans valeur contractuelle.

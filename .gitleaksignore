@@ -1,0 +1,2 @@
+# Faux positif : identifiants par défaut de SonarQube (admin:admin), remplacés par le script.
+db0e5c457f1c56dfa878618aeb8a8f75d19637bd:scripts/sonar-setup.sh:curl-auth-user:39

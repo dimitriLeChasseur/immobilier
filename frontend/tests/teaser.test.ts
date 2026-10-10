@@ -68,7 +68,7 @@ describe('carte verrouillée', () => {
 
   it('affiche l’accroche et un contenu factice flouté, jamais la carte de données', () => {
     const card = mount(SourceCard, {
-      props: { ...SOURCE_INFO.dvf, result, hook: '505 ventes analysées à moins de 300 m' },
+      props: { ...SOURCE_INFO.dvf, result, hook: '505 ventes analysées à moins de 300 m', featured: true },
       slots,
       global: { provide },
     })
@@ -79,6 +79,20 @@ describe('carte verrouillée', () => {
     expect(blurred.exists()).toBe(true)
     expect(blurred.attributes('aria-hidden')).toBe('true')
     expect(card.find('button').text()).toBe('Débloquer l’audit complet pour 4,99 €')
+  })
+
+  it('tient en une ligne hors de la carte phare, sans aperçu flouté répété', async () => {
+    const card = mount(SourceCard, { props: { ...SOURCE_INFO.dvf, result, hook: '505 ventes analysées' }, slots, global: { provide } })
+    expect(card.text()).toContain('505 ventes analysées')
+    expect(card.text()).not.toContain('prix {')
+    expect(card.find('.locked-blur').exists()).toBe(false)
+    expect(card.find('.locked-row').text()).toContain('Détail dans l’audit complet')
+    const button = card.find('.locked-row button')
+    expect(button.text()).toBe('Débloquer')
+    expect(button.attributes('aria-label')).toBe('Débloquer l’audit complet pour 4,99 €')
+    const before = open.mock.calls.length
+    await button.trigger('click')
+    expect(open).toHaveBeenCalledTimes(before + 1)
   })
 
   it('affiche normalement une source entièrement lisible', () => {
@@ -94,7 +108,7 @@ describe('carte verrouillée', () => {
     expect(button.text()).toBe('Débloquer')
     expect(button.attributes('aria-label')).toContain('pour 4,99 €')
     await button.trigger('click')
-    expect(open).toHaveBeenCalledTimes(1)
+    expect(open).toHaveBeenCalled()
   })
 })
 
@@ -128,19 +142,20 @@ describe('grille tarifaire', () => {
   })
   beforeEach(() => localStorage.clear())
 
-  it('présente les trois offres aux bons prix, le pack investisseur mis en avant au centre', () => {
+  it('présente les quatre offres aux bons prix, le pack investisseur mis en avant', () => {
     expect(OFFERS.map((offer) => [offer.name, offer.price, offer.priceNote, offer.cta])).toEqual([
       ['Contre-Visite', '4,99 €', 'TTC, paiement unique', 'Payer 4,99 €'],
+      ['Pack Visites', '14,99 €', 'TTC, paiement unique', 'Payer 14,99 €'],
       ['Pack Investisseur', '24,99 €', 'TTC, paiement unique', 'Payer 24,99 €'],
       ['Pro', '49,00 €', 'HT par mois', 'S’abonner'],
     ])
-    expect(OFFERS.map((offer) => offer.highlighted)).toEqual([false, true, false])
+    expect(OFFERS.map((offer) => offer.highlighted)).toEqual([false, false, true, false])
 
     const view = mount(PricingView, { global: { plugins: [router] } })
     const cards = view.findAll('ul > li.relative')
-    expect(cards).toHaveLength(3)
-    expect(cards[1]?.classes()).toContain('border-brand-600')
-    expect(cards[1]?.text()).toContain('Le plus avantageux')
+    expect(cards).toHaveLength(4)
+    expect(cards[2]?.classes()).toContain('border-brand-600')
+    expect(cards[2]?.text()).toContain('Le plus avantageux')
     // L'aperçu gratuit a sa propre colonne, avant les offres payantes.
     expect(view.find('ul > li').text()).toContain('Aperçu gratuit')
     expect(view.find('ul > li').text()).toContain('0 €')

@@ -39,6 +39,20 @@ class CommuneHousing(BaseModel):
     part_vacants_pct: float | None = None
 
 
+class CommuneIncome(BaseModel):
+    annee: int
+    # Niveau de vie médian annuel par unité de consommation ; le repère est national.
+    revenu_median: Benchmark | None = None
+    taux_pauvrete_pct: Benchmark | None = None
+
+
+class CommunePopulation(BaseModel):
+    annee: int
+    habitants: int
+    evolution_6_ans_pct: float | None = None
+    evolution_11_ans_pct: float | None = None
+
+
 class CommuneProfile(BaseModel):
     code: str
     nom: str
@@ -64,3 +78,6 @@ class CommuneProfile(BaseModel):
     logement: CommuneHousing | None = None
     # Zonage des zones tendues : « tendue », « touristique » ou « non_tendue » ; None si inconnu.
     zone_tendue: str | None = None
+    revenus: CommuneIncome | None = None
+    # Population aux recensements, pour son évolution (le champ « population » est l'actuelle).
+    evolution_population: CommunePopulation | None = None

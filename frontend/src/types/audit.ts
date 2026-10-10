@@ -427,9 +427,13 @@ export interface BruitData {
 /** Profil du quartier : revenus à l'IRIS, quartier prioritaire, population de la commune. */
 export interface QuartierData {
   iris: { code: string; nom: string | null } | null
-  /** null quand l'INSEE ne diffuse pas les revenus de ce quartier. */
+  /** null quand l'INSEE ne diffuse les revenus ni pour ce quartier ni pour la commune. */
   revenus: {
     annee: number
+    /** « commune » : chiffres de la commune, faute de diffusion à l'échelle du quartier. */
+    echelle?: 'iris' | 'commune'
+    /** Vrai quand le chiffre communal est celui de l'arrondissement. */
+    arrondissement?: boolean
     revenu_median: number | null
     revenu_q1: number | null
     revenu_q3: number | null

@@ -19,5 +19,10 @@ export default defineConfig({
   test: {
     environment: 'jsdom',
     include: ['tests/**/*.test.ts'],
+    coverage: {
+      reporter: ['text-summary'],
+      // Seuils un peu sous la couverture mesurée : ils arrêtent une régression nette.
+      thresholds: { statements: 68, branches: 55, functions: 60, lines: 70 },
+    },
   },
 })

@@ -39,6 +39,21 @@ export interface CommuneProfile {
     part_proprietaires_pct: number | null
     part_vacants_pct: number | null
   } | null
+  /** Niveau de vie médian annuel par unité de consommation et taux de pauvreté (INSEE). */
+  revenus?: { annee: number; revenu_median: Benchmark | null; taux_pauvrete_pct: Benchmark | null } | null
+  evolution_population?: {
+    annee: number
+    habitants: number
+    evolution_6_ans_pct: number | null
+    evolution_11_ans_pct: number | null
+  } | null
+}
+
+/** Lien vers la fiche d'une autre commune. */
+export interface CommuneLink {
+  nom: string
+  slug: string
+  departement_code: string
 }
 
 export interface CommuneFact {
@@ -58,12 +73,18 @@ export interface CommunePage {
   description: string
   heading: string
   intro: string
+  /** Lecture rédigée des chiffres : ce qui distingue la commune de la moyenne. */
+  summary: string[]
   sections: CommuneSection[]
 }
 
 const SITE_NAME = 'Audit Immobilier'
 // Variation au-delà de laquelle l'évolution sur un an est signalée.
 const TREND_THRESHOLD = 0.1
+// Écart relatif au repère national en deçà duquel une valeur est dite « proche ».
+const NEAR_BENCHMARK = 0.1
+// Nombre de fiches voisines proposées en bas de page.
+const RELATED_LIMIT = 12
 const SCHOOL_LEVELS: [id: string, label: string][] = [
   ['ecole', 'Écoles'],
   ['college', 'Collèges'],
@@ -205,6 +226,12 @@ function housingSection(profile: CommuneProfile): CommuneSection | null {
   const facts: CommuneFact[] = []
   if (housing) {
     facts.push({ label: `Logements (recensement ${housing.annee})`, value: integer(housing.logements) })
+    if (housing.part_proprietaires_pct !== null) {
+      facts.push({
+        label: 'Résidences principales occupées par leur propriétaire',
+        value: percent(housing.part_proprietaires_pct),
+      })
+    }
     if (housing.part_locataires_pct !== null) {
       facts.push({ label: 'Résidences principales louées', value: percent(housing.part_locataires_pct) })
     }
@@ -226,11 +253,134 @@ function housingSection(profile: CommuneProfile): CommuneSection | null {
   return facts.length ? { heading: 'Logement et connexion', facts } : null
 }
 
+function signed(value: number): string {
+  return `${value > 0 ? '+' : ''}${percent(value)}`
+}
+
+function euros(value: number): string {
+  return `${integer(value)} €`
+}
+
+function peopleSection(profile: CommuneProfile): CommuneSection | null {
+  const facts: CommuneFact[] = []
+  const people = profile.evolution_population
+  if (people) {
+    const trends = [
+      people.evolution_6_ans_pct === null ? null : `${signed(people.evolution_6_ans_pct)} en 6 ans`,
+      people.evolution_11_ans_pct === null ? null : `${signed(people.evolution_11_ans_pct)} en 11 ans`,
+    ].filter((part): part is string => part !== null)
+    facts.push({
+      label: `Population (recensement ${people.annee})`,
+      value: `${integer(people.habitants)} habitants`,
+      note: trends.length ? trends.join(', ') : undefined,
+    })
+  }
+  const income = profile.revenus
+  if (income?.revenu_median) {
+    facts.push({
+      label: `Niveau de vie médian (${income.annee})`,
+      value: `${euros(income.revenu_median.valeur)} par an et par unité de consommation`,
+      note: benchmarkNote(income.revenu_median, euros, ''),
+    })
+  }
+  if (income?.taux_pauvrete_pct) {
+    facts.push({
+      label: `Taux de pauvreté (${income.annee})`,
+      value: percent(income.taux_pauvrete_pct.valeur, 0),
+      note: benchmarkNote(income.taux_pauvrete_pct, (value) => percent(value), ''),
+    })
+  }
+  // Les codes postaux complètent la rubrique, ils ne la justifient pas à eux seuls.
+  if (facts.length && profile.codes_postaux.length) {
+    const plural = profile.codes_postaux.length > 1
+    facts.push({ label: plural ? 'Codes postaux' : 'Code postal', value: profile.codes_postaux.join(', ') })
+  }
+  return facts.length ? { heading: 'Population et revenus', facts } : null
+}
+
+/** « plus élevé que », « plus bas que » ou « proche de » le repère national ; null sans repère. */
+function versusNational(benchmark: Benchmark | null | undefined, higher: string, lower: string): string | null {
+  if (!benchmark || !benchmark.national) return null
+  const gap = (benchmark.valeur - benchmark.national) / benchmark.national
+  if (Math.abs(gap) < NEAR_BENCHMARK) return 'proche de'
+  return gap > 0 ? higher : lower
+}
+
+function rentSentence(profile: CommuneProfile): string | null {
+  const flat = profile.loyers?.appartement
+  const house = profile.loyers?.maison
+  if (typeof flat === 'number') {
+    const also = typeof house === 'number' ? `, une maison autour de ${decimal(house)} €/m²` : ''
+    return `Un appartement se loue autour de ${decimal(flat)} €/m² par mois, charges comprises${also}.`
+  }
+  return typeof house === 'number'
+    ? `Une maison se loue autour de ${decimal(house)} €/m² par mois, charges comprises.`
+    : null
+}
+
+function taxSentence(profile: CommuneProfile): string | null {
+  const rate = profile.taxe_fonciere?.taux_tfb_total
+  const position = versusNational(rate, 'plus élevé que', 'plus bas que')
+  if (!rate || !position || rate.national === null) return null
+  return (
+    `Le taux de taxe foncière (${percent(rate.valeur, 2)}) est ${position} celui de la commune médiane en France ` +
+    `(${percent(rate.national, 2)}).`
+  )
+}
+
+function crimeSentence(profile: CommuneProfile): string | null {
+  const rate = profile.delinquance?.cambriolages
+  const position = versusNational(rate, 'plus fréquents que dans', 'moins fréquents que dans')
+  if (!rate || !position || rate.national === null) return null
+  const wording = position === 'proche de' ? 'à un niveau proche de celui de' : position
+  return (
+    `Les cambriolages de logement (${decimal(rate.valeur)} pour 1 000 habitants) y sont ${wording} la France ` +
+    `entière (${decimal(rate.national)}).`
+  )
+}
+
+function incomeSentence(profile: CommuneProfile): string | null {
+  const income = profile.revenus?.revenu_median
+  const position = versusNational(income, 'supérieur à', 'inférieur à')
+  if (!income || !position || income.national === null) return null
+  return `Le niveau de vie médian (${euros(income.valeur)} par an) est ${position} la médiane nationale (${euros(income.national)}).`
+}
+
+function populationSentence(profile: CommuneProfile): string | null {
+  const change = profile.evolution_population?.evolution_6_ans_pct
+  if (change === null || change === undefined) return null
+  if (Math.abs(change) < 1) return 'La population est stable depuis six ans.'
+  return `La population a ${change > 0 ? 'progressé' : 'reculé'} de ${percent(Math.abs(change))} en six ans.`
+}
+
+function tenantSentence(profile: CommuneProfile): string | null {
+  const share = profile.logement?.part_locataires_pct
+  if (share === null || share === undefined) return null
+  const tense = profile.zone_tendue === 'tendue' || profile.zone_tendue === 'touristique'
+  const market = tense ? ', dans une commune classée en zone tendue' : ''
+  return `${percent(share, 0)} des résidences principales sont louées${market}.`
+}
+
+/** Phrases qui situent la commune : seules celles dont les chiffres sont connus. */
+function summary(profile: CommuneProfile): string[] {
+  return [rentSentence, taxSentence, crimeSentence, incomeSentence, populationSentence, tenantSentence]
+    .map((sentence) => sentence(profile))
+    .filter((sentence): sentence is string => sentence !== null)
+}
+
+/** Autres communes du même département qui ont une fiche, dans l'ordre de la liste (population). */
+export function relatedCommunes(links: readonly CommuneLink[], profile: Pick<CommuneProfile, 'slug' | 'departement_code'>): CommuneLink[] {
+  return links
+    .filter((link) => link.departement_code === profile.departement_code && link.slug !== profile.slug)
+    .slice(0, RELATED_LIMIT)
+}
+
 /** Titre, description et contenu de la fiche d'une commune. */
 export function communePage(profile: CommuneProfile): CommunePage {
   const place = `${profile.nom} (${profile.departement_code})`
   const figures = [
     rentSection(profile),
+    peopleSection(profile),
     taxSection(profile),
     crimeSection(profile),
     schoolSection(profile),
@@ -251,6 +401,7 @@ export function communePage(profile: CommuneProfile): CommunePage {
       `${profile.nom} (${profile.departement_nom || profile.departement_code}${population}) en quelques chiffres publics, ` +
       'comparés au département et à la France. Ces données valent pour toute la commune : pour une adresse précise, ' +
       'lancez un audit.',
+    summary: summary(profile),
     sections,
   }
 }

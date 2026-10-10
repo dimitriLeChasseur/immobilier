@@ -4,6 +4,8 @@
 
 Les tests unitaires simulent toutes les API ; celui-ci détecte ce qu'ils ne voient pas :
 une source arrêtée, déplacée, ou dont la réponse a changé de forme. Le cache est contourné.
+Une anomalie n'est signalée que si elle persiste au second essai, quelques minutes plus tard :
+un délai dépassé isolé chez un fournisseur ne réveille personne.
 Code de retour : 0 si tout répond comme attendu, 1 sinon.
 """
 
@@ -20,8 +22,12 @@ from app.container import build_audit_service
 from app.core.config import get_settings
 from app.repositories.db import create_pool
 from app.schemas.audit import AuditQuery, AuditReport, SourceResult
+from app.services.audit_service import AuditService
 
 logger = logging.getLogger("smoke")
+
+# Délai avant de rejouer un cas en anomalie : assez long pour laisser passer un incident bref.
+RETRY_DELAY_S = 180
 
 # Champs qu'une source en bonne santé renvoie pour l'adresse de référence. Leur absence
 # signale un changement de format côté fournisseur.
@@ -123,7 +129,22 @@ def check_report(report: AuditReport, case: Case, source_names: list[str]) -> li
     return problems
 
 
-async def run() -> int:
+def persistent(first: list[str], second: list[str]) -> list[str]:
+    """Anomalies du second essai déjà vues au premier, sur la même source."""
+    seen = {problem.split(" : ", 1)[0] for problem in first}
+    return [problem for problem in second if problem.split(" : ", 1)[0] in seen]
+
+
+async def _check_case(service: AuditService, case: Case, attempt: str) -> list[str]:
+    report = await service.get_report(case.query)
+    problems = check_report(report, case, service.source_names)
+    took = timedelta(milliseconds=report.meta.duration_ms).total_seconds()
+    verdict = "OK" if not problems else f"{len(problems)} anomalie(s)"
+    logger.info("%s (%s) : %s en %.1f s", case.label, attempt, verdict, took)
+    return problems
+
+
+async def run(retry_delay_s: float = RETRY_DELAY_S) -> int:
     settings = get_settings()
     pool = await create_pool(settings.database_url.get_secret_value())
     session = aiohttp.ClientSession(headers={"User-Agent": settings.http_user_agent})
@@ -131,12 +152,13 @@ async def run() -> int:
     try:
         service = build_audit_service(settings, pool, session, cache=NoCache())
         for case in CASES:
-            report = await service.get_report(case.query)
-            problems = check_report(report, case, service.source_names)
+            problems = await _check_case(service, case, "premier essai")
+            if problems:
+                for problem in problems:
+                    logger.warning("  à confirmer : %s", problem)
+                await asyncio.sleep(retry_delay_s)
+                problems = persistent(problems, await _check_case(service, case, "second essai"))
             failures += len(problems)
-            took = timedelta(milliseconds=report.meta.duration_ms).total_seconds()
-            verdict = "OK" if not problems else f"{len(problems)} anomalie(s)"
-            logger.info("%s : %s en %.1f s", case.label, verdict, took)
             for problem in problems:
                 logger.error("  %s", problem)
     finally:

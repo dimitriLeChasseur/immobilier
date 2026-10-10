@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
 # Met à jour le backend sur le serveur à partir du commit courant.
 #
-#   ./scripts/deploy-backend.sh root@169.58.58.27
+#   ./scripts/deploy-backend.sh immo@169.58.58.27
 #
+# Avec un compte autre que root, les commandes passent par sudo (sans mot de passe) : Docker
+# et le dossier de l'application appartiennent à root.
 # Le code part de ce poste (aucun identifiant GitHub sur le serveur), le .env du serveur n'est
 # jamais touché, et le schéma est réappliqué : init.sql est rejouable.
 set -euo pipefail
@@ -15,11 +17,13 @@ if [[ -n "$(git status --porcelain)" ]]; then
   echo "Erreur : des modifications ne sont pas commitées ; seul le dernier commit serait envoyé." >&2
   exit 1
 fi
+SUDO=""
+[[ "$REMOTE" == root@* ]] || SUDO="sudo -n"
 commit="$(git rev-parse --short HEAD)"
 echo "Envoi du commit $commit vers $REMOTE:$APP_DIR"
-git archive HEAD | ssh "$REMOTE" "tar -x -C '$APP_DIR'"
+git archive HEAD | ssh "$REMOTE" "$SUDO tar -x --no-same-owner -C '$APP_DIR'"
 
-ssh "$REMOTE" "bash -s" <<REMOTE_SCRIPT
+ssh "$REMOTE" "$SUDO bash -s" <<REMOTE_SCRIPT
 set -euo pipefail
 cd '$APP_DIR'
 docker compose up -d --build

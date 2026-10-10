@@ -31,7 +31,7 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 0 4 5 * * root $RUN "Ingestion des permis" /var/log/immo-ingestion.log docker compose run --rm -T backend python -m app.ingestion sitadel
 # Autres référentiels (délinquance, taxe foncière, IPS, IRIS, fibre, revenus, population,
 # quartiers prioritaires) : chaque trimestre.
-0 5 6 1,4,7,10 * root $RUN "Ingestion des référentiels" /var/log/immo-ingestion.log docker compose run --rm -T backend python -m app.ingestion ssmsi dgfip ips iris arcep loyers zone_tendue carte_scolaire filosofi population qpv
+0 5 6 1,4,7,10 * root $RUN "Ingestion des référentiels" /var/log/immo-ingestion.log docker compose run --rm -T backend python -m app.ingestion ssmsi dgfip ips iris arcep loyers zone_tendue carte_scolaire filosofi filosofi_communes population qpv
 CRON
 )"
 

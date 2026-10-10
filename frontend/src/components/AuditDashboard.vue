@@ -54,7 +54,8 @@ function resultOf<K extends SourceName>(name: K): SourceResult<SourceDataMap[K]>
 /** Propriétés d'une carte : titre, résultat, et accroche si le serveur a masqué ses données. */
 function card<K extends SourceName>(name: K, compact = false) {
   const result = resultOf(name)
-  return { ...SOURCE_INFO[name], result, compact, hook: teaserHook(name, result?.data) }
+  // Verrouillée, seule la carte des ventes garde l'aperçu flouté : les autres tiennent en une ligne.
+  return { ...SOURCE_INFO[name], result, compact, featured: name === 'dvf', hook: teaserHook(name, result?.data) }
 }
 
 // Une valeur masquée par le serveur (chaîne) n'est pas un nombre : le calcul est alors verrouillé.

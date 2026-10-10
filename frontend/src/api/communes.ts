@@ -1,11 +1,7 @@
-import type { CommuneProfile } from '../lib/commune'
+import type { CommuneLink, CommuneProfile } from '../lib/commune'
 import { API_URL } from './audit'
 
-export interface CommuneLink {
-  nom: string
-  slug: string
-  departement_code: string
-}
+export type { CommuneLink }
 
 const HTTP_NOT_FOUND = 404
 

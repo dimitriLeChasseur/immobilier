@@ -1,7 +1,7 @@
 /** Grille tarifaire affichée. Le montant débité est fixé côté serveur (backend/app/services/billing.py). */
 
 export interface Offer {
-  id: 'unit' | 'pack' | 'pro'
+  id: 'unit' | 'pack5' | 'pack' | 'pro'
   name: string
   price: string
   /** Précision fiscale et rythme de facturation. */
@@ -45,6 +45,16 @@ export const OFFERS: readonly Offer[] = [
       'Export PDF et checklist de contre-visite',
     ],
     cta: `Payer ${UNIT_PRICE}`,
+    highlighted: false,
+  },
+  {
+    id: 'pack5',
+    name: 'Pack Visites',
+    price: '14,99 €',
+    priceNote: 'TTC, paiement unique',
+    description: 'Pack de 5 audits complets. Pour départager les biens d’une même recherche.',
+    features: ['5 audits complets', 'Export PDF de chaque adresse', 'Soit 3,00 € par audit'],
+    cta: 'Payer 14,99 €',
     highlighted: false,
   },
   {

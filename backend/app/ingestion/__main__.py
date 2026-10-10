@@ -21,6 +21,7 @@ from app.core.config import get_settings
 from app.core.errors import RepositoryError
 from app.ingestion.common import Downloader, IngestionOptions
 from app.ingestion.datasets import (
+    ingest_commune_income,
     ingest_connectivity,
     ingest_crime,
     ingest_iris_housing,
@@ -51,6 +52,7 @@ DATASETS: dict[str, Ingester] = {
     "zone_tendue": ingest_tense_zones,
     "carte_scolaire": ingest_school_sectors,
     "filosofi": ingest_iris_income,
+    "filosofi_communes": ingest_commune_income,
     "population": ingest_population,
     "qpv": ingest_priority_districts,
     "sitadel": ingest_permits,

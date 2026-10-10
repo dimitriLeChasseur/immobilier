@@ -77,6 +77,7 @@ def test_cli_arguments() -> None:
         "zone_tendue",
         "carte_scolaire",
         "filosofi",
+        "filosofi_communes",
         "population",
         "qpv",
         "sitadel",

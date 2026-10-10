@@ -80,7 +80,7 @@ function onChargesInput(): void {
   <section class="rounded-2xl border border-brand-100 bg-brand-50 p-5">
     <h3 class="mb-4 text-sm font-semibold text-brand-900">Rendement locatif</h3>
 
-    <LockedTeaser v-if="locked" hook="Rendement brut et net calculés pour cette adresse" />
+    <LockedTeaser v-if="locked" hook="Rendement brut et net calculés pour cette adresse" featured />
 
     <output v-else-if="loading && gross === null" class="block">
       <span class="sr-only">Calcul du rendement</span>

@@ -352,13 +352,16 @@ function profileRows(profile: QuartierData | null | undefined): Rows {
   if (!profile) return []
   const income = profile.revenus
   const quarter = profile.iris?.nom ?? profile.iris?.code ?? ''
+  // Faute de diffusion à l'échelle du quartier, les revenus sont ceux de la commune.
+  const communal = income?.echelle === 'commune'
+  const place = income?.arrondissement ? 'l’arrondissement' : 'la commune'
   const incomeRows: Rows = income
     ? [
         [
-          `Niveau de vie médian (quartier ${quarter}, ${income.annee})`,
+          `Niveau de vie médian (${communal ? place : `quartier ${quarter}`}, ${income.annee})`,
           [`${formatEuros(income.revenu_median)} par an`, incomeGap(income)].filter(Boolean).join(', '),
         ],
-        ['Taux de pauvreté du quartier', formatPercent(income.taux_pauvrete_pct, 0)],
+        [`Taux de pauvreté ${communal ? `de ${place}` : 'du quartier'}`, formatPercent(income.taux_pauvrete_pct, 0)],
       ]
     : []
   const district = districtNotice(profile.quartier_prioritaire)

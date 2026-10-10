@@ -30,6 +30,14 @@ export function incomeRange(income: QuartierData['revenus']): string | null {
   return `La moitié des habitants vit avec ${formatEuros(income.revenu_q1)} à ${formatEuros(income.revenu_q3)} par an`
 }
 
+/** Territoire que décrivent les revenus : le quartier, ou la commune quand il n'est pas diffusé. */
+export function incomeScope(profile: Pick<QuartierData, 'iris' | 'revenus'>): string {
+  const income = profile.revenus
+  if (income?.echelle === 'commune') return income.arrondissement ? 'Arrondissement entier' : 'Commune entière'
+  const quarter = profile.iris?.nom ?? profile.iris?.code
+  return quarter ? `Quartier « ${quarter} »` : 'Quartier'
+}
+
 export function districtNotice(district: QuartierData['quartier_prioritaire']): Notice | null {
   if (!district) return null
   if (!district.nom) {

@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest'
 
-import { codeFromSlug, communePage, type CommuneProfile } from '../src/lib/commune'
+import { codeFromSlug, communePage, relatedCommunes, type CommuneProfile } from '../src/lib/commune'
 import { setPageMeta } from '../src/lib/seo'
 
 const ANGERS: CommuneProfile = {
@@ -33,6 +33,55 @@ describe('fiche communale', () => {
       'Établissements scolaires',
       'Logement et connexion',
     ])
+  })
+
+  it('situe la commune en quelques phrases, sans rien affirmer sans chiffre', () => {
+    const plain = (page: { summary: string[] }) => page.summary.map((sentence) => sentence.replace(/\s/g, ' '))
+    const full = communePage({
+      ...ANGERS,
+      zone_tendue: 'tendue',
+      revenus: {
+        annee: 2021,
+        revenu_median: { valeur: 21450, departement: null, national: 23160 },
+        taux_pauvrete_pct: { valeur: 21, departement: null, national: 14.5 },
+      },
+      evolution_population: { annee: 2022, habitants: 157555, evolution_6_ans_pct: 4.2, evolution_11_ans_pct: null },
+    })
+    expect(plain(full)).toEqual([
+      'Un appartement se loue autour de 14,6 €/m² par mois, charges comprises.',
+      'Le taux de taxe foncière (56,65 %) est plus élevé que celui de la commune médiane en France (40,33 %).',
+      'Les cambriolages de logement (1,7 pour 1 000 habitants) y sont moins fréquents que dans la France entière (3,3).',
+      'Le niveau de vie médian (21 450 € par an) est proche de la médiane nationale (23 160 €).',
+      'La population a progressé de 4,2 % en six ans.',
+      '66 % des résidences principales sont louées, dans une commune classée en zone tendue.',
+    ])
+    const people = full.sections.find((section) => section.heading === 'Population et revenus')
+    expect(people?.facts.map((fact) => [fact.label, fact.note?.replace(/\s/g, ' ')])).toEqual([
+      ['Population (recensement 2022)', '+4,2 % en 6 ans'],
+      ['Niveau de vie médian (2021)', 'France : 23 160 €'],
+      ['Taux de pauvreté (2021)', 'France : 14,5 %'],
+      ['Codes postaux', undefined],
+    ])
+    const bare = communePage({ ...ANGERS, loyers: {}, taxe_fonciere: null, delinquance: null, logement: null })
+    expect(bare.summary).toEqual([])
+    const shrinking = communePage({
+      ...ANGERS,
+      evolution_population: { annee: 2022, habitants: 1, evolution_6_ans_pct: -3, evolution_11_ans_pct: null },
+    })
+    expect(plain(shrinking)).toContain('La population a reculé de 3,0 % en six ans.')
+  })
+
+  it('propose les autres fiches du même département', () => {
+    const links = [
+      { nom: 'Angers', slug: 'angers-49007', departement_code: '49' },
+      { nom: 'Cholet', slug: 'cholet-49099', departement_code: '49' },
+      { nom: 'Nantes', slug: 'nantes-44109', departement_code: '44' },
+      ...Array.from({ length: 20 }, (_, index) => ({ nom: `C${index}`, slug: `c-${index}`, departement_code: '49' })),
+    ]
+    const related = relatedCommunes(links, ANGERS)
+    expect(related).toHaveLength(12)
+    expect(related[0]?.nom).toBe('Cholet')
+    expect(related.some((link) => link.slug === 'angers-49007' || link.departement_code !== '49')).toBe(false)
   })
 
   it('donne chaque chiffre avec son repère', () => {

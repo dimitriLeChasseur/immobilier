@@ -131,7 +131,7 @@ de compte ; ce n'est pas un secret).
 
 | Jeu | Commande | Fréquence conseillée |
 |---|---|---|
-| Délinquance (SSMSI), taxe foncière (DGFiP), IPS des établissements, logements par IRIS (INSEE), fibre (ARCEP), carte des loyers (ANIL), zones tendues (zonage TLV), carte scolaire des collèges publics, revenus par IRIS (INSEE Filosofi), population des communes (INSEE), quartiers prioritaires (ANCT), permis de construire (SITADEL) | `docker compose run --rm backend python -m app.ingestion all` | Trimestrielle ; mensuelle pour `sitadel` |
+| Délinquance (SSMSI), taxe foncière (DGFiP), IPS des établissements, logements par IRIS (INSEE), fibre (ARCEP), carte des loyers (ANIL), zones tendues (zonage TLV), carte scolaire des collèges publics, revenus par IRIS et par commune (INSEE Filosofi), population des communes (INSEE), quartiers prioritaires (ANCT), permis de construire (SITADEL) | `docker compose run --rm backend python -m app.ingestion all` | Trimestrielle ; mensuelle pour `sitadel` |
 | Cartes de bruit stratégiques (Lden) | `uv run scripts/ingest_bruit_lden.py` | Mensuelle |
 
 L'ingestion est idempotente et vide le cache des rapports à la fin. Un jeu ou un département peut
@@ -197,7 +197,8 @@ Chaque test insère ses propres lignes sous des codes inexistants et les retire 
 
 Les tests unitaires simulent toutes les API. Pour détecter une source arrêtée, déplacée ou
 dont la réponse a changé de forme, un test interroge les vraies sources sur une adresse et
-une rue de référence, sans passer par le cache :
+une rue de référence, sans passer par le cache. Une anomalie n'est signalée que si elle
+persiste au second essai, trois minutes plus tard : un délai dépassé isolé n'alerte personne.
 
 ```bash
 docker compose exec -T backend python -m app.smoke   # code de retour 1 en cas d'anomalie
@@ -249,7 +250,7 @@ doit aussi recevoir l'évènement `invoice.paid`.
 sudo ./deploy/install-cron.sh              # installe toutes les tâches (--dry-run pour voir)
 sudo ./deploy/backup.sh                    # sauvegarde immédiate dans /srv/immo-backups
 sudo ./deploy/restore.sh <fichier.dump>    # remplace comptes et droits par ceux du fichier
-./scripts/deploy-backend.sh root@<serveur> # met à jour le backend depuis ce poste
+./scripts/deploy-backend.sh immo@<serveur> # met à jour le backend depuis ce poste
 ```
 
 Chaque tâche planifiée passe par `deploy/run-task.sh` : sa sortie est journalisée dans
@@ -371,6 +372,13 @@ build à chaque push ou pull request sur `main`, puis déclenche la mise en lign
 « Frontend sur Cloudflare Pages »). L'analyse SonarQube reste locale et gratuite (édition
 Community, commandes ci-dessus) : SonarQube Cloud n'est pas utilisé.
 
+Le même workflow refuse une couverture de tests en net recul (seuils dans la commande pytest
+et dans `frontend/vite.config.ts`). `.github/workflows/securite.yml` audite les dépendances
+livrées (`pip-audit`, `npm audit`) et cherche des secrets dans tout l'historique (`gitleaks`,
+faux positifs dans `.gitleaksignore`), à chaque push et chaque lundi ; il ne bloque pas la mise
+en ligne. Dependabot (`.github/dependabot.yml`) propose les mises à jour chaque semaine, dont
+celles des actions GitHub, épinglées par empreinte de commit.
+
 Trois suites complètent les tests unitaires :
 
 - **SQL sur une vraie base** (`tests/test_integration_sql.py`, `test_integration_billing_sql.py`) :
@@ -404,8 +412,10 @@ inférieure à 5 %, complexité par fonction inférieure à 15, typage strict de
 5. `./deploy/install-cron.sh` installe les tâches planifiées (sauvegardes, ingestions,
    test de fumée).
 
-Les livraisons suivantes passent par `./scripts/deploy-backend.sh root@<serveur>` : le
-script envoie le dernier commit, reconstruit le backend et rejoue le schéma. Le frontend,
+Les livraisons suivantes passent par `./scripts/deploy-backend.sh immo@<serveur>` : le
+script envoie le dernier commit, reconstruit le backend et rejoue le schéma. `immo` est un
+compte sans mot de passe, connecté par clé, qui passe par `sudo` ; le script accepte aussi
+`root@<serveur>`. Le frontend,
 lui, est publié par Cloudflare Pages quand les contrôles du push sur `main` sont passés (tâche
 `deploy` du workflow) : pousser puis déployer le backend dans la foulée, pour que les deux
 restent sur la même version.
@@ -460,8 +470,9 @@ bloque les appels à l'API.
   notamment les Bouches-du-Rhône, la Gironde, le Nord, la Haute-Garonne et le Bas-Rhin. Les
   cartes d'agglomération (voirie communale) et le bruit des aéroports ne sont pas chargés.
 - **Profil du quartier** : les revenus (Filosofi 2021) ne sont diffusés par l'INSEE que pour
-  les IRIS des communes les plus peuplées, soit environ 14 500 quartiers ; ailleurs la carte le
-  dit. Le repère national affiché est codé en dur pour cette édition, et les adresses des
+  les IRIS des communes les plus peuplées, soit environ 14 500 quartiers ; ailleurs la carte
+  affiche ceux de la commune (ou de l'arrondissement) et le dit. Les communes de moins de
+  cinquante ménages environ restent sans chiffre (secret statistique). Le repère national affiché est codé en dur pour cette édition, et les adresses des
   fichiers (revenus, population 2022, quartiers prioritaires 2024) changent à chaque millésime :
   elles sont à mettre à jour dans `backend/app/ingestion/datasets.py`.
 - **Encadrement des loyers** : liste codée en dur d'après service-public.gouv.fr (vérifiée le

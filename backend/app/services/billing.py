@@ -46,16 +46,25 @@ class Offer:
     mode: str
     # Crédits ajoutés en plus de l'adresse débloquée par l'achat.
     extra_credits: int = 0
+    # Origine inscrite sur le droit d'accès ; par défaut l'identifiant de l'offre.
+    origin: str = ""
+
+    def credits_for(self, has_address: bool) -> int:
+        """Crédits ouverts par l'achat : sans adresse à débloquer, un pack les crédite tous."""
+        if has_address or not self.extra_credits:
+            return self.extra_credits
+        return self.extra_credits + 1
 
 
 # Prix fixés ici, côté serveur : le navigateur ne transmet que l'identifiant de l'offre.
 OFFERS: dict[str, Offer] = {
     "unit": Offer("unit", "Audit Contre-Visite (1 adresse)", 499, "payment"),
+    "pack5": Offer(
+        "pack5", "Pack Visites (5 audits)", 1499, "payment", extra_credits=4, origin="pack"
+    ),
     "pack": Offer("pack", "Pack Investisseur (10 audits)", 2499, "payment", extra_credits=9),
     "pro": Offer("pro", "Abonnement Pro (audits illimités)", 4900, "subscription"),
 }
-# Sans adresse à débloquer, le pack crédite les dix audits.
-_PACK_SIZE = 10
 
 
 class BillingNotConfiguredError(Exception):
@@ -337,7 +346,7 @@ class BillingService:
             return "ignored"
         lat, lon = _coordinate(metadata.get("lat")), _coordinate(metadata.get("lon"))
         has_address = lat is not None and lon is not None
-        credits = offer.extra_credits if has_address else (_PACK_SIZE if offer.id == "pack" else 0)
+        credits = offer.credits_for(has_address)
         applied = await self._repository.revoke_purchase(
             event_id=event_id,
             event_type=event_type,
@@ -396,7 +405,7 @@ class BillingService:
             return "pending"
         lat, lon = _coordinate(metadata.get("lat")), _coordinate(metadata.get("lon"))
         has_address = lat is not None and lon is not None
-        credits = offer.extra_credits if has_address else (_PACK_SIZE if offer.id == "pack" else 0)
+        credits = offer.credits_for(has_address)
         applied = await self._repository.fulfil_purchase(
             event_id=event_id,
             event_type=event_type,
@@ -405,7 +414,7 @@ class BillingService:
             lon=lon if has_address else None,
             label=metadata.get("label"),
             address_id=metadata.get("ban_id") if has_address else None,
-            origin=offer.id,
+            origin=offer.origin or offer.id,
             credits=credits,
         )
         return "fulfilled" if applied else "duplicate"

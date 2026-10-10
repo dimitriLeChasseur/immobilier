@@ -117,9 +117,9 @@ function manageSubscription(): Promise<void> {
       </p>
     </div>
 
-    <ul class="mx-auto mt-10 grid max-w-6xl grid-cols-1 items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-4">
+    <ul class="mx-auto mt-10 grid max-w-7xl grid-cols-1 items-stretch gap-6 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
       <li class="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-6">
-        <h2 class="text-lg font-semibold text-slate-900">{{ FREE_OFFER.name }}</h2>
+        <h2 class="text-lg font-semibold text-slate-900 xl:min-h-14">{{ FREE_OFFER.name }}</h2>
         <p class="mt-4 flex flex-wrap items-baseline gap-x-2">
           <span class="text-4xl font-semibold tracking-tight whitespace-nowrap text-slate-900 tabular-nums">{{ FREE_OFFER.price }}</span>
           <span class="text-sm text-slate-500">{{ FREE_OFFER.priceNote }}</span>
@@ -156,7 +156,7 @@ function manageSubscription(): Promise<void> {
         >
           Le plus avantageux
         </p>
-        <h2 class="text-lg font-semibold text-slate-900">{{ offer.name }}</h2>
+        <h2 class="text-lg font-semibold text-slate-900 xl:min-h-14">{{ offer.name }}</h2>
         <p class="mt-4 flex flex-wrap items-baseline gap-x-2">
           <span class="text-4xl font-semibold tracking-tight whitespace-nowrap text-slate-900 tabular-nums">{{ offer.price }}</span>
           <span class="text-sm text-slate-500">{{ offer.priceNote }}</span>

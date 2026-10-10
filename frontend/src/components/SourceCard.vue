@@ -13,8 +13,10 @@ const props = defineProps<{
   result?: SourceResult<T>
   /** Phrase d'accroche affichée quand le serveur a masqué les données de cette source. */
   hook?: string
-  /** Carte étroite : bouton de déblocage court. */
+  /** Carte étroite. */
   compact?: boolean
+  /** Carte phare : verrouillée, elle garde l'aperçu flouté et le bouton complet. */
+  featured?: boolean
 }>()
 
 defineSlots<{
@@ -60,7 +62,7 @@ const locked = computed(() => hasData.value && isLocked(props.result?.data))
       </slot>
     </output>
 
-    <LockedTeaser v-else-if="locked" :hook="hook ?? 'Analyse réalisée pour cette adresse'" :compact="compact" />
+    <LockedTeaser v-else-if="locked" :hook="hook ?? 'Analyse réalisée pour cette adresse'" :featured="featured" />
 
     <slot v-else-if="hasData" :data="result.data as T" />
 

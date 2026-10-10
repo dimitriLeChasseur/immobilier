@@ -52,7 +52,7 @@ export const router = createRouter({
       meta: {
         title: `Tarifs de l’audit immobilier | ${SITE_NAME}`,
         description:
-          'Audit complet d’une adresse à 4,99 €, pack de 10 audits pour comparer plusieurs biens, ou abonnement ' +
+          'Audit complet d’une adresse à 4,99 €, packs de 5 ou 10 audits pour comparer plusieurs biens, ou abonnement ' +
           'professionnel avec export PDF à votre logo. Aperçu gratuit sans compte.',
       },
     },
@@ -81,7 +81,13 @@ export const router = createRouter({
     },
     ...LEGAL_ROUTES,
     // La fiche fixe elle-même ses balises, une fois la commune chargée.
-    { path: '/commune/:slug', name: 'commune', component: () => import('./views/CommuneView.vue') },
+    {
+      path: '/commune/:slug',
+      name: 'commune',
+      component: () => import('./views/CommuneView.vue'),
+      // Pour les liens vers les communes voisines.
+      beforeEnter: loadCommuneLinks,
+    },
     // L'hébergeur sert ces adresses avec le code 404 (404.html) : la vue le dit à l'écran.
     {
       path: '/:pathMatch(.*)*',

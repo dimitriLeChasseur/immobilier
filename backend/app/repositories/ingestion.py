@@ -154,6 +154,19 @@ _UPSERT_IRIS_INCOME = """
         imported_at = now()
 """
 
+_UPSERT_COMMUNE_INCOME = """
+    INSERT INTO insee_commune_revenus
+        (code_insee, annee, revenu_median, revenu_q1, revenu_q3, taux_pauvrete_pct)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    ON CONFLICT (code_insee) DO UPDATE SET
+        annee = EXCLUDED.annee,
+        revenu_median = EXCLUDED.revenu_median,
+        revenu_q1 = EXCLUDED.revenu_q1,
+        revenu_q3 = EXCLUDED.revenu_q3,
+        taux_pauvrete_pct = EXCLUDED.taux_pauvrete_pct,
+        imported_at = now()
+"""
+
 _UPSERT_POPULATION = """
     INSERT INTO insee_population (code_insee, annee, population, population_6, population_11)
     VALUES ($1, $2, $3, $4, $5)
@@ -220,6 +233,9 @@ class IngestionRepository:
 
     async def upsert_iris_income(self, rows: Sequence[Row]) -> None:
         await self._executemany(_UPSERT_IRIS_INCOME, rows)
+
+    async def upsert_commune_income(self, rows: Sequence[Row]) -> None:
+        await self._executemany(_UPSERT_COMMUNE_INCOME, rows)
 
     async def upsert_population(self, rows: Sequence[Row]) -> None:
         await self._executemany(_UPSERT_POPULATION, rows)

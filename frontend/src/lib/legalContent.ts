@@ -88,10 +88,11 @@ const cgv: LegalDocument = {
       paragraphs: [
         'Le service fournit un contenu numérique : le rapport d’audit complet d’une adresse française, consultable en ligne et exportable en PDF. Un aperçu gratuit est accessible avant tout achat.',
         offerLine('unit'),
+        offerLine('pack5'),
         offerLine('pack'),
         offerLine('pro'),
         'Les prix sont indiqués en euros. Le prix applicable est celui affiché au moment de la commande.',
-        'Les crédits du Pack Investisseur n’ont pas de date d’expiration tant que le compte existe. Ils ne sont ni cessibles ni remboursables une fois utilisés.',
+        'Les crédits des packs (Pack Visites, Pack Investisseur) n’ont pas de date d’expiration tant que le compte existe. Ils ne sont ni cessibles ni remboursables une fois utilisés.',
       ],
     },
     {
@@ -113,7 +114,7 @@ const cgv: LegalDocument = {
       paragraphs: [
         'Le consommateur dispose en principe d’un délai de quatorze jours pour se rétracter d’un achat à distance.',
         'Toutefois, conformément à l’article L. 221-28 du Code de la consommation, ce droit ne peut pas être exercé pour un contenu numérique fourni immédiatement, dès lors que le consommateur a demandé l’exécution avant la fin du délai et reconnu qu’il perdait son droit de rétractation. En validant son paiement, l’acheteur demande expressément l’accès immédiat à l’audit et renonce à son droit de rétractation pour les audits débloqués.',
-        'Les crédits non utilisés d’un Pack Investisseur peuvent être remboursés sur demande dans les quatorze jours suivant l’achat, au prorata des crédits restants.',
+        'Les crédits non utilisés d’un pack peuvent être remboursés sur demande dans les quatorze jours suivant l’achat, au prorata des crédits restants.',
       ],
     },
     {

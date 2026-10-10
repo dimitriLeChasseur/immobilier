@@ -16,6 +16,12 @@
       property="og:description"
       content="Prix des ventes voisines, risques, bâtiment, urbanisme, écoles et quartier d’une adresse, à partir des données publiques."
     />
+    <!-- Image des aperçus de partage : adresse absolue exigée, tirée de VITE_SITE_URL. -->
+    <meta property="og:image" content="%VITE_SITE_URL%/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Audit Immobilier : tout savoir sur une adresse avant d’acheter" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="theme-color" content="#0f766e" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Audit Immobilier : tout savoir sur une adresse avant d’acheter</title>
@@ -24,12 +30,15 @@
         "@context": "https://schema.org",
         "@type": "WebApplication",
         "name": "Audit Immobilier",
+        "url": "%VITE_SITE_URL%/",
+        "image": "%VITE_SITE_URL%/og-image.png",
         "applicationCategory": "BusinessApplication",
         "operatingSystem": "Web",
         "inLanguage": "fr",
         "description": "Audit immobilier d’une adresse française à partir des données publiques : ventes voisines, risques, bâtiment, urbanisme, écoles et quartier.",
         "offers": [
           { "@type": "Offer", "name": "Contre-Visite", "price": "4.99", "priceCurrency": "EUR" },
+          { "@type": "Offer", "name": "Pack Visites", "price": "14.99", "priceCurrency": "EUR" },
           { "@type": "Offer", "name": "Pack Investisseur", "price": "24.99", "priceCurrency": "EUR" },
           { "@type": "Offer", "name": "Pro", "price": "49.00", "priceCurrency": "EUR" }
         ]

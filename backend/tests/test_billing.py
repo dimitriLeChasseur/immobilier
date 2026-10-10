@@ -303,6 +303,20 @@ async def test_pack_without_address_credits_ten_audits(
     assert repository.purchases[0]["lat"] is None
 
 
+async def test_five_audit_pack_credits_like_a_pack_and_is_recorded_as_one(
+    service: BillingService, repository: FakeRepository
+) -> None:
+    assert OFFERS["pack5"].amount_cents == 1499
+    await service.handle_event(checkout_event("pack5"))
+    assert repository.purchases[0]["credits"] == 4
+    # La base ne connaît qu'une origine « pack » pour les achats par lot.
+    assert repository.purchases[0]["origin"] == "pack"
+    await service.handle_event(checkout_event("pack5", event_id="evt_2", address=False))
+    assert repository.purchases[1]["credits"] == 5
+    await service.handle_event(checkout_event("unit", event_id="evt_3", address=False))
+    assert repository.purchases[2]["credits"] == 0
+
+
 async def test_event_delivered_twice_is_applied_once(
     service: BillingService, repository: FakeRepository
 ) -> None:

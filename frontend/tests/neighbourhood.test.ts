@@ -5,7 +5,7 @@ import { createMemoryHistory, createRouter } from 'vue-router'
 import NeighbourhoodCard from '../src/components/cards/NeighbourhoodCard.vue'
 import HomeIntro from '../src/components/HomeIntro.vue'
 import ReportNav from '../src/components/ReportNav.vue'
-import { districtNotice, incomeGap, incomeRange, populationScope, populationTrend } from '../src/lib/neighbourhood'
+import { districtNotice, incomeGap, incomeRange, incomeScope, populationScope, populationTrend } from '../src/lib/neighbourhood'
 import { buildReportSections } from '../src/lib/report'
 import { SOURCE_INFO } from '../src/lib/sources'
 import { buildSteps } from '../src/lib/steps'
@@ -43,6 +43,24 @@ describe('textes du profil de quartier', () => {
     expect(incomeGap({ ...INCOME, revenu_median: null })).toBeNull()
     expect(plain(incomeRange(INCOME))).toBe('La moitié des habitants vit avec 17 570 € à 40 070 € par an')
     expect(incomeRange({ ...INCOME, revenu_q1: null })).toBeNull()
+  })
+
+  it('dit si les revenus sont ceux du quartier ou, à défaut, de la commune', () => {
+    expect(incomeScope(PROFILE)).toBe('Quartier « Voltaire »')
+    const communal = { ...INCOME, echelle: 'commune' as const }
+    expect(incomeScope({ ...PROFILE, revenus: communal })).toBe('Commune entière')
+    expect(incomeScope({ ...PROFILE, revenus: { ...communal, arrondissement: true } })).toBe('Arrondissement entier')
+
+    const card = mount(NeighbourhoodCard, { props: { data: { ...PROFILE, revenus: communal } } })
+    expect(card.text()).toContain('Commune entière, revenus disponibles 2021')
+    expect(card.text()).toContain('ces chiffres sont ceux de la commune')
+    expect(mount(NeighbourhoodCard, { props: { data: PROFILE } }).text()).not.toContain('ces chiffres sont ceux')
+
+    const rows = JSON.stringify(buildReportSections({
+      quartier: { status: 'ok', data: { ...PROFILE, revenus: communal }, missing: [], error: null, duration_ms: 1 },
+    }))
+    expect(rows).toContain('Niveau de vie médian (la commune, 2021)')
+    expect(rows).toContain('Taux de pauvreté de la commune')
   })
 
   it('distingue dans le quartier prioritaire, à proximité, loin et absent', () => {
@@ -86,7 +104,7 @@ describe('carte « Profil du quartier »', () => {
   it('explique l’absence de revenus au lieu d’afficher des tirets', () => {
     const data: QuartierData = { ...PROFILE, revenus: null, quartier_prioritaire: null, population: null }
     const text = mount(NeighbourhoodCard, { props: { data } }).text()
-    expect(text).toContain('L’INSEE ne diffuse pas les revenus à l’échelle de ce quartier')
+    expect(text).toContain('L’INSEE ne diffuse les revenus ni pour ce quartier')
     expect(text).toContain('Voltaire')
     expect(text).not.toContain('quartier prioritaire')
     expect(text).not.toContain('habitants')

@@ -1,7 +1,7 @@
 import type { Session } from '@supabase/supabase-js'
 import { computed, ref } from 'vue'
 
-import { supabase } from '../lib/supabase'
+import { AUTH_CONFIGURED, loadSupabase } from '../lib/supabase'
 
 /** Mot de passe minimal imposé par le serveur d'authentification. */
 export const MIN_PASSWORD_LENGTH = 12
@@ -30,16 +30,17 @@ function translate(message: string): string {
 function initialise(): void {
   if (initialised) return
   initialised = true
-  if (!supabase) {
-    ready.value = true
-    return
-  }
-  void supabase.auth.getSession().then(({ data }) => {
+  void loadSupabase().then(async (supabase) => {
+    if (!supabase) {
+      ready.value = true
+      return
+    }
+    supabase.auth.onAuthStateChange((_event, next) => {
+      session.value = next
+    })
+    const { data } = await supabase.auth.getSession()
     session.value = data.session
     ready.value = true
-  })
-  supabase.auth.onAuthStateChange((_event, next) => {
-    session.value = next
   })
 }
 
@@ -50,10 +51,11 @@ export function useAuth() {
 
   const user = computed(() => session.value?.user ?? null)
   const accessToken = computed(() => session.value?.access_token ?? null)
-  const available = supabase !== null
+  const available = AUTH_CONFIGURED
 
   // `captchaToken` : jeton du défi anti-robot, exigé par le serveur quand il est activé.
   async function signUp(email: string, password: string, captchaToken?: string): Promise<AuthOutcome> {
+    const supabase = await loadSupabase()
     if (!supabase) return { ok: false, message: NOT_CONFIGURED }
     // Le lien de confirmation ramène sur la page Tarifs, où l'adresse mémorisée attend.
     const { data, error } = await supabase.auth.signUp({
@@ -67,6 +69,7 @@ export function useAuth() {
   }
 
   async function signIn(email: string, password: string, captchaToken?: string): Promise<AuthOutcome> {
+    const supabase = await loadSupabase()
     if (!supabase) return { ok: false, message: NOT_CONFIGURED }
     const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } })
     if (error) return { ok: false, message: translate(error.message) }
@@ -75,6 +78,7 @@ export function useAuth() {
 
   /** Redirige vers Google ; au retour, l'utilisateur arrive sur `redirectTo`, connecté. */
   async function signInWithGoogle(redirectTo: string): Promise<AuthOutcome> {
+    const supabase = await loadSupabase()
     if (!supabase) return { ok: false, message: NOT_CONFIGURED }
     const { error } = await supabase.auth.signInWithOAuth({ provider: 'google', options: { redirectTo } })
     if (error) return { ok: false, message: translate(error.message) }
@@ -83,6 +87,7 @@ export function useAuth() {
 
   /** Envoie le lien de réinitialisation ; la réponse est la même que le compte existe ou non. */
   async function requestPasswordReset(email: string, captchaToken?: string): Promise<AuthOutcome> {
+    const supabase = await loadSupabase()
     if (!supabase) return { ok: false, message: NOT_CONFIGURED }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/mot-de-passe`,
@@ -94,6 +99,7 @@ export function useAuth() {
 
   /** Change le mot de passe de l'utilisateur connecté (arrivé par le lien de réinitialisation). */
   async function updatePassword(password: string): Promise<AuthOutcome> {
+    const supabase = await loadSupabase()
     if (!supabase) return { ok: false, message: NOT_CONFIGURED }
     const { error } = await supabase.auth.updateUser({ password })
     if (error) return { ok: false, message: 'Le mot de passe n’a pas pu être changé. Redemandez un lien.' }
@@ -101,6 +107,7 @@ export function useAuth() {
   }
 
   async function signOut(): Promise<void> {
+    const supabase = await loadSupabase()
     await supabase?.auth.signOut()
   }
 

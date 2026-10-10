@@ -35,6 +35,7 @@ _CLEANUP = (
     ("ref_carte_scolaire", "code_insee LIKE $1", "0099%"),
     ("ref_zone_tendue", "code_insee LIKE $1", "0099%"),
     ("insee_iris_revenus", "code_iris LIKE $1", "0099%"),
+    ("insee_commune_revenus", "code_insee LIKE $1", "0099%"),
     ("insee_population", "code_insee LIKE $1", "0099%"),
     ("geo_qpv", "code_qp LIKE $1", "QTEST%"),
 )
@@ -325,6 +326,19 @@ async def test_income_and_population_lookups(
         "taux_pauvrete_pct": None,
     }
     assert await repository.iris_income("009909999") is None
+
+    await pool.execute(
+        "INSERT INTO insee_commune_revenus"
+        " (code_insee, annee, revenu_median, revenu_q1, revenu_q3, taux_pauvrete_pct)"
+        " VALUES ('00990', 2021, 21450, NULL, NULL, 21.0), ('00991', 2021, 30000, NULL, NULL, NULL)"
+    )
+    district = await repository.commune_income(["00991", "00990"])
+    assert district is not None
+    assert (district["code_insee"], district["revenu_median"]) == ("00991", 30000)
+    whole = await repository.commune_income(["00998", "00990"])
+    assert whole is not None
+    assert (whole["revenu_median"], whole["taux_pauvrete_pct"]) == (21450, 21.0)
+    assert await repository.commune_income(["00998"]) is None
 
     await pool.execute(
         "INSERT INTO insee_population (code_insee, annee, population, population_6, population_11)"

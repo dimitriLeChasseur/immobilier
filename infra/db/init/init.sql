@@ -359,6 +359,23 @@ CREATE TABLE IF NOT EXISTS immo.insee_iris_revenus (
     )
 );
 
+-- INSEE Filosofi — mêmes indicateurs à l'échelle de la commune (et de l'arrondissement) :
+-- repli quand le quartier n'est pas diffusé, et repère des fiches communales.
+CREATE TABLE IF NOT EXISTS immo.insee_commune_revenus (
+    code_insee         immo.code_insee NOT NULL,
+    annee              smallint    NOT NULL,
+    revenu_median      integer,
+    revenu_q1          integer,
+    revenu_q3          integer,
+    taux_pauvrete_pct  numeric(4, 1),
+    imported_at        timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT insee_commune_revenus_pkey PRIMARY KEY (code_insee),
+    CONSTRAINT insee_commune_revenus_values_check CHECK (
+        (revenu_median IS NULL OR revenu_median > 0)
+        AND (taux_pauvrete_pct IS NULL OR taux_pauvrete_pct BETWEEN 0 AND 100)
+    )
+);
+
 -- INSEE — population municipale de la commune aux trois derniers recensements comparables.
 CREATE TABLE IF NOT EXISTS immo.insee_population (
     code_insee      immo.code_insee NOT NULL,
@@ -515,7 +532,7 @@ BEGIN
         'api_reports_cache', 'insee_ssmsi', 'insee_dgfip', 'geo_ips_ecoles', 'geo_sitadel',
         'insee_iris_logement', 'arcep_connectivite', 'geo_bruit_lden', 'geo_osm_poi',
         'ref_loyers', 'ref_zone_tendue', 'ref_carte_scolaire',
-        'insee_iris_revenus', 'insee_population', 'geo_qpv',
+        'insee_iris_revenus', 'insee_commune_revenus', 'insee_population', 'geo_qpv',
         'audit_entitlements',
         'user_credits', 'user_subscriptions', 'stripe_events', 'user_branding',
         'audit_history'

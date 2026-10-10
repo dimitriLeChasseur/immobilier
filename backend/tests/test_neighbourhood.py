@@ -8,6 +8,7 @@ import pytest
 
 from app.core.errors import NoDataError, RepositoryError, SourceError
 from app.ingestion.datasets import (
+    parse_commune_income_row,
     parse_iris_income_row,
     parse_population_row,
     parse_priority_district,
@@ -55,13 +56,20 @@ class FakeRepository:
         district: dict[str, Any] | None = None,
         districts_loaded: bool = True,
         broken: bool = False,
+        commune_income: dict[str, Any] | None = None,
     ) -> None:
+        self._commune_income = commune_income
+        self.income_queries: list[list[str]] = []
         self._income, self._population, self._district = income, population, district
         self._loaded, self._broken = districts_loaded, broken
         self.population_queries: list[list[str]] = []
 
     async def iris_income(self, code_iris: str) -> dict[str, Any] | None:
         return self._income
+
+    async def commune_income(self, codes: list[str]) -> dict[str, Any] | None:
+        self.income_queries.append(codes)
+        return self._commune_income
 
     async def population(self, codes: list[str]) -> dict[str, Any] | None:
         self.population_queries.append(codes)
@@ -89,6 +97,8 @@ async def test_profile_gathers_income_population_and_nearby_priority_district() 
     assert result.data["iris"] == {"code": "490070105", "nom": "Voltaire"}
     assert result.data["revenus"] == {
         **INCOME,
+        "echelle": "iris",
+        "arrondissement": False,
         # Repère de la même édition : sans lui, un niveau de vie médian ne se lit pas.
         "reference_nationale": {"revenu_median": 23160, "taux_pauvrete_pct": 14.5},
     }
@@ -132,6 +142,35 @@ async def test_income_not_published_keeps_the_neighbourhood_name() -> None:
 
     outside = await provider(FakeRepository(INCOME, POPULATION), FakeIris(None)).fetch(ANGERS)
     assert outside.data["iris"] is None and outside.data["revenus"] is None
+
+
+async def test_commune_income_takes_over_when_the_neighbourhood_has_none() -> None:
+    commune = {**INCOME, "code_insee": "49007", "revenu_median": 22000}
+    # Quartier sans chiffres, quartier au seul taux de pauvreté, adresse hors de tout IRIS.
+    for repository, iris in (
+        (FakeRepository(None, POPULATION, commune_income=commune), FakeIris()),
+        (
+            FakeRepository({**INCOME, "revenu_median": None}, POPULATION, commune_income=commune),
+            FakeIris(),
+        ),
+        (FakeRepository(INCOME, POPULATION, commune_income=commune), FakeIris(None)),
+    ):
+        result = await provider(repository, iris).fetch(ANGERS)
+        assert repository.income_queries == [["49007"]]
+        assert result.data["revenus"]["echelle"] == "commune"
+        assert result.data["revenus"]["revenu_median"] == 22000
+        assert result.data["revenus"]["arrondissement"] is False
+        assert "code_insee" not in result.data["revenus"]
+
+    # Un quartier diffusé n'interroge pas la commune.
+    known = FakeRepository(INCOME, POPULATION, commune_income=commune)
+    assert (await provider(known).fetch(ANGERS)).data["revenus"]["echelle"] == "iris"
+    assert known.income_queries == []
+
+    paris = FakeRepository(None, POPULATION, commune_income={**commune, "code_insee": "75101"})
+    result = await provider(paris).fetch(PARIS_1)
+    assert paris.income_queries == [["75101", "75056"]]
+    assert result.data["revenus"]["arrondissement"] is True
 
 
 async def test_arrondissement_population_is_flagged_and_new_communes_have_no_trend() -> None:
@@ -267,3 +306,25 @@ def test_priority_district_feature() -> None:
     assert parse_priority_district({**feature, "geometry": {"type": "Point"}}) is None
     assert parse_priority_district({**feature, "geometry": None}) is None
     assert parse_priority_district({"properties": {"lib_qp": "x"}, "geometry": geometry}) is None
+
+
+def test_commune_income_rows_keep_what_is_published() -> None:
+    assert parse_commune_income_row("49007", ["21450", "15020", "29570"], "21,0") == (
+        "49007",
+        2021,
+        21450,
+        15020,
+        29570,
+        21.0,
+    )
+    # Petite commune : seule la médiane échappe au secret statistique.
+    assert parse_commune_income_row("01001", ["25820", "s", "s"], "s") == (
+        "01001",
+        2021,
+        25820,
+        None,
+        None,
+        None,
+    )
+    assert parse_commune_income_row("01001", ["s", "s", "s"], None) is None
+    assert parse_commune_income_row("FRANCE", ["21450", "15020", "29570"], "14,5") is None

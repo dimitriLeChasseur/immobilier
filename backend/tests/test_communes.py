@@ -131,6 +131,29 @@ class Repository:
     async def connectivity(self, codes: list[str]) -> dict[str, Any] | None:
         return None if self.empty else {"nb_locaux": 1000, "eligibles_fibre": 973}
 
+    async def commune_income(self, codes: list[str]) -> dict[str, Any] | None:
+        if self.empty:
+            return None
+        return {
+            "code_insee": codes[0],
+            "annee": 2021,
+            "revenu_median": 21450,
+            "revenu_q1": 15020,
+            "revenu_q3": 29570,
+            "taux_pauvrete_pct": None,
+        }
+
+    async def population(self, codes: list[str]) -> dict[str, Any] | None:
+        if self.empty:
+            return None
+        return {
+            "code_insee": codes[0],
+            "annee": 2022,
+            "population": 157555,
+            "population_6": 151229,
+            "population_11": None,
+        }
+
 
 class FakeHttp:
     def __init__(self, outcome: Any) -> None:
@@ -169,6 +192,21 @@ async def test_profile_gathers_commune_level_figures_with_their_benchmarks() -> 
     assert profile.part_fibre_pct == 97.3
     assert profile.logement is not None
     assert (profile.logement.part_locataires_pct, profile.logement.part_vacants_pct) == (66.3, 6.0)
+    assert profile.revenus is not None
+    assert profile.revenus.revenu_median is not None
+    assert profile.revenus.revenu_median.model_dump() == {
+        "valeur": 21450.0,
+        "departement": None,
+        "national": 23160,
+    }
+    assert profile.revenus.taux_pauvrete_pct is None
+    assert profile.evolution_population is not None
+    assert profile.evolution_population.model_dump() == {
+        "annee": 2022,
+        "habitants": 157555,
+        "evolution_6_ans_pct": 4.2,
+        "evolution_11_ans_pct": None,
+    }
     # Aucune donnée à l'adresse ni vente DVF dans une fiche indexable.
     assert "dvf" not in profile.model_dump_json().lower()
 
@@ -182,6 +220,7 @@ async def test_profile_of_a_commune_absent_from_the_references_is_still_served()
     assert (profile.taxe_fonciere, profile.delinquance, profile.logement) == (None, None, None)
     assert profile.ecoles == {}
     assert profile.part_fibre_pct is None
+    assert (profile.revenus, profile.evolution_population) == (None, None)
 
 
 async def test_directory_ranks_communes_by_population() -> None:

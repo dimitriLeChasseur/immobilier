@@ -18,11 +18,14 @@ from app.schemas.commune import (
     Benchmark,
     CommuneCrime,
     CommuneHousing,
+    CommuneIncome,
+    CommunePopulation,
     CommuneProfile,
     CommuneTax,
     SchoolLevel,
 )
 from app.services.providers.base import as_rows, gather_parts, to_float
+from app.services.providers.neighbourhood import NATIONAL_INCOME_BENCHMARKS, change_pct
 
 _GEO_URL = "https://geo.api.gouv.fr/communes"
 _TABULAR_URL = "https://tabular-api.data.gouv.fr/api/resources"
@@ -102,6 +105,10 @@ class CommuneRepository(Protocol):
     async def commune_rents(self, code: str) -> dict[str, dict[str, Any]]: ...
 
     async def tense_zone(self, codes: list[str]) -> dict[str, Any] | None: ...
+
+    async def commune_income(self, codes: list[str]) -> dict[str, Any] | None: ...
+
+    async def population(self, codes: list[str]) -> dict[str, Any] | None: ...
 
 
 class RentLookup(Protocol):
@@ -203,6 +210,37 @@ class CommuneService:
             logement=await self._housing(commune_prefix(identity.code)),
             **rents,
             zone_tendue=tense_zone["categorie"] if tense_zone else None,
+            revenus=await self._income(identity.code),
+            evolution_population=await self._population(identity.code),
+        )
+
+    async def _income(self, code: str) -> CommuneIncome | None:
+        # La commune entière, pas un arrondissement : la fiche vaut pour toute la ville.
+        row = await self._repository.commune_income([code])
+        if row is None:
+            return None
+        national = NATIONAL_INCOME_BENCHMARKS.get(int(row["annee"]), {})
+
+        def compared(field: str) -> Benchmark | None:
+            if row[field] is None:
+                return None
+            return Benchmark(valeur=float(row[field]), national=national.get(field))
+
+        return CommuneIncome(
+            annee=int(row["annee"]),
+            revenu_median=compared("revenu_median"),
+            taux_pauvrete_pct=compared("taux_pauvrete_pct"),
+        )
+
+    async def _population(self, code: str) -> CommunePopulation | None:
+        row = await self._repository.population([code])
+        if row is None:
+            return None
+        return CommunePopulation(
+            annee=int(row["annee"]),
+            habitants=int(row["population"]),
+            evolution_6_ans_pct=change_pct(row["population"], row["population_6"]),
+            evolution_11_ans_pct=change_pct(row["population"], row["population_11"]),
         )
 
     async def _commune_rents(self, code: str, codes: list[str]) -> dict[str, Any]:

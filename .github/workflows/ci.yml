@@ -9,7 +9,8 @@ on:
   pull_request:
     branches: [main]
 
-# Le moindre privilège suffit : le workflow ne fait que lire le dépôt.
+# Le moindre privilège suffit : le workflow ne fait que lire le dépôt. Les actions sont
+# épinglées par empreinte de commit ; Dependabot (.github/dependabot.yml) les tient à jour.
 permissions:
   contents: read
 
@@ -26,10 +27,10 @@ jobs:
 
     steps:
       - name: Récupérer le code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Configurer Python 3.11 et uv
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: "3.11"
           enable-cache: true
@@ -51,7 +52,8 @@ jobs:
           # Valeurs factices : les tests n'ouvrent aucune connexion.
           DATABASE_URL: postgresql://test:test@localhost/test
           SUPABASE_JWT_SECRET: test
-        run: uv run pytest --cov=app --cov-report=term
+        # Seuil un peu sous la couverture mesurée (83 %) : il arrête une régression nette.
+        run: uv run pytest --cov=app --cov-report=term --cov-fail-under=78
 
       # Scripts autonomes des cartes de bruit : leurs dépendances ne sont pas celles du backend.
       - name: Tester les scripts d'ingestion du bruit
@@ -60,7 +62,7 @@ jobs:
           --with requests --with sqlalchemy --with "psycopg[binary]" pytest scripts/tests -q
 
       - name: Configurer Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
           cache: npm
@@ -72,7 +74,7 @@ jobs:
           npm ci
           npm run typecheck
           npm run lint
-          npm run test
+          npm run test -- --coverage
           npm run build
 
   integration:
@@ -82,10 +84,10 @@ jobs:
 
     steps:
       - name: Récupérer le code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Configurer Python 3.11 et uv
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: "3.11"
           enable-cache: true
@@ -127,10 +129,10 @@ jobs:
 
     steps:
       - name: Récupérer le code
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
       - name: Configurer Python 3.11 et uv
-        uses: astral-sh/setup-uv@v10.2.0
+        uses: astral-sh/setup-uv@c18668ad3cf93ea998bef934396af7bb5c839dc7 # v10.2.0
         with:
           python-version: "3.11"
           enable-cache: true
@@ -141,7 +143,7 @@ jobs:
         run: uv sync --frozen
 
       - name: Configurer Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
         with:
           node-version: 22
           cache: npm
@@ -164,7 +166,7 @@ jobs:
 
       - name: Conserver la capture en cas d'échec
         if: failure()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
         with:
           name: e2e-echec
           path: frontend/e2e-echec.png

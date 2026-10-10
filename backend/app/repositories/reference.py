@@ -184,6 +184,14 @@ _IRIS_INCOME = """
 """
 
 # Code le plus précis d'abord (l'arrondissement avant sa commune).
+_COMMUNE_INCOME = """
+    SELECT code_insee, annee, revenu_median, revenu_q1, revenu_q3, taux_pauvrete_pct
+    FROM insee_commune_revenus
+    WHERE code_insee = ANY($1::text[])
+    ORDER BY array_position($1::text[], code_insee::text)
+    LIMIT 1
+"""
+
 _POPULATION = """
     SELECT code_insee, annee, population, population_6, population_11
     FROM insee_population
@@ -314,6 +322,8 @@ class ReferenceRepository(Protocol):
     async def connectivity(self, codes: list[str]) -> dict[str, Any] | None: ...
 
     async def iris_income(self, code_iris: str) -> dict[str, Any] | None: ...
+
+    async def commune_income(self, codes: list[str]) -> dict[str, Any] | None: ...
 
     async def population(self, codes: list[str]) -> dict[str, Any] | None: ...
 
@@ -478,6 +488,12 @@ class PostgresReferenceRepository:
         """Revenus et pauvreté du quartier, None si l'INSEE ne les diffuse pas pour lui."""
         async with db_errors():
             record = await self._pool.fetchrow(_IRIS_INCOME, code_iris)
+        return _jsonable(record) if record is not None else None
+
+    async def commune_income(self, codes: list[str]) -> dict[str, Any] | None:
+        """Revenus de la commune (ou de l'arrondissement), None s'ils ne sont pas diffusés."""
+        async with db_errors():
+            record = await self._pool.fetchrow(_COMMUNE_INCOME, codes)
         return _jsonable(record) if record is not None else None
 
     async def population(self, codes: list[str]) -> dict[str, Any] | None:

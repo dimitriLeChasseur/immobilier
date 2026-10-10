@@ -12,12 +12,12 @@ _QPV_RADIUS_M = 500
 
 # Repères nationaux de la même édition (INSEE, Filosofi 2021, France métropolitaine) : sans
 # eux, un niveau de vie médian ne se lit pas.
-_NATIONAL_BENCHMARKS: dict[int, dict[str, float]] = {
+NATIONAL_INCOME_BENCHMARKS: dict[int, dict[str, float]] = {
     2021: {"revenu_median": 23160, "taux_pauvrete_pct": 14.5},
 }
 
 
-def _change_pct(current: Any, previous: Any) -> float | None:
+def change_pct(current: Any, previous: Any) -> float | None:
     if not isinstance(current, int) or not isinstance(previous, int) or previous <= 0:
         return None
     return round(100 * (current - previous) / previous, 1)
@@ -50,13 +50,19 @@ class NeighbourhoodProvider:
         return ProviderData(data=data, missing=missing)
 
     async def _income(self, ctx: AuditContext) -> dict[str, Any]:
-        """Quartier IRIS et ses revenus ; ceux-ci valent None si l'INSEE ne les diffuse pas."""
+        """Quartier IRIS et ses revenus, ceux de la commune à défaut.
+
+        L'INSEE ne diffuse les revenus que pour les quartiers des communes les plus peuplées :
+        ailleurs, ceux de la commune (ou de l'arrondissement) prennent le relais, et le champ
+        « echelle » le dit. None si aucun des deux n'est publié.
+        """
         iris = await self._iris.locate(ctx.lat, ctx.lon)
-        if iris is None:
-            return {"iris": None, "revenus": None}
-        identity = {"code": iris.code, "nom": iris.name}
+        identity = {"code": iris.code, "nom": iris.name} if iris is not None else None
         try:
-            row = await self._repository.iris_income(iris.code)
+            row = await self._repository.iris_income(iris.code) if iris is not None else None
+            scale = "iris"
+            if row is None or row["revenu_median"] is None:
+                row, scale = await self._repository.commune_income(ctx.commune_codes), "commune"
         except RepositoryError as exc:
             raise SourceError("http_error", str(exc)) from exc
         if row is None:
@@ -65,11 +71,14 @@ class NeighbourhoodProvider:
             "iris": identity,
             "revenus": {
                 "annee": row["annee"],
+                "echelle": scale,
+                # Vrai quand le chiffre communal est celui de l'arrondissement.
+                "arrondissement": scale == "commune" and row["code_insee"] != ctx.commune_codes[-1],
                 "revenu_median": row["revenu_median"],
                 "revenu_q1": row["revenu_q1"],
                 "revenu_q3": row["revenu_q3"],
                 "taux_pauvrete_pct": row["taux_pauvrete_pct"],
-                "reference_nationale": _NATIONAL_BENCHMARKS.get(row["annee"]),
+                "reference_nationale": NATIONAL_INCOME_BENCHMARKS.get(row["annee"]),
             },
         }
 
@@ -106,8 +115,8 @@ class NeighbourhoodProvider:
         return {
             "annee": row["annee"],
             "habitants": row["population"],
-            "evolution_6_ans_pct": _change_pct(row["population"], row["population_6"]),
-            "evolution_11_ans_pct": _change_pct(row["population"], row["population_11"]),
+            "evolution_6_ans_pct": change_pct(row["population"], row["population_6"]),
+            "evolution_11_ans_pct": change_pct(row["population"], row["population_11"]),
             # Vrai quand le chiffre est celui de l'arrondissement, pas de la commune entière.
             "arrondissement": row["code_insee"] != ctx.commune_codes[-1],
         }

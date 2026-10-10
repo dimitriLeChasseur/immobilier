@@ -6,7 +6,6 @@ import type { AuditTarget } from '../api/audit'
 import { fetchBranding, type Branding } from '../api/account'
 import { unlockWithCredit } from '../api/billing'
 import AddressSearch from '../components/AddressSearch.vue'
-import AuditDashboard from '../components/AuditDashboard.vue'
 import AuditStepper from '../components/AuditStepper.vue'
 import AuthModal from '../components/AuthModal.vue'
 import HomeIntro from '../components/HomeIntro.vue'
@@ -28,7 +27,9 @@ import { UNLOCK_KEY } from '../lib/unlock'
 import { readTarget, writeTarget } from '../lib/url'
 import type { AddressSuggestion, SourceName } from '../types/audit'
 
-// Leaflet n'est chargé qu'à l'affichage du premier rapport.
+// Leaflet, les cartes du rapport et leurs graphiques ne sont chargés qu'au premier rapport :
+// l'accueil n'en a pas besoin.
+const AuditDashboard = defineAsyncComponent(() => import('../components/AuditDashboard.vue'))
 const AuditMap = defineAsyncComponent(() => import('../components/AuditMap.vue'))
 
 const { phase, location, sources, meta, errorMessage, sourceNames, start, reset } = useAudit()

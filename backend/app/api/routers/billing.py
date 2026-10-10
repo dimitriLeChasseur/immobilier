@@ -46,7 +46,7 @@ class Address(BaseModel):
 class CheckoutRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
-    offer: Literal["unit", "pack", "pro"]
+    offer: Literal["unit", "pack5", "pack", "pro"]
     address: Address | None = None
 
     @model_validator(mode="after")
@@ -119,7 +119,7 @@ async def unlock_with_credit(
     repository: BillingRepositoryDep,
     billing: BillingServiceDep,
 ) -> Account:
-    """Débloque une adresse avec un crédit du Pack Investisseur."""
+    """Débloque une adresse avec un crédit d'un pack."""
     target = body.to_target()
     try:
         unlocked = await repository.spend_credit(

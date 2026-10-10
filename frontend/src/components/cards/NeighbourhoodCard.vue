@@ -2,7 +2,7 @@
 import { computed } from 'vue'
 
 import { formatEuros, formatInteger, formatPercent } from '../../lib/format'
-import { districtNotice, incomeGap, incomeRange, populationTrend } from '../../lib/neighbourhood'
+import { districtNotice, incomeGap, incomeRange, incomeScope, populationTrend } from '../../lib/neighbourhood'
 import type { QuartierData } from '../../types/audit'
 import StatTile from '../StatTile.vue'
 
@@ -28,16 +28,21 @@ const quarter = computed(() => props.data.iris?.nom ?? props.data.iris?.code ?? 
       <p v-if="incomeGap(income)" class="mt-3 text-sm text-slate-700">Niveau de vie {{ incomeGap(income) }}.</p>
       <p v-if="incomeRange(income)" class="mt-1 text-sm text-slate-700">{{ incomeRange(income) }}.</p>
       <p class="mt-3 text-xs text-slate-500">
-        Quartier « {{ quarter }} », revenus disponibles {{ income.annee }} (INSEE, Filosofi)<template
+        {{ incomeScope(data) }}, revenus disponibles {{ income.annee }} (INSEE, Filosofi)<template
           v-if="income.reference_nationale"
         >
           ; taux de pauvreté national : {{ formatPercent(income.reference_nationale.taux_pauvrete_pct) }}</template
         >. Le niveau de vie est le revenu après impôts et prestations, rapporté à la taille du ménage.
       </p>
+      <p v-if="income.echelle === 'commune'" class="mt-1 text-xs text-slate-500">
+        L’INSEE ne diffuse pas les revenus à l’échelle de ce quartier<template v-if="quarter">
+          (« {{ quarter }} »)</template
+        > : ces chiffres sont ceux de {{ income.arrondissement ? 'l’arrondissement' : 'la commune' }}.
+      </p>
     </div>
     <p v-else class="text-sm text-slate-500">
-      L’INSEE ne diffuse pas les revenus à l’échelle de ce quartier<template v-if="quarter"> (« {{ quarter }} »)</template
-      > : ils ne sont publiés que pour les quartiers des communes les plus peuplées.
+      L’INSEE ne diffuse les revenus ni pour ce quartier<template v-if="quarter"> (« {{ quarter }} »)</template> ni
+      pour la commune : le secret statistique couvre les plus petites.
     </p>
 
     <div class="space-y-3">

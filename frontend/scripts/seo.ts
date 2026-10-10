@@ -13,7 +13,13 @@ import { existsSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-import { communePage, type CommunePage, type CommuneProfile } from '../src/lib/commune.ts'
+import {
+  communePage,
+  relatedCommunes,
+  type CommuneLink,
+  type CommunePage,
+  type CommuneProfile,
+} from '../src/lib/commune.ts'
 import { LEGAL_INCOMPLETE } from '../src/lib/legal.ts'
 import { renderPages, type RenderedPage } from './prerender.ts'
 
@@ -79,7 +85,16 @@ function write(path: string, content: string): void {
 }
 
 /** Contenu lisible sans JavaScript, remplacé par l'application à son démarrage. */
-function staticBody(page: CommunePage): string {
+function staticBody(page: CommunePage, related: CommuneLink[], departement: string): string {
+  const summary = page.summary.length
+    ? `<section><h2>En bref</h2><ul>${page.summary.map((sentence) => `<li>${escapeHtml(sentence)}</li>`).join('')}</ul></section>`
+    : ''
+  const links = related
+    .map((commune) => `<li><a href="/commune/${commune.slug}">${escapeHtml(commune.nom)}</a></li>`)
+    .join('')
+  const neighbours = links
+    ? `<nav><h2>Autres communes du département ${escapeHtml(departement)}</h2><ul>${links}</ul></nav>`
+    : ''
   const sections = page.sections
     .map((section) => {
       const facts = section.facts
@@ -93,7 +108,7 @@ function staticBody(page: CommunePage): string {
     .join('')
   return (
     `<main><p><a href="/communes">Communes</a></p><h1>${escapeHtml(page.heading)}</h1>` +
-    `<p>${escapeHtml(page.intro)}</p>${sections}<p><a href="/">Auditer une adresse</a></p></main>`
+    `<p>${escapeHtml(page.intro)}</p>${summary}${sections}${neighbours}<p><a href="/">Auditer une adresse</a></p></main>`
   )
 }
 
@@ -111,13 +126,29 @@ interface Head {
   /** Chemin canonique de la page (« /tarifs »). */
   path: string
   noindex?: boolean
+  /** Fil d'Ariane, de l'accueil à la page : libellé et chemin de chaque niveau. */
+  breadcrumb?: [label: string, path: string][]
+}
+
+/** Fil d'Ariane en données structurées ; exige des adresses absolues, donc un domaine configuré. */
+function breadcrumbScript(trail: [label: string, path: string][], base: string): string {
+  const items = trail.map(([name, path], index) => ({
+    '@type': 'ListItem',
+    position: index + 1,
+    name,
+    item: `${base}${path}`,
+  }))
+  const data = { '@context': 'https://schema.org', '@type': 'BreadcrumbList', itemListElement: items }
+  // « < » échappé : un nom de commune ne doit pas pouvoir fermer la balise.
+  return `<script type="application/ld+json">${JSON.stringify(data).replace(/</g, '\\u003c')}</script>`
 }
 
 /** Gabarit de l'application avec les balises et le contenu d'une page. */
 function pageHtml(template: string, head: Head, body: string, base: string): string {
   const url = `${base}${head.path}`
+  const trail = base && head.breadcrumb ? breadcrumbScript(head.breadcrumb, base) : ''
   const canonical = base
-    ? `<link rel="canonical" href="${escapeHtml(url)}" /><meta property="og:url" content="${escapeHtml(url)}" />`
+    ? `<link rel="canonical" href="${escapeHtml(url)}" /><meta property="og:url" content="${escapeHtml(url)}" />${trail}`
     : ''
   let html = replaceOnce(template, /<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(head.title)}</title>${canonical}`)
   if (head.noindex) html = replaceOnce(html, ROBOTS_TAG, NOINDEX_TAG)
@@ -139,10 +170,21 @@ function pageHtml(template: string, head: Head, body: string, base: string): str
   return replaceOnce(html, /<div id="app"><\/div>/, `<div id="app">${body}</div>`)
 }
 
-function communeHtml(template: string, profile: CommuneProfile, base: string): string {
+function communeHtml(template: string, profile: CommuneProfile, links: CommuneLink[], base: string): string {
   const page = communePage(profile)
-  const head = { title: page.title, description: page.description, path: `/commune/${profile.slug}` }
-  return pageHtml(template, head, staticBody(page), base)
+  const path = `/commune/${profile.slug}`
+  const head: Head = {
+    title: page.title,
+    description: page.description,
+    path,
+    breadcrumb: [
+      ['Accueil', '/'],
+      ['Communes', '/communes'],
+      [profile.nom, path],
+    ],
+  }
+  const body = staticBody(page, relatedCommunes(links, profile), profile.departement_nom || profile.departement_code)
+  return pageHtml(template, head, body, base)
 }
 
 /** Fichier d'une page : « / » est index.html, « /tarifs » est tarifs.html. */
@@ -176,19 +218,21 @@ function sitemap(base: string, communes: CommuneProfile[]): string {
 }
 
 async function main(): Promise<void> {
-  const template = readFileSync(join(DIST, 'index.html'), 'utf8')
   const communes = readCommunes()
   const base = siteUrl()
+  // Vite laisse le repère tel quel quand la variable n'est pas définie (construction locale).
+  const template = readFileSync(join(DIST, 'index.html'), 'utf8').replaceAll('%VITE_SITE_URL%', base)
 
+  const communeLinks = communes.map(({ nom, slug, departement_code }) => ({ nom, slug, departement_code }))
   for (const commune of communes) {
     // Un fichier « <slug>.html » et non un dossier : l'adresse sans barre finale, celle du plan
     // du site et de la balise canonique, est alors servie directement, sans redirection.
-    write(join(DIST, 'commune', `${commune.slug}.html`), communeHtml(template, commune, base))
+    write(join(DIST, 'commune', `${commune.slug}.html`), communeHtml(template, commune, communeLinks, base))
   }
   const shell = replaceOnce(template, ROBOTS_TAG, NOINDEX_TAG)
   for (const path of APP_PATHS) write(pageFile(path), shell)
   // En dernier pour l'accueil : index.html, le gabarit, n'est remplacé qu'une fois tout écrit.
-  const links = JSON.stringify(communes.map(({ nom, slug, departement_code }) => ({ nom, slug, departement_code })))
+  const links = JSON.stringify(communeLinks)
   write(join(DIST, 'communes.json'), links)
   const pages = await prerender({ '/communes.json': links })
   write(join(DIST, '404.html'), notFoundHtml(template))
