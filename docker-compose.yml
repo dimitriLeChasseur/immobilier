@@ -258,7 +258,7 @@ services:
   # --------------------------------------------------------------------------
   rest:
     container_name: immo-rest
-    image: postgrest/postgrest:v14.17
+    image: postgrest/postgrest:v16.4
     restart: unless-stopped
     logging: *default-logging
     <<: *hardening
