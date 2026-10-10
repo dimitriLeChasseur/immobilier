@@ -379,9 +379,9 @@ Trois suites complètent les tests unitaires :
   créer ses comptes de test dans `auth.users`.
 - **Parcours d'achat de bout en bout** (`cd frontend && npm run e2e`, pile Docker démarrée) :
   recherche, aperçu, création de compte, paiement et déblocage dans un vrai navigateur. Stripe
-  est le seul élément simulé ; le compte créé est supprimé en sortant. En intégration continue,
-  son échec est signalé sans bloquer la mise en ligne, car il dépend de la Base Adresse
-  Nationale.
+  et la Base Adresse Nationale sont simulés (`STRIPE_API_URL`, `BAN_REVERSE_URL`,
+  `BAN_LOOKUP_URL`) ; le compte créé est supprimé en sortant. En intégration continue, son
+  échec bloque la mise en ligne du site.
 - **Scripts des cartes de bruit** (`scripts/tests`, commande en tête du fichier).
 
 **Surveillance extérieure** : `.github/workflows/surveillance.yml` interroge le site, l'API,

@@ -251,6 +251,16 @@ CREATE INDEX IF NOT EXISTS geo_bruit_lden_geom_gist
     ON immo.geo_bruit_lden USING gist (geom);
 CREATE INDEX IF NOT EXISTS geo_bruit_lden_source_idx
     ON immo.geo_bruit_lden (source_id);
+-- Un index par type d'infrastructure : savoir si un type est cartographié autour d'une adresse
+-- ne lit alors que les zones de ce type, et un type absent ne coûte rien.
+CREATE INDEX IF NOT EXISTS geo_bruit_lden_route_gist
+    ON immo.geo_bruit_lden USING gist (geom) WHERE infrastructure = 'route';
+CREATE INDEX IF NOT EXISTS geo_bruit_lden_fer_gist
+    ON immo.geo_bruit_lden USING gist (geom) WHERE infrastructure = 'fer';
+CREATE INDEX IF NOT EXISTS geo_bruit_lden_air_gist
+    ON immo.geo_bruit_lden USING gist (geom) WHERE infrastructure = 'air';
+CREATE INDEX IF NOT EXISTS geo_bruit_lden_industrie_gist
+    ON immo.geo_bruit_lden USING gist (geom) WHERE infrastructure = 'industrie';
 
 -- Points d'intérêt OpenStreetMap (transports, commerces, santé, écoles, parcs), ingérés par
 -- scripts/ingest_osm_poi.py depuis les extraits Geofabrik : évite de dépendre, à chaque audit,

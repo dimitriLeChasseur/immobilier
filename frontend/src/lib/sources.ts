@@ -80,7 +80,7 @@ export const SOURCE_INFO: Record<SourceName, SourceInfo> = {
 export const FAILURE_LABELS: Partial<Record<SourceStatus, string>> = {
   error: 'Indisponible',
   timeout: 'Délai dépassé',
-  unavailable: 'Suspendue',
+  unavailable: 'Indisponible',
 }
 
 export function isFailure(status: SourceStatus): boolean {

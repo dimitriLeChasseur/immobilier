@@ -117,8 +117,9 @@ jobs:
         if: failure()
         run: docker compose logs db | tail -n 80
 
-  # Parcours d'achat joué dans un navigateur, contre la pile réelle (Stripe simulé). Il dépend
-  # de la Base Adresse Nationale : son échec est signalé mais ne bloque pas la mise en ligne.
+  # Parcours d'achat joué dans un navigateur, contre la pile réelle. Stripe et la Base Adresse
+  # Nationale sont simulés : il ne dépend d'aucun service extérieur et conditionne la mise en
+  # ligne. Les autres sources publiques restent appelées, mais leur panne ne le fait pas échouer.
   e2e:
     name: Parcours d'achat de bout en bout
     runs-on: ubuntu-24.04
@@ -179,7 +180,7 @@ jobs:
   # (scripts/deploy-backend.sh).
   deploy:
     name: Mise en ligne du site
-    needs: [tests, integration]
+    needs: [tests, integration, e2e]
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-24.04
     timeout-minutes: 5

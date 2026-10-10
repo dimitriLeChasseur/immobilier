@@ -25,7 +25,9 @@ const COMMUNES_FILE = join(ROOT, 'seo', 'communes.json')
 // Les pages légales n'entrent au plan du site qu'une fois l'identité de l'éditeur complétée.
 const LEGAL_PATHS = LEGAL_INCOMPLETE ? [] : ['/mentions-legales', '/cgv', '/confidentialite']
 const STATIC_PATHS = ['/', '/tarifs', '/communes', ...LEGAL_PATHS]
-// Pages de l'application : chacune reçoit son fichier, pour répondre 200 sans repli général.
+// Pages de l'application sans contenu écrit : chacune reçoit son fichier, pour répondre 200 sans
+// repli général, et part en noindex. La coquille sert aussi une adresse de commune inexistante :
+// la fiche retire le noindex une fois la commune trouvée (src/views/CommuneView.vue).
 // Pages écrites en HTML complet, avec leur contenu : celles que les moteurs doivent lire.
 const PRERENDERED_PATHS = ['/', '/tarifs', '/communes', '/mentions-legales', '/cgv', '/confidentialite']
 // Coquille vide de l'application, servie par la fonction des fiches communales non écrites.
@@ -183,7 +185,8 @@ async function main(): Promise<void> {
     // du site et de la balise canonique, est alors servie directement, sans redirection.
     write(join(DIST, 'commune', `${commune.slug}.html`), communeHtml(template, commune, base))
   }
-  for (const path of APP_PATHS) write(pageFile(path), template)
+  const shell = replaceOnce(template, ROBOTS_TAG, NOINDEX_TAG)
+  for (const path of APP_PATHS) write(pageFile(path), shell)
   // En dernier pour l'accueil : index.html, le gabarit, n'est remplacé qu'une fois tout écrit.
   const links = JSON.stringify(communes.map(({ nom, slug, departement_code }) => ({ nom, slug, departement_code })))
   write(join(DIST, 'communes.json'), links)

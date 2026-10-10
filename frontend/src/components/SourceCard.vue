@@ -36,7 +36,8 @@ const locked = computed(() => hasData.value && isLocked(props.result?.data))
       <h3 class="text-sm font-semibold text-slate-900">{{ title }}</h3>
       <span
         v-if="failureLabel"
-        class="shrink-0 rounded-full bg-rose-50 px-2 py-0.5 text-xs font-medium text-rose-700"
+        class="shrink-0 rounded-full bg-amber-50 px-2 py-0.5 text-xs font-medium text-amber-700"
+        :title="result?.error ?? undefined"
       >
         {{ failureLabel }}
       </span>
@@ -67,8 +68,10 @@ const locked = computed(() => hasData.value && isLocked(props.result?.data))
       {{ emptyText }}
     </p>
 
-    <p v-else class="text-sm text-slate-500">
-      {{ result.error ?? 'Cette source est momentanément indisponible.' }}
+    <!-- Panne d'un service public tiers, pas du rapport : dit sans alarme, la cause en infobulle. -->
+    <p v-else class="rounded-xl bg-slate-100 px-3 py-2 text-sm text-slate-600">
+      Le service public qui fournit cette donnée ne répond pas pour le moment. Le reste du rapport
+      n’est pas affecté ; rechargez-le plus tard pour compléter cette carte.
     </p>
   </section>
 </template>

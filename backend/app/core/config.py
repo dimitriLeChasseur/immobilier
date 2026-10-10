@@ -46,6 +46,11 @@ class Settings(BaseSettings):
     # Adresse de démonstration (identifiant BAN) : son rapport complet est ouvert à tous.
     demo_address_id: str | None = None
 
+    # Base Adresse Nationale : adresses remplaçables par un faux service dans les tests de bout
+    # en bout, comme celle de Stripe.
+    ban_reverse_url: str = "https://api-adresse.data.gouv.fr/reverse/"
+    ban_lookup_url: str = "https://plateforme.adresse.data.gouv.fr/lookup"
+
     # Paiement Stripe. Sans clé, les routes de paiement répondent 503 et rien n'est facturé.
     stripe_secret_key: SecretStr | None = None
     stripe_webhook_secret: SecretStr | None = None

@@ -5,8 +5,9 @@
  *   docker compose up -d --wait db auth backend caddy     # depuis la racine du dépôt
  *   npm run e2e                                           # depuis frontend/
  *
- * Tout est réel (site construit, API, base, service d'authentification) sauf Stripe : un faux
- * serveur reçoit la demande de session, puis le test joue le rôle de Stripe en envoyant à l'API
+ * Tout est réel (site construit, API, base, service d'authentification) sauf la Base Adresse
+ * Nationale, remplacée par des réponses fixes, et Stripe : un faux serveur reçoit la demande de
+ * session, puis le test joue le rôle de Stripe en envoyant à l'API
  * l'évènement de paiement, signé avec le secret du test. Le backend testé est lancé ici, à
  * partir du code du dépôt, pour être branché sur ce faux Stripe ; il partage la base et le
  * service d'authentification de la pile Docker (réglages lus dans le .env de la racine).
@@ -82,6 +83,46 @@ async function startFakeStripe(): Promise<FakeStripe> {
   await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
   const { port } = server.address() as AddressInfo
   return { server, url: `http://127.0.0.1:${port}`, sessions }
+}
+
+/**
+ * Fausse Base Adresse Nationale, côté serveur : géocodage inverse et fiche du numéro. Le
+ * parcours ne dépend ainsi d'aucun service extérieur et peut conditionner la mise en ligne.
+ */
+async function startFakeBan(): Promise<{ server: Server; url: string }> {
+  const reverse = {
+    features: [
+      {
+        properties: {
+          id: ADDRESS.id,
+          label: ADDRESS.label,
+          type: 'housenumber',
+          housenumber: '10',
+          street: 'Rue Saint-Aubin',
+          citycode: '49007',
+          postcode: '49100',
+          city: 'Angers',
+          context: '49, Maine-et-Loire, Pays de la Loire',
+        },
+      },
+    ],
+  }
+  const lookup = {
+    type: 'numero',
+    numero: 10,
+    position: { coordinates: [ADDRESS.lon, ADDRESS.lat] },
+    voie: { nomVoie: 'Rue Saint-Aubin' },
+    commune: { nom: 'Angers' },
+    codePostal: '49100',
+  }
+  const server = createServer((request, response) => {
+    const known = request.url?.startsWith('/reverse/') || request.url === `/lookup/${ADDRESS.id}`
+    response.writeHead(known ? 200 : 404, { 'Content-Type': 'application/json' })
+    response.end(JSON.stringify(request.url?.startsWith('/reverse/') ? reverse : known ? lookup : {}))
+  })
+  await new Promise<void>((done) => server.listen(0, '127.0.0.1', done))
+  const { port } = server.address() as AddressInfo
+  return { server, url: `http://127.0.0.1:${port}` }
 }
 
 function run(command: string, args: string[], cwd: string, extra: Record<string, string>): ChildProcess {
@@ -252,6 +293,7 @@ async function main(): Promise<void> {
     assert.ok(env[name], `${name} manque dans le .env de la racine`)
   }
   const stripe = await startFakeStripe()
+  const ban = await startFakeBan()
   const processes: ChildProcess[] = []
   const browser = await chromium.launch()
   let userId: string | undefined
@@ -268,6 +310,8 @@ async function main(): Promise<void> {
         STRIPE_SECRET_KEY: 'sk_test_e2e',
         STRIPE_WEBHOOK_SECRET: WEBHOOK_SECRET,
         STRIPE_API_URL: stripe.url,
+        BAN_REVERSE_URL: `${ban.url}/reverse/`,
+        BAN_LOOKUP_URL: `${ban.url}/lookup`,
         STRIPE_PRO_TAX_RATE_ID: '',
         DEMO_ADDRESS_ID: '',
         SMTP_HOST: '',
@@ -293,6 +337,7 @@ async function main(): Promise<void> {
     if (userId) await deleteAccount(userId)
     for (const child of processes) stop(child)
     stripe.server.close()
+    ban.server.close()
   }
 }
 

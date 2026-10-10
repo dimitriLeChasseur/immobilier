@@ -68,8 +68,15 @@ class Geocoder(Protocol):
 class BanGeocoder:
     """Géocodage inverse BAN ; si la BAN est indisponible, repli sur la commune."""
 
-    def __init__(self, http: HttpClient) -> None:
+    def __init__(
+        self,
+        http: HttpClient,
+        reverse_url: str = _BAN_REVERSE_URL,
+        lookup_url: str = _BAN_LOOKUP_URL,
+    ) -> None:
         self._http = http
+        self._reverse_url = reverse_url
+        self._lookup_url = lookup_url.rstrip("/")
 
     async def reverse(self, lat: float, lon: float, ban_id: str) -> Location | None:
         try:
@@ -79,7 +86,7 @@ class BanGeocoder:
 
     async def _from_ban(self, lat: float, lon: float, ban_id: str) -> Location | None:
         payload = await self._http.get_json(
-            "ban", _BAN_REVERSE_URL, params={"lat": lat, "lon": lon, "limit": 1}
+            "ban", self._reverse_url, params={"lat": lat, "lon": lon, "limit": 1}
         )
         features = as_rows(payload, "features")
         if not features:
@@ -120,7 +127,7 @@ class BanGeocoder:
         if not _HOUSE_NUMBER_ID.match(ban_id):
             return None
         try:
-            payload = await self._http.get_json("ban_lookup", f"{_BAN_LOOKUP_URL}/{ban_id}")
+            payload = await self._http.get_json("ban_lookup", f"{self._lookup_url}/{ban_id}")
         except SourceError:
             return None
         if not isinstance(payload, dict) or payload.get("type") != "numero":

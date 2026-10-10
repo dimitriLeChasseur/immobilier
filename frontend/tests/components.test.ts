@@ -50,7 +50,10 @@ describe('SourceCard', () => {
       slots,
     })
     expect(timeout.text()).toContain('Délai dépassé')
-    expect(timeout.text()).toContain('La source n’a pas répondu.')
+    // La cause technique reste en infobulle ; le texte dit la panne d'un tiers, sans alarme.
+    expect(timeout.text()).toContain('ne répond pas pour le moment')
+    expect(timeout.text()).not.toContain('La source n’a pas répondu.')
+    expect(timeout.find('[title="La source n’a pas répondu."]').exists()).toBe(true)
   })
 })
 

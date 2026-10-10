@@ -239,12 +239,27 @@ _NOISE_ALONG = """
 """
 
 # Une carte routière ne dit rien du bruit ferroviaire : la couverture se mesure par type.
-_NOISE_COVERAGE = f"""
-    SELECT DISTINCT infrastructure
-    FROM geo_bruit_lden
-    WHERE ST_DWithin(geom, {_POINT_GEOM}, $3)
-    ORDER BY infrastructure
-"""  # noqa: S608
+_NOISE_KINDS = ("air", "fer", "industrie", "route")
+
+
+def _noise_kind_present(kind: str) -> str:
+    return f"""
+    SELECT '{kind}' AS infrastructure WHERE EXISTS (
+        SELECT 1 FROM geo_bruit_lden
+        WHERE infrastructure = '{kind}' AND ST_DWithin(geom, {_POINT_GEOM}, $3)
+    )"""  # noqa: S608
+
+
+# Une question par type d'infrastructure, chacune sur son index partiel
+# (geo_bruit_lden_<type>_gist) : un type absent se constate sans lire les zones des autres.
+# Le parcours d'index reste long en Île-de-France (des dizaines de milliers d'entrées), mais
+# énumérer les zones voisines pour en tirer les types distincts en lisait plus de 100 000 et
+# dépassait le délai d'une requête.
+_NOISE_COVERAGE = (
+    "SELECT infrastructure FROM ("  # noqa: S608
+    + " UNION ALL ".join(_noise_kind_present(kind) for kind in _NOISE_KINDS)
+    + ") AS kinds ORDER BY infrastructure"
+)
 
 
 _POIS = f"""

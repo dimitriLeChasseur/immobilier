@@ -97,7 +97,7 @@ def build_audit_service(
         NoiseProvider(reference),
     ]
     return AuditService(
-        geocoder=BanGeocoder(http),
+        geocoder=BanGeocoder(http, settings.ban_reverse_url, settings.ban_lookup_url),
         streets=BanStreetResolver(http),
         providers=providers,
         cache=cache or PostgresReportCache(pool),
@@ -128,7 +128,7 @@ def build_billing_service(
     return BillingService(
         http=http,
         repository=repository,
-        geocoder=BanGeocoder(http),
+        geocoder=BanGeocoder(http, settings.ban_reverse_url, settings.ban_lookup_url),
         secret_key=secret(settings.stripe_secret_key),
         webhook_secret=secret(settings.stripe_webhook_secret),
         api_url=settings.stripe_api_url,
