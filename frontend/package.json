@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vue-tsc -b && vite build && node --experimental-strip-types scripts/seo.ts",
+    "build": "vue-tsc -b && vite build && vite build --ssr src/prerender.ts --outDir dist-ssr --logLevel warn && node --experimental-strip-types scripts/seo.ts",
     "preview": "vite preview",
     "typecheck": "vue-tsc -b --noEmit",
     "lint": "eslint .",
@@ -23,6 +23,7 @@
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
+    "@types/jsdom": "^30.0.0",
     "@types/leaflet": "^1.9.22",
     "@types/node": "^24.13.3",
     "@vitejs/plugin-vue": "^6.0.8",

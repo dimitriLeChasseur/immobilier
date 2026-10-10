@@ -17,7 +17,7 @@ function hosting(files: Record<string, string>) {
 }
 
 async function get(path: string): Promise<[number, string]> {
-  const env = hosting({ '/': 'application', '/commune/angers-49007': 'fiche statique' })
+  const env = hosting({ '/': 'accueil', '/app-shell': 'application', '/commune/angers-49007': 'fiche statique' })
   const response: Response = await onRequestGet({
     request: new Request(`https://exemple.test${path}`),
     env,

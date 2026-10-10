@@ -282,12 +282,18 @@ Une application monopage ne livre aux robots qu'une coquille vide. Le site expos
 - **une fiche par commune** (`/commune/angers-49007`) : taxe foncière, cambriolages, écoles,
   logement et fibre, comparés au département et à la France. Ces chiffres communaux sont
   publics et gratuits ; l'audit d'une adresse reste le produit payant ;
+- **l'accueil et les tarifs écrits en HTML** : à la construction, `vite build --ssr` compile
+  `src/prerender.ts`, puis `scripts/seo.ts` rend ces deux pages avec les composants de
+  l'application et écrit le résultat dans `index.html` et `tarifs.html`. Un robot sans
+  JavaScript lit le même contenu qu'un visiteur ; l'application le remplace à son démarrage.
+  Pour ajouter une page, complétez `PRERENDERED_PATHS` ;
 - **des pages statiques** : à la construction, `scripts/seo.ts` écrit chaque fiche en HTML
   dans `dist/commune/<slug>.html` (servie sans barre finale, comme l'annoncent le plan du
   site et la balise canonique), ainsi que `sitemap.xml`, `robots.txt` et `communes.json` ;
 - **un vrai code 404** : chaque page de l'application a son fichier (`tarifs.html`…), et
   `404.html` répond aux adresses inconnues. Les communes sans fiche statique sont rendues
-  par l'application grâce à la fonction `functions/commune/[slug].js`, limitée à
+  par l'application grâce à la fonction `functions/commune/[slug].js`, qui sert la coquille
+  vide `app-shell.html` (et non l'accueil, désormais rempli), limitée à
   `/commune/*` par `_routes.json`. `npx wrangler pages dev dist` reproduit ce comportement
   en local.
 
