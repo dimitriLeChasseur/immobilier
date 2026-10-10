@@ -367,7 +367,7 @@ services:
   # --------------------------------------------------------------------------
   sonar-db:
     container_name: immo-sonar-db
-    image: postgres:17.11-alpine
+    image: postgres:18.6-alpine
     profiles: ["quality"]
     restart: unless-stopped
     logging: *default-logging
