@@ -1,5 +1,6 @@
 # Intégration continue : style, typage et tests à chaque évolution de main.
 # Aucun service payant : l'analyse SonarQube reste disponible en local (scripts/sonar-scan.sh).
+# Le site n'est mis en ligne qu'une fois ces contrôles passés (tâche « deploy »).
 name: Tests
 
 on:
@@ -106,3 +107,27 @@ jobs:
       - name: Afficher les journaux de la base en cas d'échec
         if: failure()
         run: docker compose logs db | tail -n 80
+
+  # Cloudflare Pages construit et publie le site à l'appel de ce crochet : ses déploiements
+  # automatiques de la branche de production sont coupés, pour qu'un commit qui échoue aux
+  # contrôles ne parte pas en ligne. Le backend, lui, se déploie à la main
+  # (scripts/deploy-backend.sh).
+  deploy:
+    name: Mise en ligne du site
+    needs: [tests, integration]
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Demander le déploiement à Cloudflare Pages
+        env:
+          DEPLOY_HOOK: ${{ secrets.CLOUDFLARE_PAGES_DEPLOY_HOOK }}
+        run: |
+          if [ -z "$DEPLOY_HOOK" ]; then
+            echo "::warning::Secret CLOUDFLARE_PAGES_DEPLOY_HOOK absent : aucun déploiement demandé."
+            exit 0
+          fi
+          curl --fail --silent --show-error --retry 3 --max-time 30 -X POST "$DEPLOY_HOOK" \
+            -o /dev/null
+          echo "Déploiement demandé pour le commit ${GITHUB_SHA::7}."

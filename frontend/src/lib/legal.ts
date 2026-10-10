@@ -11,19 +11,19 @@ export const PUBLISHER = {
   siteName: 'Audit Immobilier',
   siteUrl: 'https://audit-immobilier.fr',
   /** Nom et prénom (entrepreneur individuel) ou dénomination sociale. */
-  name: TODO,
+  name: 'Maksim Dudarenka',
   /** Forme juridique : « Entrepreneur individuel », « SAS au capital de … », etc. */
-  legalForm: TODO,
+  legalForm: 'Entrepreneur individuel (micro-entrepreneur)',
   /** Adresse du siège ou du domicile professionnel. */
-  address: TODO,
+  address: '18 boulevard Jean Moulin, 49100 Angers',
   /** Numéro SIREN ou SIRET, et ville du RCS le cas échéant. */
   registration: TODO,
   /** Numéro de TVA intracommunautaire, ou « TVA non applicable, art. 293 B du CGI ». */
   vat: TODO,
   /** Directeur de la publication. */
-  director: TODO,
+  director: 'Maksim Dudarenka',
   /** Adresse de contact relevée par l'éditeur. */
-  email: TODO,
+  email: 'audit.immobilier.france@gmail.com',
   /** Médiateur de la consommation auquel l'éditeur a adhéré (nom et site). */
   mediator: TODO,
 } as const

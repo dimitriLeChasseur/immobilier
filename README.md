@@ -364,8 +364,9 @@ inférieure à 5 %, complexité par fonction inférieure à 15, typage strict de
 
 Les livraisons suivantes passent par `./scripts/deploy-backend.sh root@<serveur>` : le
 script envoie le dernier commit, reconstruit le backend et rejoue le schéma. Le frontend,
-lui, est publié par Cloudflare Pages à chaque push sur `main` : pousser puis déployer le
-backend dans la foulée, pour que les deux restent sur la même version.
+lui, est publié par Cloudflare Pages quand les contrôles du push sur `main` sont passés (tâche
+`deploy` du workflow) : pousser puis déployer le backend dans la foulée, pour que les deux
+restent sur la même version.
 
 `deploy/setup_ufw.sh` refuse tout le trafic entrant sauf SSH, HTTP et HTTPS. Docker contourne
 UFW pour les ports qu'il publie : ne jamais publier un port interne sans le préfixe
@@ -384,6 +385,12 @@ PostgREST (`/rest/v1`) reste interne.
 | Variable | `VITE_API_URL` = URL publique de l'API |
 
 | Variable | `VITE_SITE_URL` = adresse publique du site (plan du site, balises canoniques) |
+
+Mise en ligne conditionnée aux contrôles : dans Cloudflare Pages, créer un crochet de
+déploiement sur `main` (Settings → Builds → Deploy hooks), l'enregistrer dans le dépôt GitHub
+sous le secret `CLOUDFLARE_PAGES_DEPLOY_HOOK`, puis couper les déploiements automatiques de la
+branche de production (Settings → Builds → Branch control). Sans le secret, la tâche `deploy`
+ne fait qu'émettre un avertissement.
 
 Dans `frontend/public/_headers`, le repère `__API_ORIGIN__` est remplacé à la construction
 par l'origine de `VITE_API_URL` : sans cette variable, la politique de sécurité du contenu
