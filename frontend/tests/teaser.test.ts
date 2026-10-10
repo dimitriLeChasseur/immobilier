@@ -62,7 +62,7 @@ describe('détection des valeurs masquées par le serveur', () => {
 
 describe('carte verrouillée', () => {
   const open = vi.fn()
-  const provide = { [UNLOCK_KEY as symbol]: { open, label: computed(() => 'Créer un compte pour débloquer l’audit complet de cette adresse') } }
+  const provide = { [UNLOCK_KEY as symbol]: { open, label: computed(() => 'Débloquer l’audit complet pour 4,99 €') } }
   const slots = { default: ({ data }: { data: unknown }) => `prix ${JSON.stringify(data)}` }
   const result = { status: 'ok' as const, data: { nb_ventes: 505, prix_m2_median: LOCKED }, missing: [], error: null, duration_ms: 3 }
 
@@ -78,7 +78,7 @@ describe('carte verrouillée', () => {
     const blurred = card.find('.locked-blur')
     expect(blurred.exists()).toBe(true)
     expect(blurred.attributes('aria-hidden')).toBe('true')
-    expect(card.find('button').text()).toBe('Créer un compte pour débloquer l’audit complet de cette adresse')
+    expect(card.find('button').text()).toBe('Débloquer l’audit complet pour 4,99 €')
   })
 
   it('affiche normalement une source entièrement lisible', () => {
@@ -92,7 +92,7 @@ describe('carte verrouillée', () => {
     const overlay = mount(LockedOverlay, { props: { compact: true }, global: { provide } })
     const button = overlay.find('button')
     expect(button.text()).toBe('Débloquer')
-    expect(button.attributes('aria-label')).toContain('Créer un compte pour débloquer')
+    expect(button.attributes('aria-label')).toContain('pour 4,99 €')
     await button.trigger('click')
     expect(open).toHaveBeenCalledTimes(1)
   })
@@ -140,9 +140,13 @@ describe('grille tarifaire', () => {
     const cards = view.findAll('ul > li.relative')
     expect(cards).toHaveLength(3)
     expect(cards[1]?.classes()).toContain('border-brand-600')
-    expect(cards[1]?.text()).toContain('Le plus choisi')
+    expect(cards[1]?.text()).toContain('Le plus avantageux')
+    // L'aperçu gratuit a sa propre colonne, avant les offres payantes.
+    expect(view.find('ul > li').text()).toContain('Aperçu gratuit')
+    expect(view.find('ul > li').text()).toContain('0 €')
+    expect(view.text()).toContain('Voir un rapport d’exemple')
     expect(view.text()).toContain('Audit de Due Diligence complet pour 1 adresse + Export PDF.')
-    expect(view.text()).toContain('Rapports illimités + Export en marque blanche (Votre logo).')
+    expect(view.text()).toContain('Rapports sans décompte + Export en marque blanche (Votre logo).')
   })
 
   it('rappelle l’adresse à débloquer et demande une connexion avant tout paiement', async () => {

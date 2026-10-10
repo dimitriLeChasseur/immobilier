@@ -29,6 +29,7 @@ logger = logging.getLogger(__name__)
 _STATUS_BY_ERROR_KIND: dict[str, SourceStatus] = {
     "timeout": "timeout",
     "circuit_open": "unavailable",
+    "quota": "unavailable",
 }
 # Erreurs de programmation probables face à une réponse de forme inattendue.
 _PARSING_ERRORS = (KeyError, TypeError, ValueError, AttributeError, IndexError)

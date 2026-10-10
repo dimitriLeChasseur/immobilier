@@ -6,7 +6,8 @@
 #
 # Les noms suivent la date : immo-AAAA-MM-JJ-HHMM.dump (sauvegarde quotidienne à 02 h 30).
 # Réglages lus dans l'environnement ou dans le .env : R2_BUCKET, R2_ACCOUNT_ID,
-# R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY.
+# R2_ACCESS_KEY_ID, R2_SECRET_ACCESS_KEY, et BACKUP_PASSPHRASE si les copies sont chiffrées :
+# le fichier est alors récupéré sous <nom>.gpg puis déchiffré.
 set -euo pipefail
 
 cd "$(dirname "$0")/.."
@@ -25,7 +26,18 @@ setting() {
 endpoint="$(setting R2_ENDPOINT)"
 [[ -n "$endpoint" ]] || endpoint="https://$(setting R2_ACCOUNT_ID).r2.cloudflarestorage.com"
 umask 077
-printf 'user = "%s:%s"\n' "$(setting R2_ACCESS_KEY_ID)" "$(setting R2_SECRET_ACCESS_KEY)" \
-  | curl --silent --show-error --fail --max-time 300 --config - --aws-sigv4 "aws:amz:auto:s3" \
-      --output "$destination/$name" "${endpoint%/}/$(setting R2_BUCKET)/$name"
+fetch() {
+  printf 'user = "%s:%s"\n' "$(setting R2_ACCESS_KEY_ID)" "$(setting R2_SECRET_ACCESS_KEY)" \
+    | curl --silent --show-error --fail --max-time 300 --config - --aws-sigv4 "aws:amz:auto:s3" \
+        --output "$destination/$1" "${endpoint%/}/$(setting R2_BUCKET)/$1"
+}
+
+if [[ -n "$(setting BACKUP_PASSPHRASE)" ]]; then
+  fetch "$name.gpg"
+  gpg --batch --yes --quiet --pinentry-mode loopback --passphrase-fd 3 --decrypt \
+      --output "$destination/$name" "$destination/$name.gpg" 3<<< "$(setting BACKUP_PASSPHRASE)"
+  rm -f "$destination/$name.gpg"
+else
+  fetch "$name"
+fi
 echo "Sauvegarde récupérée : $destination/$name ($(stat -c %s "$destination/$name") octets)"

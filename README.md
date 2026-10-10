@@ -48,8 +48,18 @@ Principes à connaître avant d'intervenir :
   réservées remplacées par `"***LOCKED***"` (`backend/app/services/teaser.py`, liste blanche
   par source : tout nouveau champ est masqué par défaut). Le masquage est fait côté serveur ;
   le flou du frontend n'est qu'un habillage. L'accès complet exige un jeton de session Supabase
-  valide et une ligne dans `immo.audit_entitlements` pour cette adresse. Cette table sera
-  alimentée par le paiement (Stripe, à venir) ; d'ici là, un droit s'ouvre à la main en SQL.
+  valide et une ligne dans `immo.audit_entitlements` pour cette adresse, écrite par le
+  paiement Stripe. Les chiffres de la commune déjà publiés sur les fiches communales (loyers,
+  taxe foncière, délinquance, fibre) restent en clair dans l'aperçu.
+- **Rapport d'exemple.** L'adresse dont l'identifiant BAN figure dans `DEMO_ADDRESS_ID` est
+  servie complète à tous (`meta.access = "demo"`) ; le lien du site pointe sur la même adresse
+  (`frontend/src/lib/demo.ts`). Sans cette variable, le lien mène à l'aperçu ordinaire.
+- **Quotas.** Trois garde-fous, tous en mémoire : un plafond d'appels par source et par minute
+  pour tout le serveur (`SOURCE_QUOTA_PER_MINUTE`, 300 ; `SOURCE_QUOTAS`, 100 pour la BDNB qui
+  en tolère 120), un plafond d'audits par heure pour un visiteur sans compte
+  (`ANONYMOUS_AUDITS_PER_HOUR`, 20) et, pour un abonné Pro, un plafond d'adresses différentes
+  sur 24 heures (`PRO_DAILY_ADDRESS_LIMIT`, 150 ; les adresses achetées ou déjà vues dans la
+  journée ne comptent pas).
 - **Cache.** Un rapport complet est conservé 7 jours, un rapport partiel 15 minutes. Changer le
   format du rapport impose d'incrémenter `REPORT_VERSION`.
 - **Sécurité des données.** Les tables vivent dans le schéma `immo`, non exposé par PostgREST,
@@ -255,6 +265,13 @@ sortir le script en erreur, la copie locale étant conservée. La durée de cons
 se règle par une règle de cycle de vie du bucket. Pour repartir d'un serveur neuf :
 `./deploy/backup-fetch.sh immo-AAAA-MM-JJ-HHMM.dump`, puis `./deploy/restore.sh`.
 
+**Chiffrement** : avec `BACKUP_PASSPHRASE` dans le `.env` du serveur, la copie est chiffrée sur
+place (GnuPG, AES-256) et envoyée sous le nom `<fichier>.dump.gpg` ; `backup-fetch.sh` la
+déchiffre avec la même phrase. Sans elle, la copie part en clair et le journal le signale.
+Cette phrase doit être conservée ailleurs que sur le serveur (gestionnaire de mots de passe) :
+si le serveur est perdu avec elle, les copies hors site sont illisibles. Les copies locales de
+`/srv/immo-backups` restent en clair, sur le même disque que la base.
+
 ## Référencement
 
 Une application monopage ne livre aux robots qu'une coquille vide. Le site expose donc :
@@ -343,9 +360,27 @@ docker compose --profile quality up -d   # SonarQube, http://localhost:9000
 ```
 
 En intégration continue, `.github/workflows/ci.yml` rejoue le style, le typage, les tests et le
-build à chaque push ou pull request sur `main`, sans aucun secret à configurer. L'analyse
-SonarQube reste locale et gratuite (édition Community, commandes ci-dessus) : SonarQube Cloud
-n'est pas utilisé.
+build à chaque push ou pull request sur `main`, puis déclenche la mise en ligne du site (voir
+« Frontend sur Cloudflare Pages »). L'analyse SonarQube reste locale et gratuite (édition
+Community, commandes ci-dessus) : SonarQube Cloud n'est pas utilisé.
+
+Trois suites complètent les tests unitaires :
+
+- **SQL sur une vraie base** (`tests/test_integration_sql.py`, `test_integration_billing_sql.py`) :
+  requêtes géographiques, et tout le chemin de l'argent (droits, crédits, abonnements,
+  remboursements, plafond Pro). La seconde demande en plus `IMMO_TEST_ADMIN_DATABASE_URL`, pour
+  créer ses comptes de test dans `auth.users`.
+- **Parcours d'achat de bout en bout** (`cd frontend && npm run e2e`, pile Docker démarrée) :
+  recherche, aperçu, création de compte, paiement et déblocage dans un vrai navigateur. Stripe
+  est le seul élément simulé ; le compte créé est supprimé en sortant. En intégration continue,
+  son échec est signalé sans bloquer la mise en ligne, car il dépend de la Base Adresse
+  Nationale.
+- **Scripts des cartes de bruit** (`scripts/tests`, commande en tête du fichier).
+
+**Surveillance extérieure** : `.github/workflows/surveillance.yml` interroge le site, l'API,
+l'authentification et l'échéance des certificats quatre fois par heure depuis GitHub. Un échec
+déclenche l'e-mail « workflow en échec » de GitHub. GitHub suspend cette planification si le
+dépôt reste 60 jours sans activité.
 
 Seuils tenus : aucun bug, aucune vulnérabilité, aucun Security Hotspot ouvert, duplication
 inférieure à 5 %, complexité par fonction inférieure à 15, typage strict des deux côtés.
@@ -400,11 +435,15 @@ bloque les appels à l'API.
 
 - **Paiement en mode test** : la production utilise les clés de test Stripe ; aucun
   encaissement réel tant que les clés et le webhook de production ne sont pas configurés.
-- **Mentions légales incomplètes** : l'identité de l'éditeur reste à renseigner dans
+- **Mentions légales incomplètes** : SIRET, TVA et médiateur restent à renseigner dans
   `frontend/src/lib/legal.ts` ; d'ici là, les pages légales ne sont pas indexées.
-- **Surveillance** : test de fumée et alertes tournent sur le serveur lui-même ; rien ne
-  prévient s'il tombe entièrement.
-- **Limitation de débit en mémoire** : valable pour un seul processus backend.
+- **Surveillance** : les contrôles extérieurs peuvent être retardés de plusieurs minutes par
+  GitHub et ne suivent ni les erreurs applicatives ni les temps de réponse.
+- **Limitation de débit et quotas en mémoire** : valables pour un seul processus backend, et
+  remis à zéro à chaque redémarrage.
+- **Anti-robot** : le défi Turnstile de l'inscription est prêt mais inactif tant que
+  `CAPTCHA_ENABLED`, `CLOUDFLARE_TURNSTILE_SECRET_KEY` (serveur) et `VITE_TURNSTILE_SITE_KEY` (site) ne sont
+  pas renseignés ensemble. Les audits anonymes sont plafonnés par adresse IP, sans défi.
 - **Transports et commerces** : données OpenStreetMap figées à la date de la dernière ingestion
   (tâche mensuelle).
 - **Bruit** : cartes des grandes infrastructures routières et ferroviaires de 65 départements
@@ -417,6 +456,8 @@ bloque les appels à l'API.
   1er août 2026), dans `backend/app/services/providers/rental_rules.py` ; à relire à chaque
   nouveau décret.
 - **Charges de copropriété** : moyennes de 2018, proposées comme valeur de départ modifiable.
-- **Sauvegardes** : quotidiennes, copiées hors site sur Cloudflare R2, mais non chiffrées.
+- **Sauvegardes** : quotidiennes, copiées hors site sur Cloudflare R2, chiffrées si
+  `BACKUP_PASSPHRASE` est renseignée. Aucune restauration complète n'a été répétée sur un
+  serveur neuf.
 - **Licences à respecter** : indice ATMO (ODbL, attribution Atmo France et association
   régionale), OpenStreetMap (ODbL), données publiques sous Licence Ouverte.

@@ -15,8 +15,10 @@ import { useAccount } from '../composables/useAccount'
 import { useAudit } from '../composables/useAudit'
 import { useAuth } from '../composables/useAuth'
 import { communeSlug } from '../lib/commune'
+import { DEMO_LABEL, DEMO_TARGET } from '../lib/demo'
 import { mapMarkers } from '../lib/markers'
 import { clearPendingAudit, savePendingAudit } from '../lib/pending'
+import { UNIT_PRICE } from '../lib/pricing'
 import { buildReportSections, synthesisSections, unavailableSources } from '../lib/report'
 import { DEFAULT_DESCRIPTION, setPageMeta, SITE_NAME } from '../lib/seo'
 import { SOURCE_INFO } from '../lib/sources'
@@ -53,11 +55,14 @@ const active = computed(() => phase.value !== 'idle')
 const settled = computed(() => phase.value === 'done' || phase.value === 'error')
 // Version restreinte : le serveur n'a pas envoyé les valeurs réservées aux audits achetés.
 const teaser = computed(() => meta.value?.access === 'teaser')
+// Rapport d'exemple : complet, ouvert à tous, sans rapport avec un achat.
+const demo = computed(() => meta.value?.access === 'demo')
 const credits = computed(() => account.value?.credits ?? 0)
 const unlockLabel = computed(() => {
-  if (!user.value) return 'Créer un compte pour débloquer l’audit complet de cette adresse'
+  // Le prix est annoncé avant la création de compte : personne ne s'inscrit pour le découvrir.
+  if (!user.value) return `Débloquer l’audit complet pour ${UNIT_PRICE}`
   if (credits.value > 0) return `Débloquer avec 1 crédit (${credits.value} restants)`
-  return 'Débloquer l’audit complet de cette adresse'
+  return `Débloquer l’audit complet pour ${UNIT_PRICE}`
 })
 // Ventes, écoles et permis placés sur la carte ; vide en aperçu gratuit (positions non transmises).
 const markers = computed(() => mapMarkers(sources.value))
@@ -246,6 +251,12 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
         <div class="mx-auto" :class="active ? 'max-w-none' : 'max-w-2xl'">
           <AddressSearch :key="searchKey" :initial-label="initial?.label" @select="onSelect" />
         </div>
+        <p v-if="!active" class="mx-auto mt-5 max-w-2xl text-center text-sm text-slate-600">
+          Aperçu gratuit et sans compte. Audit complet avec export PDF : {{ UNIT_PRICE }} par adresse.
+          <button type="button" class="font-medium text-brand-700 underline hover:text-brand-900" @click="run(DEMO_TARGET, DEMO_LABEL)">
+            Voir un rapport d’exemple
+          </button>
+        </p>
       </section>
 
       <template v-if="active">
@@ -380,8 +391,18 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
             class="mb-6 rounded-2xl border border-brand-100 bg-brand-50 px-5 py-4 text-sm text-brand-900"
           >
             <strong class="font-semibold">Aperçu gratuit.</strong>
-            L’analyse de cette adresse est terminée. Les résultats détaillés (prix, rendement, risques
-            précis, antennes, bruit) sont réservés à l’audit complet, export PDF inclus.
+            Les chiffres de la commune (loyers, taxe foncière, délinquance, fibre) et la qualité de l’air
+            sont affichés en clair. Ce qui est propre à cette adresse (prix des ventes voisines, rendement,
+            bâtiment, bruit, permis, synthèse) est réservé à l’audit complet, export PDF inclus :
+            {{ UNIT_PRICE }}.
+          </p>
+          <p
+            v-else-if="demo"
+            class="mb-6 rounded-2xl border border-brand-100 bg-brand-50 px-5 py-4 text-sm text-brand-900"
+          >
+            <strong class="font-semibold">Rapport d’exemple.</strong>
+            Voici ce que contient un audit complet, ici sur une adresse de démonstration à Angers.
+            Recherchez votre adresse pour obtenir le même rapport : {{ UNIT_PRICE }}.
           </p>
 
           <SynthesisPanel v-if="meta?.synthese" class="mb-10" :synthesis="meta.synthese" />

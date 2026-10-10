@@ -45,6 +45,11 @@ def enforce_rate_limit(
         )
 
 
+def get_anonymous_limiter(request: Request) -> SlidingWindowRateLimiter:
+    limiter: SlidingWindowRateLimiter = request.app.state.anonymous_limiter
+    return limiter
+
+
 def get_entitlements(request: Request) -> EntitlementRepository:
     repository: EntitlementRepository = request.app.state.entitlements
     return repository
@@ -69,6 +74,24 @@ def get_current_user(
         raise _unauthorized() from exc
 
 
+def enforce_anonymous_quota(
+    request: Request,
+    user: Annotated[AuthenticatedUser | None, Depends(get_current_user)],
+    limiter: Annotated[SlidingWindowRateLimiter, Depends(get_anonymous_limiter)],
+) -> None:
+    """Plafonne les audits d'un visiteur sans compte : chacun déclenche des appels sortants."""
+    if user is not None:
+        return
+    client_ip = request.client.host if request.client else "unknown"
+    retry_after = limiter.check(client_ip)
+    if retry_after is not None:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail="Limite d'aperçus gratuits atteinte : créez un compte ou réessayez plus tard.",
+            headers={"Retry-After": str(math.ceil(retry_after))},
+        )
+
+
 def _unauthorized() -> HTTPException:
     return HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
@@ -77,30 +100,62 @@ def _unauthorized() -> HTTPException:
     )
 
 
+class DailyLimitReachedError(Exception):
+    """L'abonné a atteint son plafond d'adresses différentes sur 24 heures."""
+
+
 class AccessCheck:
     """Décide si le demandeur reçoit le rapport complet d'une localisation."""
 
-    def __init__(self, user: AuthenticatedUser | None, entitlements: EntitlementRepository) -> None:
+    def __init__(
+        self,
+        user: AuthenticatedUser | None,
+        entitlements: EntitlementRepository,
+        *,
+        daily_limit: int | None = None,
+        demo_address_id: str | None = None,
+    ) -> None:
         self._user = user
         self._entitlements = entitlements
+        self._daily_limit = daily_limit
+        self._demo_address_id = demo_address_id
+
+    def is_demo(self, location: Location) -> bool:
+        """Vrai pour l'adresse de démonstration, dont le rapport complet est ouvert à tous."""
+        return bool(self._demo_address_id) and location.adresse_id == self._demo_address_id
 
     async def allows(self, location: Location) -> bool:
         """Vrai si l'utilisateur a acheté l'audit de cette adresse (ou est abonné).
 
         Refus par défaut : sans utilisateur, sans droit, ou si la vérification échoue.
+        Lève DailyLimitReachedError pour un abonné qui a épuisé son plafond du jour.
         """
+        if self.is_demo(location):
+            return True
         if self._user is None:
             return False
         try:
             allowed = await self._entitlements.has_access(
                 self._user.id, location.lat, location.lon, location.adresse_id
             )
+            if allowed:
+                await self._enforce_daily_limit(location)
         except RepositoryError:
             logger.warning("Vérification des droits impossible : accès restreint par défaut")
             return False
         if allowed:
             await self._remember(location)
         return allowed
+
+    async def _enforce_daily_limit(self, location: Location) -> None:
+        if self._user is None or self._daily_limit is None:
+            return
+        viewed = await self._entitlements.subscription_usage(
+            self._user.id, location.lat, location.lon, location.adresse_id
+        )
+        if viewed is not None and viewed >= self._daily_limit:
+            logger.warning("Plafond quotidien atteint pour l'abonné %s", self._user.id)
+            raise DailyLimitReachedError
 
     async def _remember(self, location: Location) -> None:
         """Garde la trace du rapport complet servi ; un échec ici ne retire pas l'accès."""
@@ -118,7 +173,13 @@ def get_access_check(
     user: Annotated[AuthenticatedUser | None, Depends(get_current_user)],
     entitlements: Annotated[EntitlementRepository, Depends(get_entitlements)],
 ) -> AccessCheck:
-    return AccessCheck(user, entitlements)
+    settings = get_settings()
+    return AccessCheck(
+        user,
+        entitlements,
+        daily_limit=settings.pro_daily_address_limit,
+        demo_address_id=settings.demo_address_id,
+    )
 
 
 def require_user(

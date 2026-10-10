@@ -29,6 +29,7 @@ export interface SseEvent {
 const CONNECTION_ERROR = "Impossible de joindre le service d'audit. Vérifiez votre connexion et réessayez."
 const SESSION_ERROR = 'Votre session a expiré. Reconnectez-vous pour relancer l’audit.'
 const HTTP_UNAUTHORIZED = 401
+const HTTP_TOO_MANY_REQUESTS = 429
 
 function streamUrl(target: AuditTarget): string {
   const url = new URL(`${API_URL}/api/v1/audit/stream`)
@@ -94,9 +95,17 @@ function dispatch({ event, data }: SseEvent, handlers: AuditStreamHandlers): boo
   return false
 }
 
+/** Message d'un refus du serveur : le sien pour un quota dépassé, générique sinon. */
+async function refusalMessage(response: Response): Promise<string> {
+  if (response.status === HTTP_UNAUTHORIZED) return SESSION_ERROR
+  if (response.status !== HTTP_TOO_MANY_REQUESTS) return CONNECTION_ERROR
+  const detail = parseJson<{ detail?: unknown }>(await response.text().catch(() => ''))?.detail
+  return typeof detail === 'string' ? detail : 'Trop de requêtes, réessayez dans un instant.'
+}
+
 async function consume(response: Response, handlers: AuditStreamHandlers): Promise<void> {
   if (!response.ok || !response.body) {
-    handlers.onError(response.status === HTTP_UNAUTHORIZED ? SESSION_ERROR : CONNECTION_ERROR)
+    handlers.onError(await refusalMessage(response))
     return
   }
   const reader = response.body.getReader()

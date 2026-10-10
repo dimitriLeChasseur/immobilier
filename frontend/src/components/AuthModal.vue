@@ -2,6 +2,8 @@
 import { computed, ref, watch } from 'vue'
 
 import { MIN_PASSWORD_LENGTH, useAuth, type AuthOutcome } from '../composables/useAuth'
+import { CAPTCHA_SITE_KEY } from '../lib/captcha'
+import CaptchaWidget from './CaptchaWidget.vue'
 
 const props = defineProps<{ initialMode?: 'signup' | 'signin' }>()
 const open = defineModel<boolean>('open', { required: true })
@@ -16,6 +18,10 @@ const password = ref('')
 const busy = ref(false)
 const error = ref<string | null>(null)
 const notice = ref<string | null>(null)
+const captcha = ref<InstanceType<typeof CaptchaWidget> | null>(null)
+const captchaToken = ref<string | null>(null)
+// Avec le défi activé, le formulaire attend son jeton : le serveur refuserait l'envoi.
+const awaitingCaptcha = computed(() => Boolean(CAPTCHA_SITE_KEY) && captchaToken.value === null)
 
 const isSignup = computed(() => mode.value === 'signup')
 const isReset = computed(() => mode.value === 'reset')
@@ -57,16 +63,18 @@ async function submit(): Promise<void> {
   busy.value = true
   error.value = null
   notice.value = null
+  const token = captchaToken.value ?? undefined
   if (isReset.value) {
-    const outcome = await requestPasswordReset(email.value.trim())
+    const outcome = await requestPasswordReset(email.value.trim(), token)
     // Même message que le compte existe ou non : on ne révèle pas qui est inscrit.
     if (outcome.ok) notice.value = 'Si un compte existe pour cette adresse, un e-mail vient de partir avec un lien.'
     else error.value = outcome.message
-    busy.value = false
-    return
+  } else {
+    const action = isSignup.value ? signUp : signIn
+    handle(await action(email.value.trim(), password.value, token))
   }
-  const action = isSignup.value ? signUp : signIn
-  handle(await action(email.value.trim(), password.value))
+  // Le jeton est consommé par cet envoi : un nouvel essai en demande un autre.
+  captcha.value?.reset()
   busy.value = false
 }
 
@@ -161,10 +169,12 @@ async function withGoogle(): Promise<void> {
           <p v-if="error" class="rounded-xl bg-rose-50 px-3 py-2 text-sm text-rose-800" role="alert">{{ error }}</p>
           <output v-if="notice" class="block rounded-xl bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{{ notice }}</output>
 
+          <CaptchaWidget v-if="open" ref="captcha" v-model="captchaToken" />
+
           <button
             type="submit"
             class="w-full rounded-lg bg-brand-700 px-4 py-2.5 text-sm font-medium text-white hover:bg-brand-900 disabled:opacity-50"
-            :disabled="busy"
+            :disabled="busy || awaitingCaptcha"
           >
             {{ isReset ? 'Recevoir le lien' : isSignup ? 'Créer mon compte' : 'Me connecter' }}
           </button>

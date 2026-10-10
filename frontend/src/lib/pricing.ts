@@ -12,15 +12,39 @@ export interface Offer {
   highlighted: boolean
 }
 
+/** Plafond d'usage de l'offre Pro, appliqué par le serveur (PRO_DAILY_ADDRESS_LIMIT). */
+export const PRO_DAILY_ADDRESSES = 150
+
+/** Prix de l'audit à l'unité, repris dans les boutons de déblocage. */
+export const UNIT_PRICE = '4,99 €'
+
+/** Ce que tout visiteur obtient sans compte ni paiement. */
+export const FREE_OFFER = {
+  name: 'Aperçu gratuit',
+  price: '0 €',
+  priceNote: 'sans compte',
+  description: 'Les chiffres de la commune et un aperçu de ce que l’audit a trouvé à cette adresse.',
+  features: [
+    'Loyers, taxe foncière, délinquance et fibre de la commune',
+    'Qualité de l’air et risques recensés',
+    'Nombre de ventes, de diagnostics et de permis analysés',
+  ],
+  cta: 'Analyser une adresse',
+} as const
+
 export const OFFERS: readonly Offer[] = [
   {
     id: 'unit',
     name: 'Contre-Visite',
-    price: '4,99 €',
+    price: UNIT_PRICE,
     priceNote: 'TTC, paiement unique',
     description: 'Audit de Due Diligence complet pour 1 adresse + Export PDF.',
-    features: ['1 audit complet', 'Export PDF', 'Checklist de contre-visite'],
-    cta: 'Payer 4,99 €',
+    features: [
+      'Prix des ventes voisines, rendement et synthèse',
+      'Bâtiment, DPE, bruit, permis, écoles, carte',
+      'Export PDF et checklist de contre-visite',
+    ],
+    cta: `Payer ${UNIT_PRICE}`,
     highlighted: false,
   },
   {
@@ -38,8 +62,12 @@ export const OFFERS: readonly Offer[] = [
     name: 'Pro',
     price: '49,00 €',
     priceNote: 'HT par mois',
-    description: 'Rapports illimités + Export en marque blanche (Votre logo).',
-    features: ['Audits illimités', 'PDF à votre logo', 'Pour agents et chasseurs immobiliers'],
+    description: 'Rapports sans décompte + Export en marque blanche (Votre logo).',
+    features: [
+      `Jusqu’à ${PRO_DAILY_ADDRESSES} nouvelles adresses par jour`,
+      'PDF à votre logo',
+      'Pour agents et chasseurs immobiliers',
+    ],
     cta: 'S’abonner',
     highlighted: false,
   },

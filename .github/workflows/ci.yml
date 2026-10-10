@@ -53,6 +53,12 @@ jobs:
           SUPABASE_JWT_SECRET: test
         run: uv run pytest --cov=app --cov-report=term
 
+      # Scripts autonomes des cartes de bruit : leurs dépendances ne sont pas celles du backend.
+      - name: Tester les scripts d'ingestion du bruit
+        run: >
+          uv run --no-project --python 3.11 --with pytest --with geopandas --with pyogrio
+          --with requests --with sqlalchemy --with "psycopg[binary]" pytest scripts/tests -q
+
       - name: Configurer Node.js
         uses: actions/setup-node@v7
         with:
@@ -101,12 +107,71 @@ jobs:
         run: |
           password="$(grep '^IMMO_APP_DB_PASSWORD=' ../.env | cut -d= -f2-)"
           export IMMO_TEST_DATABASE_URL="postgresql://immo_app:${password}@127.0.0.1:5433/postgres"
+          # Accès d'administration : sert uniquement à créer les comptes de test du paiement.
+          admin="$(grep '^POSTGRES_PASSWORD=' ../.env | cut -d= -f2-)"
+          export IMMO_TEST_ADMIN_DATABASE_URL="postgresql://supabase_admin:${admin}@127.0.0.1:5433/postgres"
           export DATABASE_URL="$IMMO_TEST_DATABASE_URL" SUPABASE_JWT_SECRET=test
-          uv run pytest tests/test_integration_sql.py -v
+          uv run pytest tests/test_integration_sql.py tests/test_integration_billing_sql.py -v
 
       - name: Afficher les journaux de la base en cas d'échec
         if: failure()
         run: docker compose logs db | tail -n 80
+
+  # Parcours d'achat joué dans un navigateur, contre la pile réelle (Stripe simulé). Il dépend
+  # de la Base Adresse Nationale : son échec est signalé mais ne bloque pas la mise en ligne.
+  e2e:
+    name: Parcours d'achat de bout en bout
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+
+    steps:
+      - name: Récupérer le code
+        uses: actions/checkout@v7
+
+      - name: Configurer Python 3.11 et uv
+        uses: astral-sh/setup-uv@v10.2.0
+        with:
+          python-version: "3.11"
+          enable-cache: true
+          cache-dependency-glob: backend/uv.lock
+
+      - name: Installer les dépendances du backend
+        working-directory: backend
+        run: uv sync --frozen
+
+      - name: Configurer Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Installer le frontend et le navigateur
+        working-directory: frontend
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+
+      - name: Démarrer la base, l'authentification et le proxy
+        run: |
+          ./scripts/generate-env.sh
+          docker compose up -d --wait db auth backend caddy
+
+      - name: Jouer le parcours d'achat
+        working-directory: frontend
+        run: npm run e2e
+
+      - name: Conserver la capture en cas d'échec
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: e2e-echec
+          path: frontend/e2e-echec.png
+          if-no-files-found: ignore
+
+      - name: Afficher les journaux en cas d'échec
+        if: failure()
+        run: docker compose logs auth backend caddy | tail -n 120
 
   # Cloudflare Pages construit et publie le site à l'appel de ce crochet : ses déploiements
   # automatiques de la branche de production sont coupés, pour qu'un commit qui échoue aux

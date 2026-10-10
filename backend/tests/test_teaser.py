@@ -11,7 +11,12 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.deps import get_audit_service, get_entitlements, get_rate_limiter
+from app.api.deps import (
+    get_anonymous_limiter,
+    get_audit_service,
+    get_entitlements,
+    get_rate_limiter,
+)
 from app.api.routers import audit
 from app.core.config import get_settings
 from app.core.errors import RepositoryError
@@ -87,8 +92,10 @@ class FullService:
 
 
 class Entitlements:
-    def __init__(self, granted: bool = False, broken: bool = False) -> None:
-        self.granted, self.broken = granted, broken
+    def __init__(
+        self, granted: bool = False, broken: bool = False, usage: int | None = None
+    ) -> None:
+        self.granted, self.broken, self.usage = granted, broken, usage
         self.checked: list[tuple[str, float, float, str | None]] = []
         self.viewed: list[tuple[str, str]] = []
 
@@ -105,12 +112,18 @@ class Entitlements:
     ) -> None:
         self.viewed.append((user_id, label))
 
+    async def subscription_usage(
+        self, user_id: str, lat: float, lon: float, address_id: str | None = None
+    ) -> int | None:
+        return self.usage
+
 
 def make_client(entitlements: Entitlements) -> Iterator[TestClient]:
     app = FastAPI()
     app.include_router(audit.router)
     app.dependency_overrides[get_audit_service] = lambda: FullService()
     app.dependency_overrides[get_rate_limiter] = lambda: SlidingWindowRateLimiter(100, 60)
+    app.dependency_overrides[get_anonymous_limiter] = lambda: SlidingWindowRateLimiter(100, 60)
     app.dependency_overrides[get_entitlements] = lambda: entitlements
     with TestClient(app) as test_client:
         yield test_client
@@ -264,3 +277,65 @@ def test_masking_does_not_alter_the_cached_report() -> None:
     assert REPORT.sources["dvf"].data is not None
     assert REPORT.sources["dvf"].data["prix_m2_median"] == 3859
     assert REPORT.meta.access == "full"
+
+
+def test_commune_figures_published_on_commune_pages_are_not_masked() -> None:
+    rents = {"loyer_m2": 12.4, "fourchette": {"bas": 10.1, "haut": 14.9}}
+    assert mask_data("loyers", rents) == rents
+    for source in ("taxe_fonciere", "delinquance", "connectivite"):
+        assert mask_data(source, {"valeur": 1, "ajout": [2]}) == {"valeur": 1, "ajout": [2]}
+
+
+def test_subscriber_over_the_daily_limit_is_stopped_not_downgraded(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("PRO_DAILY_ADDRESS_LIMIT", "3")
+    get_settings.cache_clear()
+    try:
+        entitlements = Entitlements(granted=True, usage=3)
+        client = next(make_client(entitlements))
+        response = client.get("/api/v1/audit", params=PARAMS, headers=bearer(token()))
+        assert response.status_code == 429
+        assert "plafond quotidien" in response.json()["detail"]
+        assert entitlements.viewed == []
+        stream = client.get("/api/v1/audit/stream", params=PARAMS, headers=bearer(token())).text
+        assert "daily_limit_reached" in stream
+        assert "3859" not in stream
+
+        # Sous le plafond, ou pour une adresse achetée ou déjà comptée (usage None) : accès entier.
+        for usage in (2, None):
+            allowed = next(make_client(Entitlements(granted=True, usage=usage)))
+            body = allowed.get("/api/v1/audit", params=PARAMS, headers=bearer(token())).json()
+            assert body["meta"]["access"] == "full"
+    finally:
+        get_settings.cache_clear()
+
+
+def test_demo_address_is_open_to_everyone_and_flagged(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("DEMO_ADDRESS_ID", "49007_6120_00012")
+    get_settings.cache_clear()
+    try:
+        entitlements = Entitlements()
+        client = next(make_client(entitlements))
+        body = client.get("/api/v1/audit", params=PARAMS).json()
+        assert body["meta"]["access"] == "demo"
+        assert body["sources"]["dvf"]["data"]["prix_m2_median"] == 3859
+        assert entitlements.checked == [] and entitlements.viewed == []
+        stream = client.get("/api/v1/audit/stream", params=PARAMS).text
+        assert '"access": "demo"' in stream
+        assert LOCKED not in stream
+    finally:
+        get_settings.cache_clear()
+
+
+def test_another_address_stays_masked_when_a_demo_is_configured(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("DEMO_ADDRESS_ID", "75101_0001_00001")
+    get_settings.cache_clear()
+    try:
+        client = next(make_client(Entitlements()))
+        response = client.get("/api/v1/audit", params=PARAMS)
+        assert_teaser(response.json(), response.text)
+    finally:
+        get_settings.cache_clear()

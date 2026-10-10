@@ -7,7 +7,8 @@ import AuthModal from '../components/AuthModal.vue'
 import { useAccount } from '../composables/useAccount'
 import { useAuth } from '../composables/useAuth'
 import { readPendingAudit } from '../lib/pending'
-import { OFFERS, type Offer } from '../lib/pricing'
+import { DEMO_QUERY } from '../lib/demo'
+import { FREE_OFFER, OFFERS, type Offer } from '../lib/pricing'
 import { writeTarget } from '../lib/url'
 
 const { accessToken } = useAuth()
@@ -77,7 +78,8 @@ function manageSubscription(): Promise<void> {
         Débloquez l’audit complet
       </h1>
       <p class="mt-3 text-base text-slate-600">
-        Prix des ventes, rendement, risques détaillés, bruit, réseau mobile et export PDF.
+        L’aperçu d’une adresse est gratuit. L’audit complet ajoute le prix des ventes, le rendement,
+        le bâtiment, le bruit, la synthèse et l’export PDF.
       </p>
       <p
         v-if="pending"
@@ -115,14 +117,36 @@ function manageSubscription(): Promise<void> {
       </p>
     </div>
 
-    <ul class="mx-auto mt-10 grid max-w-5xl grid-cols-1 items-stretch gap-6 lg:grid-cols-3">
+    <ul class="mx-auto mt-10 grid max-w-6xl grid-cols-1 items-stretch gap-6 sm:grid-cols-2 xl:grid-cols-4">
+      <li class="flex flex-col rounded-2xl border border-slate-200 bg-slate-50 p-6">
+        <h2 class="text-lg font-semibold text-slate-900">{{ FREE_OFFER.name }}</h2>
+        <p class="mt-4 flex flex-wrap items-baseline gap-x-2">
+          <span class="text-4xl font-semibold tracking-tight whitespace-nowrap text-slate-900 tabular-nums">{{ FREE_OFFER.price }}</span>
+          <span class="text-sm text-slate-500">{{ FREE_OFFER.priceNote }}</span>
+        </p>
+        <p class="mt-4 text-sm text-slate-600">{{ FREE_OFFER.description }}</p>
+        <ul class="mt-5 flex-1 space-y-2 text-sm text-slate-700">
+          <li v-for="feature in FREE_OFFER.features" :key="feature" class="flex gap-2">
+            <svg viewBox="0 0 16 16" class="mt-0.5 size-4 shrink-0 text-slate-500" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+              <path d="M3 8.5 6.5 12 13 4.5" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            {{ feature }}
+          </li>
+        </ul>
+        <RouterLink
+          :to="backLink"
+          class="mt-6 block w-full rounded-lg border border-slate-300 bg-white px-4 py-2.5 text-center text-sm font-medium text-slate-800 hover:bg-slate-50"
+        >
+          {{ pending ? 'Revenir à l’aperçu' : FREE_OFFER.cta }}
+        </RouterLink>
+      </li>
       <li
         v-for="offer in OFFERS"
         :key="offer.id"
         class="relative flex flex-col rounded-2xl bg-white p-6"
         :class="
           offer.highlighted
-            ? 'border-2 border-brand-600 shadow-xl lg:-my-4 lg:py-10'
+            ? 'border-2 border-brand-600 shadow-xl'
             : 'border border-slate-200 shadow-sm'
         "
       >
@@ -130,11 +154,11 @@ function manageSubscription(): Promise<void> {
           v-if="offer.highlighted"
           class="absolute -top-3 left-1/2 -translate-x-1/2 rounded-full bg-brand-600 px-3 py-1 text-xs font-semibold whitespace-nowrap text-white"
         >
-          Le plus choisi
+          Le plus avantageux
         </p>
         <h2 class="text-lg font-semibold text-slate-900">{{ offer.name }}</h2>
-        <p class="mt-4 flex items-baseline gap-2">
-          <span class="text-4xl font-semibold tracking-tight text-slate-900 tabular-nums">{{ offer.price }}</span>
+        <p class="mt-4 flex flex-wrap items-baseline gap-x-2">
+          <span class="text-4xl font-semibold tracking-tight whitespace-nowrap text-slate-900 tabular-nums">{{ offer.price }}</span>
           <span class="text-sm text-slate-500">{{ offer.priceNote }}</span>
         </p>
         <p class="mt-4 text-sm text-slate-600">{{ offer.description }}</p>
@@ -167,7 +191,13 @@ function manageSubscription(): Promise<void> {
     <p v-if="error" class="mx-auto mt-8 max-w-xl rounded-xl bg-rose-50 px-4 py-3 text-center text-sm text-rose-800" role="alert">
       {{ error }}
     </p>
-    <p class="mt-8 text-center text-xs text-slate-500">
+    <p class="mt-8 text-center text-sm text-slate-600">
+      Pas sûr de ce que contient l’audit complet ?
+      <RouterLink :to="{ name: 'audit', query: DEMO_QUERY }" class="font-medium text-brand-700 underline hover:text-brand-900">
+        Voir un rapport d’exemple
+      </RouterLink>
+    </p>
+    <p class="mt-4 text-center text-xs text-slate-500">
       Paiement sécurisé par Stripe. Vos coordonnées bancaires ne transitent pas par nos serveurs.
     </p>
     <p class="mx-auto mt-2 max-w-2xl text-center text-xs text-slate-500">

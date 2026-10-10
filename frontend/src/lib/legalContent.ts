@@ -1,5 +1,5 @@
 import { HOSTS, PROCESSORS, PUBLISHER } from './legal'
-import { OFFERS } from './pricing'
+import { OFFERS, PRO_DAILY_ADDRESSES } from './pricing'
 import { DATA_SOURCES } from './sources'
 
 export interface LegalSection {
@@ -17,7 +17,7 @@ export interface LegalDocument {
 
 export type LegalKey = 'mentions' | 'cgv' | 'confidentialite'
 
-const UPDATED = '9 octobre 2026'
+const UPDATED = '10 octobre 2026'
 const P = PUBLISHER
 
 const mentions: LegalDocument = {
@@ -120,6 +120,7 @@ const cgv: LegalDocument = {
       heading: '6. Abonnement Pro',
       paragraphs: [
         'L’abonnement Pro est mensuel, sans engagement de durée, et renouvelé tacitement chaque mois. Il peut être résilié à tout moment depuis « Mon compte », rubrique « Gérer ou résilier ». La résiliation prend effet à la fin de la période déjà payée.',
+        `L’abonnement ouvre l’audit complet de toute adresse, sans décompte de crédits, dans la limite de ${PRO_DAILY_ADDRESSES} adresses différentes par période de 24 heures. Cette limite protège le service et les sources publiques qu’il interroge ; les adresses déjà consultées restent accessibles une fois la limite atteinte. L’extraction automatisée des rapports est interdite.`,
         'La marque blanche permet d’apposer le nom, le logo et les coordonnées de l’abonné sur les rapports PDF. L’abonné est seul responsable des éléments qu’il y fait figurer et de l’usage qu’il fait des rapports auprès de ses clients. Les sources des données restent citées sur chaque rapport.',
       ],
     },
@@ -175,8 +176,9 @@ const confidentialite: LegalDocument = {
     {
       heading: 'Cookies et stockage local',
       paragraphs: [
-        'Le site n’utilise ni cookie publicitaire, ni outil de mesure d’audience, ni traceur tiers. Il enregistre dans votre navigateur ce qui est strictement nécessaire à son fonctionnement : votre session de connexion et, le temps de l’inscription et du paiement, l’adresse que vous souhaitez débloquer. Aucun consentement n’est requis pour ces usages.',
+        'Le site n’utilise ni cookie publicitaire ni traceur tiers. La fréquentation est mesurée par Cloudflare Web Analytics, sans cookie, sans identifiant propre à votre navigateur et sans suivi d’un site à l’autre : seules des statistiques d’ensemble sont produites. Il enregistre dans votre navigateur ce qui est strictement nécessaire à son fonctionnement : votre session de connexion et, le temps de l’inscription et du paiement, l’adresse que vous souhaitez débloquer. Aucun consentement n’est requis pour ces usages.',
         'La page de paiement est hébergée par Stripe, qui dépose ses propres cookies de sécurité.',
+        'Les formulaires de création de compte et de connexion peuvent être protégés par le défi anti-robot Cloudflare Turnstile, qui analyse des signaux techniques de votre navigateur pour distinguer un visiteur d’un automate, sans cookie publicitaire.',
       ],
     },
     {

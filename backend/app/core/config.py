@@ -25,6 +25,10 @@ class Settings(BaseSettings):
     provider_deadline_s: float = Field(default=20.0, gt=0, le=60)
     breaker_failure_threshold: int = Field(default=3, ge=1)
     breaker_reset_after_s: float = Field(default=30.0, gt=0)
+    # Plafond d'appels par source et par minute, pour tout le serveur. La BDNB annonce
+    # 120 requêtes par minute : on reste en dessous.
+    source_quota_per_minute: int = Field(default=300, ge=1)
+    source_quotas: dict[str, int] = Field(default_factory=lambda: {"bdnb": 100})
 
     # Cache des rapports
     report_version: int = Field(default=14, ge=1, le=32767)
@@ -35,6 +39,12 @@ class Settings(BaseSettings):
     # Limitation de débit (par adresse IP)
     rate_limit_requests: int = Field(default=30, ge=1)
     rate_limit_window_s: float = Field(default=60.0, gt=0)
+    # Audits d'un visiteur sans compte, par adresse IP : au-delà, il doit se connecter.
+    anonymous_audits_per_hour: int = Field(default=20, ge=1)
+    # Offre Pro : adresses différentes consultées par un abonné sur 24 heures glissantes.
+    pro_daily_address_limit: int = Field(default=150, ge=1)
+    # Adresse de démonstration (identifiant BAN) : son rapport complet est ouvert à tous.
+    demo_address_id: str | None = None
 
     # Paiement Stripe. Sans clé, les routes de paiement répondent 503 et rien n'est facturé.
     stripe_secret_key: SecretStr | None = None

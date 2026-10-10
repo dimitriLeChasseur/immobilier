@@ -6,6 +6,8 @@ interface ImportMetaEnv {
   readonly VITE_SITE_URL?: string
   readonly VITE_SUPABASE_URL?: string
   readonly VITE_SUPABASE_ANON_KEY?: string
+  /** Clé publique Turnstile ; absente, aucun défi anti-robot n'est affiché. */
+  readonly VITE_TURNSTILE_SITE_KEY?: string
 }
 
 interface ImportMeta {

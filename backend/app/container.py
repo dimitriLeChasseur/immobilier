@@ -54,6 +54,8 @@ def build_audit_service(
         timeout_s=settings.http_timeout_s,
         failure_threshold=settings.breaker_failure_threshold,
         reset_after_s=settings.breaker_reset_after_s,
+        quota_per_minute=settings.source_quota_per_minute,
+        quotas=settings.source_quotas,
     )
     reference = PostgresReferenceRepository(pool)
     ors_key = settings.ors_api_key.get_secret_value() if settings.ors_api_key else None
@@ -152,6 +154,8 @@ def build_commune_service(
         timeout_s=settings.http_timeout_s,
         failure_threshold=settings.breaker_failure_threshold,
         reset_after_s=settings.breaker_reset_after_s,
+        quota_per_minute=settings.source_quota_per_minute,
+        quotas=settings.source_quotas,
     )
     return CommuneService(
         http, PostgresReferenceRepository(pool), TabularRents(http, rent_resources(settings))

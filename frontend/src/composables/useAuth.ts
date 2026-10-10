@@ -12,6 +12,7 @@ const MESSAGES: Record<string, string> = {
   'User already registered': 'Un compte existe déjà avec cette adresse : connectez-vous.',
   'Email not confirmed': 'Confirmez votre adresse via l’e-mail reçu, puis connectez-vous.',
   'Unsupported provider: provider is not enabled': 'La connexion Google n’est pas encore activée.',
+  'captcha verification process failed': 'La vérification anti-robot a échoué. Réessayez.',
 }
 
 // État partagé par toute l'application : une seule session à la fois.
@@ -48,22 +49,23 @@ export function useAuth() {
   const accessToken = computed(() => session.value?.access_token ?? null)
   const available = supabase !== null
 
-  async function signUp(email: string, password: string): Promise<AuthOutcome> {
+  // `captchaToken` : jeton du défi anti-robot, exigé par le serveur quand il est activé.
+  async function signUp(email: string, password: string, captchaToken?: string): Promise<AuthOutcome> {
     if (!supabase) return { ok: false, message: NOT_CONFIGURED }
     // Le lien de confirmation ramène sur la page Tarifs, où l'adresse mémorisée attend.
     const { data, error } = await supabase.auth.signUp({
       email,
       password,
-      options: { emailRedirectTo: `${window.location.origin}/tarifs` },
+      options: { emailRedirectTo: `${window.location.origin}/tarifs`, captchaToken },
     })
     if (error) return { ok: false, message: translate(error.message) }
     // Sans session immédiate, le serveur attend la confirmation de l'adresse e-mail.
     return { ok: true, needsConfirmation: data.session === null }
   }
 
-  async function signIn(email: string, password: string): Promise<AuthOutcome> {
+  async function signIn(email: string, password: string, captchaToken?: string): Promise<AuthOutcome> {
     if (!supabase) return { ok: false, message: NOT_CONFIGURED }
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({ email, password, options: { captchaToken } })
     if (error) return { ok: false, message: translate(error.message) }
     return { ok: true, needsConfirmation: false }
   }
@@ -77,10 +79,11 @@ export function useAuth() {
   }
 
   /** Envoie le lien de réinitialisation ; la réponse est la même que le compte existe ou non. */
-  async function requestPasswordReset(email: string): Promise<AuthOutcome> {
+  async function requestPasswordReset(email: string, captchaToken?: string): Promise<AuthOutcome> {
     if (!supabase) return { ok: false, message: NOT_CONFIGURED }
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${window.location.origin}/mot-de-passe`,
+      captchaToken,
     })
     if (error) return { ok: false, message: 'L’envoi a échoué. Réessayez dans un instant.' }
     return { ok: true, needsConfirmation: false }

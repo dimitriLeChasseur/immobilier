@@ -1,0 +1,69 @@
+# Surveillance extérieure : le site et l'API sont interrogés depuis GitHub, hors du serveur.
+# Le test de fumée et les alertes du serveur ne préviennent personne quand le serveur lui-même
+# est tombé ; ici, un échec déclenche l'e-mail « workflow en échec » de GitHub.
+#
+# Limites : GitHub peut retarder une exécution planifiée de plusieurs minutes, et suspend les
+# planifications d'un dépôt resté 60 jours sans activité (un e-mail prévient avant).
+name: Surveillance
+
+on:
+  schedule:
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+permissions: {}
+
+concurrency:
+  group: surveillance
+  cancel-in-progress: true
+
+env:
+  SITE: https://audit-immobilier.fr
+  API: https://api.audit-immobilier.fr
+
+jobs:
+  disponibilite:
+    name: Site et API en ligne
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+
+    steps:
+      - name: Interroger le site et l'API
+        run: |
+          failures=0
+          # check <libellé> <code attendu> <url> [texte attendu dans la réponse]
+          check() {
+            local label="$1" expected="$2" url="$3" needle="${4:-}" body status
+            body="$(mktemp)"
+            status="$(curl --silent --show-error --location --max-time 20 --retry 2 --retry-delay 5 \
+              --output "$body" --write-out '%{http_code}' "$url" || true)"
+            if [ "$status" != "$expected" ]; then
+              echo "::error::$label : code $status au lieu de $expected ($url)"
+              failures=$((failures + 1))
+            elif [ -n "$needle" ] && ! grep -q "$needle" "$body"; then
+              echo "::error::$label : réponse inattendue, « $needle » absent ($url)"
+              failures=$((failures + 1))
+            else
+              echo "OK  $label"
+            fi
+          }
+          check "Accueil" 200 "$SITE/" "Audit Immobilier"
+          check "Fiche commune" 200 "$SITE/commune/angers-49007" "Angers"
+          check "Page inconnue" 404 "$SITE/surveillance-page-inexistante"
+          check "API et base de données" 200 "$API/api/health/ready" '"ready"'
+          check "Liste des sources" 200 "$API/api/v1/sources" "dvf"
+          check "Authentification" 200 "$API/auth/v1/health"
+          exit "$failures"
+
+      - name: Vérifier l'échéance des certificats
+        run: |
+          for host in audit-immobilier.fr api.audit-immobilier.fr; do
+            end="$(echo | openssl s_client -servername "$host" -connect "$host:443" 2>/dev/null \
+              | openssl x509 -noout -enddate | cut -d= -f2)"
+            days=$(( ($(date -d "$end" +%s) - $(date +%s)) / 86400 ))
+            echo "$host : certificat valable encore $days jours"
+            if [ "$days" -lt 10 ]; then
+              echo "::error::Le certificat de $host expire dans $days jours"
+              exit 1
+            fi
+          done

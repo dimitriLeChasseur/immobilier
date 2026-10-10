@@ -3,6 +3,8 @@
 # ---------------------------------------------------------------------------
 .env
 .env.*
+# Valeurs publiques du site en production (aucun secret) : versionnées.
+!frontend/.env.production
 !.env.example
 *.pem
 *.key

@@ -25,6 +25,25 @@ _HAS_ACCESS = f"""
 """  # noqa: S608
 
 
+# Usage d'un abonné : nombre d'AUTRES adresses consultées sur 24 heures glissantes. NULL quand
+# l'adresse demandée a été achetée ou déjà consultée dans la période : elle ne compte pas.
+_SUBSCRIPTION_USAGE = f"""
+    SELECT CASE
+        WHEN EXISTS (
+            SELECT 1 FROM audit_entitlements
+            WHERE user_id = $1::uuid AND (geohash = {_GEOHASH} OR ban_id = $4::text)
+        ) OR EXISTS (
+            SELECT 1 FROM audit_history
+            WHERE user_id = $1::uuid AND geohash = {_GEOHASH}
+              AND viewed_at > now() - interval '24 hours'
+        ) THEN NULL
+        ELSE (
+            SELECT count(*) FROM audit_history
+            WHERE user_id = $1::uuid AND viewed_at > now() - interval '24 hours'
+        )
+    END
+"""  # noqa: S608
+
 _RECORD_VIEW = f"""
     INSERT INTO audit_history (user_id, geohash, label, ban_id)
     VALUES ($1::uuid, {_GEOHASH}, $4, $5)
@@ -41,6 +60,10 @@ class EntitlementRepository(Protocol):
     async def record_view(
         self, user_id: str, lat: float, lon: float, label: str, address_id: str | None
     ) -> None: ...
+
+    async def subscription_usage(
+        self, user_id: str, lat: float, lon: float, address_id: str | None = None
+    ) -> int | None: ...
 
 
 class PostgresEntitlementRepository:
@@ -59,3 +82,13 @@ class PostgresEntitlementRepository:
         """Note la consultation d'un rapport complet dans l'historique de l'utilisateur."""
         async with db_errors():
             await self._pool.execute(_RECORD_VIEW, user_id, lon, lat, label[:300], address_id)
+
+    async def subscription_usage(
+        self, user_id: str, lat: float, lon: float, address_id: str | None = None
+    ) -> int | None:
+        """Autres adresses vues en 24 h ; None si celle-ci est achetée ou déjà comptée."""
+        async with db_errors():
+            value: int | None = await self._pool.fetchval(
+                _SUBSCRIPTION_USAGE, user_id, lon, lat, address_id
+            )
+        return value

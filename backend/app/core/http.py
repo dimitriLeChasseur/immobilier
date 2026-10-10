@@ -9,6 +9,7 @@ from typing import Any
 import aiohttp
 
 from app.core.errors import SourceError
+from app.core.rate_limit import SlidingWindowRateLimiter
 
 Params = Mapping[str, str | int | float]
 
@@ -21,6 +22,7 @@ _HTTP_CLIENT_ERROR = 400
 # Relance d'une lecture : seulement si l'échec est arrivé vite, après une courte pause.
 _RETRY_WITHIN_S = 2.0
 _RETRY_DELAY_S = 0.3
+_QUOTA_WINDOW_S = 60.0
 
 
 class CircuitBreaker:
@@ -73,6 +75,8 @@ class HttpClient:
         failure_threshold: int,
         reset_after_s: float,
         clock: Callable[[], float] = time.monotonic,
+        quota_per_minute: int | None = None,
+        quotas: Mapping[str, int] | None = None,
     ) -> None:
         self._session = session
         self._clock = clock
@@ -80,6 +84,11 @@ class HttpClient:
         self._failure_threshold = failure_threshold
         self._reset_after_s = reset_after_s
         self._breakers: dict[str, CircuitBreaker] = {}
+        # Plafond d'appels par source et par minute, tous visiteurs confondus : les API
+        # publiques limitent le serveur entier, pas chaque visiteur.
+        self._quota_per_minute = quota_per_minute
+        self._quotas = dict(quotas or {})
+        self._budgets: dict[str, SlidingWindowRateLimiter] = {}
 
     async def get_json(self, source: str, url: str, *, params: Params | None = None) -> Any:
         """GET renvoyant le JSON décodé (None si le corps est vide)."""
@@ -121,6 +130,16 @@ class HttpClient:
             self._breakers[source] = breaker
         return breaker
 
+    def _within_quota(self, source: str) -> bool:
+        limit = self._quotas.get(source, self._quota_per_minute)
+        if limit is None:
+            return True
+        budget = self._budgets.get(source)
+        if budget is None:
+            budget = SlidingWindowRateLimiter(limit, _QUOTA_WINDOW_S, self._clock)
+            self._budgets[source] = budget
+        return budget.check(source) is None
+
     async def _request(
         self, source: str, method: str, url: str, *, timeout_s: float | None = None, **kwargs: Any
     ) -> Any:
@@ -128,6 +147,9 @@ class HttpClient:
         breaker = self._breaker(source)
         if not breaker.allow():
             raise SourceError("circuit_open", source)
+        if not self._within_quota(source):
+            # Refus local : la source n'a rien reçu, son coupe-circuit n'est pas concerné.
+            raise SourceError("quota", source, transient=False)
         started = self._clock()
         try:
             try:

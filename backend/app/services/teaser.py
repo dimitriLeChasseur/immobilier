@@ -38,17 +38,18 @@ _CLEAR_KEYS: dict[str, frozenset[str]] = {
     ),
     "proximite": frozenset({"rayon_m", "methode_temps"}),
     "ecoles": frozenset({"rayon_m"}),
-    "loyers": frozenset({"type_bien", "nb_observations", "millesime", "niveau_prediction"}),
-    "taxe_fonciere": frozenset({"annee", "libelle_commune"}),
     "copropriete": frozenset({"niveau", "territoire", "millesime", "origine"}),
-    "delinquance": frozenset({"annee"}),
-    "connectivite": frozenset({"niveau", "date_donnees", "nb_locaux"}),
     "ensoleillement": frozenset({"methode"}),
     "bruit": frozenset({"indice"}),
     "marche_locatif": frozenset({"permis_de_louer"}),
     "cadastre": frozenset(),
     "urbanisme": frozenset(),
 }
+
+
+# Chiffres de la commune, déjà publiés en clair sur les fiches communales : les masquer
+# dans l'aperçu d'une adresse ne protégerait rien.
+_OPEN_SOURCES = frozenset({"loyers", "taxe_fonciere", "delinquance", "connectivite"})
 
 
 def _poi_counts(categories: Any) -> Any:
@@ -68,6 +69,8 @@ _PARTIAL: dict[tuple[str, str], Callable[[Any], Any]] = {
 
 
 def mask_data(source: str, data: dict[str, Any]) -> dict[str, Any]:
+    if source in _OPEN_SOURCES:
+        return data
     clear = _CLEAR_KEYS.get(source, frozenset())
     masked: dict[str, Any] = {}
     for key, value in data.items():

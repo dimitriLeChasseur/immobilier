@@ -10,6 +10,11 @@
 # R2_ACCESS_KEY_ID et R2_SECRET_ACCESS_KEY), chaque sauvegarde est aussi envoyée sur
 # Cloudflare R2. La durée de conservation s'y règle par une règle de cycle de vie du bucket.
 #
+# Chiffrement : avec BACKUP_PASSPHRASE dans le .env, la copie hors site est chiffrée ici
+# (GnuPG, AES-256) avant de partir ; le stockage ne reçoit jamais les e-mails ni les mots de
+# passe hachés en clair. CETTE PHRASE DOIT AUSSI ÊTRE CONSERVÉE AILLEURS QUE SUR LE SERVEUR :
+# sans elle, les copies hors site sont illisibles le jour où le serveur est perdu.
+#
 # Restauration : ./deploy/restore.sh /srv/immo-backups/immo-AAAA-MM-JJ-HHMM.dump
 # Récupérer une copie hors site : ./deploy/backup-fetch.sh immo-AAAA-MM-JJ-HHMM.dump
 set -euo pipefail
@@ -61,6 +66,16 @@ upload_offsite() {
   fi
 }
 
+# Chiffre le fichier pour l'envoi hors site. La phrase passe par un descripteur de fichier :
+# elle n'apparaît ni dans la liste des processus ni dans les journaux.
+encrypt() {
+  local file="$1" encrypted="$1.gpg"
+  command -v gpg > /dev/null || { echo "Erreur : gpg est requis pour chiffrer." >&2; return 1; }
+  gpg --batch --yes --quiet --pinentry-mode loopback --passphrase-fd 3 \
+      --symmetric --cipher-algo AES256 --output "$encrypted" "$file" 3<<< "$(setting BACKUP_PASSPHRASE)"
+  printf '%s' "$encrypted"
+}
+
 umask 077
 mkdir -p "$BACKUP_DIR"
 target="$BACKUP_DIR/immo-$(date +%F-%H%M).dump"
@@ -98,8 +113,17 @@ trap - EXIT
 # Copie hors site : sans elle, la perte du serveur emporte aussi les sauvegardes.
 offsite="non configurée"
 if [[ -n "$(setting R2_BUCKET)" ]]; then
-  upload_offsite "$target"
-  offsite="envoyée"
+  if [[ -n "$(setting BACKUP_PASSPHRASE)" ]]; then
+    encrypted="$(encrypt "$target")"
+    trap 'rm -f "$encrypted"' EXIT
+    upload_offsite "$encrypted"
+    rm -f "$encrypted"
+    trap - EXIT
+    offsite="envoyée chiffrée"
+  else
+    upload_offsite "$target"
+    offsite="envoyée NON CHIFFRÉE (BACKUP_PASSPHRASE absent)"
+  fi
 fi
 # Rotation : seules les sauvegardes de ce script, plus anciennes que la durée de conservation.
 find "$BACKUP_DIR" -maxdepth 1 -name 'immo-*.dump' -type f -mtime "+$KEEP_DAYS" -delete

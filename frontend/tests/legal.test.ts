@@ -26,7 +26,7 @@ describe('pages légales', () => {
     const privacy = text('confidentialite')
     for (const processor of PROCESSORS) expect(privacy).toContain(processor.name)
     expect(privacy).toContain('CNIL')
-    expect(privacy).toContain('ni cookie publicitaire, ni outil de mesure d’audience')
+    expect(privacy).toContain('ni cookie publicitaire ni traceur tiers')
   })
 
   it('cite les hébergeurs et les licences des données dans les mentions légales', () => {

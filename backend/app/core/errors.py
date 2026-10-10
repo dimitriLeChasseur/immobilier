@@ -2,7 +2,9 @@
 
 from typing import Literal
 
-ErrorKind = Literal["timeout", "http_error", "not_found", "circuit_open", "invalid_response"]
+ErrorKind = Literal[
+    "timeout", "http_error", "not_found", "circuit_open", "invalid_response", "quota"
+]
 
 _PUBLIC_MESSAGES: dict[ErrorKind, str] = {
     "timeout": "La source n'a pas répondu dans le délai imparti.",
@@ -10,6 +12,7 @@ _PUBLIC_MESSAGES: dict[ErrorKind, str] = {
     "not_found": "Ressource introuvable auprès de la source.",
     "circuit_open": "Source temporairement désactivée après des échecs répétés.",
     "invalid_response": "Réponse inattendue de la source.",
+    "quota": "Source très sollicitée, réessayez dans une minute.",
 }
 
 

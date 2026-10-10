@@ -42,6 +42,9 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
     app.state.rate_limiter = SlidingWindowRateLimiter(
         settings.rate_limit_requests, settings.rate_limit_window_s
     )
+    app.state.anonymous_limiter = SlidingWindowRateLimiter(
+        settings.anonymous_audits_per_hour, 3600.0
+    )
     try:
         yield
     finally:

@@ -91,6 +91,8 @@ services:
       STRIPE_WEBHOOK_SECRET: ${STRIPE_WEBHOOK_SECRET:-}
       STRIPE_PRO_TAX_RATE_ID: ${STRIPE_PRO_TAX_RATE_ID:-}
       SITE_URL: ${SITE_URL}
+      # Rapport d'exemple ouvert à tous (identifiant BAN) ; vide : aucun.
+      DEMO_ADDRESS_ID: ${DEMO_ADDRESS_ID:-}
       # Suppression de compte en libre-service (appel d'administration interne).
       SUPABASE_SERVICE_ROLE_KEY: ${SERVICE_ROLE_KEY}
       # Alertes d'exploitation : sauvegarde ou test de fumée en échec.
@@ -222,6 +224,11 @@ services:
       GOTRUE_CORS_ALLOWED_HEADERS: apikey,x-client-info,x-supabase-api-version
       GOTRUE_MAILER_AUTOCONFIRM: ${ENABLE_EMAIL_AUTOCONFIRM:-false}
       GOTRUE_PASSWORD_MIN_LENGTH: 12
+      # Défi anti-robot (Cloudflare Turnstile) sur l'inscription, la connexion par mot de passe
+      # et la demande de réinitialisation. À activer en même temps que la clé publique du site.
+      GOTRUE_SECURITY_CAPTCHA_ENABLED: ${CAPTCHA_ENABLED:-false}
+      GOTRUE_SECURITY_CAPTCHA_PROVIDER: turnstile
+      GOTRUE_SECURITY_CAPTCHA_SECRET: ${CLOUDFLARE_TURNSTILE_SECRET_KEY:-}
 
       GOTRUE_SMTP_ADMIN_EMAIL: ${SMTP_ADMIN_EMAIL:-}
       GOTRUE_SMTP_HOST: ${SMTP_HOST:-}

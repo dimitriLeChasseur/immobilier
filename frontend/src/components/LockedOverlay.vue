@@ -9,7 +9,7 @@ defineProps<{
 }>()
 
 const unlock = inject(UNLOCK_KEY, null)
-const label = unlock?.label.value ?? 'Créer un compte pour débloquer l’audit complet de cette adresse'
+const label = unlock?.label.value ?? 'Débloquer l’audit complet de cette adresse'
 </script>
 
 <template>

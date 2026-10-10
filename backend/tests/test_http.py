@@ -188,3 +188,28 @@ async def test_writes_missing_resources_and_timeouts_are_never_retried(
         await client.get_json("lent", str(server.make_url("/counted/lent")))
     assert slow.value.kind == "timeout"
     assert HITS["lent"] == 1
+
+
+async def test_calls_beyond_the_per_source_quota_are_refused_locally(server: TestServer) -> None:
+    now = [0.0]
+    async with aiohttp.ClientSession() as session:
+        capped = HttpClient(
+            session,
+            timeout_s=1,
+            failure_threshold=2,
+            reset_after_s=60,
+            clock=lambda: now[0],
+            quota_per_minute=5,
+            quotas={"bdnb": 2},
+        )
+        url = str(server.make_url("/counted/quota"))
+        ok = str(server.make_url("/ok"))
+        assert [await capped.get_json("bdnb", ok) for _ in range(2)] == [{"ok": True}] * 2
+        with pytest.raises(SourceError) as error:
+            await capped.get_json("bdnb", url)
+        assert error.value.kind == "quota"
+        assert "quota" not in HITS, "l'appel refusé n'a pas quitté le serveur"
+        # Chaque source a son propre plafond ; le refus n'ouvre pas le coupe-circuit.
+        assert await capped.get_json("ban", ok) == {"ok": True}
+        now[0] = 61.0
+        assert await capped.get_json("bdnb", ok) == {"ok": True}

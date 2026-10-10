@@ -8,7 +8,12 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from app.api.deps import get_audit_service, get_entitlements, get_rate_limiter
+from app.api.deps import (
+    get_anonymous_limiter,
+    get_audit_service,
+    get_entitlements,
+    get_rate_limiter,
+)
 from app.api.routers import audit
 from app.core.errors import LocationNotFoundError
 from app.core.rate_limit import SlidingWindowRateLimiter
@@ -60,8 +65,10 @@ def client(service: StubService) -> Iterator[TestClient]:
     app = FastAPI()
     app.include_router(audit.router)
     limiter = SlidingWindowRateLimiter(limit=3, window_s=60)
+    anonymous = SlidingWindowRateLimiter(limit=100, window_s=3600)
     app.dependency_overrides[get_audit_service] = lambda: service
     app.dependency_overrides[get_rate_limiter] = lambda: limiter
+    app.dependency_overrides[get_anonymous_limiter] = lambda: anonymous
     app.dependency_overrides[get_entitlements] = lambda: NoEntitlements()
     with TestClient(app) as test_client:
         yield test_client
@@ -119,3 +126,23 @@ def test_stream_reports_unknown_location_as_error_event(client: TestClient) -> N
 
 def test_sources_lists_provider_names(client: TestClient) -> None:
     assert client.get("/api/v1/sources").json() == {"sources": ["dvf"]}
+
+
+def test_anonymous_visitors_have_an_hourly_quota_of_audits(service: StubService) -> None:
+    app = FastAPI()
+    app.include_router(audit.router)
+    app.dependency_overrides[get_audit_service] = lambda: service
+    app.dependency_overrides[get_rate_limiter] = lambda: SlidingWindowRateLimiter(100, 60)
+    hourly = SlidingWindowRateLimiter(limit=2, window_s=3600)
+    app.dependency_overrides[get_anonymous_limiter] = lambda: hourly
+    app.dependency_overrides[get_entitlements] = lambda: NoEntitlements()
+    params = {"lat": 48.8, "lon": 2.3}
+    with TestClient(app) as client:
+        assert [client.get("/api/v1/audit", params=params).status_code for _ in range(2)] == [
+            200,
+            200,
+        ]
+        blocked = client.get("/api/v1/audit/stream", params=params)
+    assert blocked.status_code == 429
+    assert "créez un compte" in blocked.json()["detail"]
+    assert int(blocked.headers["Retry-After"]) > 0
