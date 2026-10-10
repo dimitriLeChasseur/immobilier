@@ -4,8 +4,9 @@ SaaS d'audit immobilier et de due diligence : l'utilisateur saisit une adresse, 
 interroge en parallèle une vingtaine de sources publiques et restitue un tableau de bord
 (prix, risques, urbanisme, énergie, quartier) exportable en PDF.
 
-État : **MVP « Feature Complete », non déployé.** Ce document sert de passation entre le
-développement et l'exploitation.
+État : **en production** sur `https://audit-immobilier.fr` (Cloudflare Pages) et
+`https://api.audit-immobilier.fr` (VPS). Les paiements Stripe y tournent encore en mode test.
+Ce document sert de passation entre le développement et l'exploitation.
 
 ## Architecture
 
@@ -155,17 +156,19 @@ Données © les contributeurs d'OpenStreetMap (ODbL), extraits fournis par Geofa
 ### Tâche planifiée du bruit Lden
 
 Le script est autonome (dépendances déclarées en tête de fichier, résolues par `uv`) et lit la
-connexion dans le `.env` du projet. Les territoires couverts sont listés dans
-`infra/bruit/sources.json` ; il n'existe pas de flux national, chaque département s'ajoute à la
-main.
+connexion dans le `.env` du projet. Il n'existe pas de flux national : chaque direction
+départementale publie ses cartes sur Géo-IDE. `scripts/discover_bruit_sources.py` recense ces
+flux à partir de data.gouv.fr et écrit `infra/bruit/sources.json` (couches de type A en Lden,
+édition courante de chaque département) ; le relancer quand de nouvelles cartes paraissent.
 
 ```cron
 # crontab -e, sur le VPS : le 2 de chaque mois à 4 h
 0 4 2 * * cd /opt/project-immobilier && /usr/local/bin/uv run scripts/ingest_bruit_lden.py >> /var/log/immo-bruit.log 2>&1
 ```
 
-Options : `--metropole angers`, `--source ddt49-route`. Le script sort en erreur (code 1) si une
-source échoue, sans effacer les données déjà chargées.
+Options : `--departement 49`, `--source d49-infra_r_a_ld_s_049`, `--parallele 4`. Une source en
+échec garde ses données déjà chargées ; le script sort en erreur (code 1) dès qu'une source
+échoue. Un passage complet retire les zones des sources absentes du fichier.
 
 ### Tests d'intégration SQL
 
@@ -263,8 +266,13 @@ Une application monopage ne livre aux robots qu'une coquille vide. Le site expos
   logement et fibre, comparés au département et à la France. Ces chiffres communaux sont
   publics et gratuits ; l'audit d'une adresse reste le produit payant ;
 - **des pages statiques** : à la construction, `scripts/seo.ts` écrit chaque fiche en HTML
-  dans `dist/commune/<slug>/index.html`, ainsi que `sitemap.xml`, `robots.txt` et
-  `communes.json`.
+  dans `dist/commune/<slug>.html` (servie sans barre finale, comme l'annoncent le plan du
+  site et la balise canonique), ainsi que `sitemap.xml`, `robots.txt` et `communes.json` ;
+- **un vrai code 404** : chaque page de l'application a son fichier (`tarifs.html`…), et
+  `404.html` répond aux adresses inconnues. Les communes sans fiche statique sont rendues
+  par l'application grâce à la fonction `functions/commune/[slug].js`, limitée à
+  `/commune/*` par `_routes.json`. `npx wrangler pages dev dist` reproduit ce comportement
+  en local.
 
 ```bash
 # Régénérer les fiches (après une ingestion), puis construire le site
@@ -342,7 +350,7 @@ n'est pas utilisé.
 Seuils tenus : aucun bug, aucune vulnérabilité, aucun Security Hotspot ouvert, duplication
 inférieure à 5 %, complexité par fonction inférieure à 15, typage strict des deux côtés.
 
-## Mise en production (préparée, non exécutée)
+## Mise en production
 
 ### Backend sur le VPS
 
@@ -350,8 +358,14 @@ inférieure à 5 %, complexité par fonction inférieure à 15, typage strict de
 2. `./scripts/generate-env.sh`, puis renseigner dans `.env` les valeurs de la colonne
    « Production » ci-dessus.
 3. `sudo ./deploy/setup_ufw.sh` (un `--dry-run` affiche les règles sans les appliquer).
-4. `docker compose up -d --build`, puis les deux ingestions.
-5. Installer la tâche planifiée du bruit.
+4. `docker compose up -d --build`, puis les ingestions.
+5. `./deploy/install-cron.sh` installe les tâches planifiées (sauvegardes, ingestions,
+   test de fumée).
+
+Les livraisons suivantes passent par `./scripts/deploy-backend.sh root@<serveur>` : le
+script envoie le dernier commit, reconstruit le backend et rejoue le schéma. Le frontend,
+lui, est publié par Cloudflare Pages à chaque push sur `main` : pousser puis déployer le
+backend dans la foulée, pour que les deux restent sur la même version.
 
 `deploy/setup_ufw.sh` refuse tout le trafic entrant sauf SSH, HTTP et HTTPS. Docker contourne
 UFW pour les ports qu'il publie : ne jamais publier un port interne sans le préfixe
@@ -369,22 +383,33 @@ PostgREST (`/rest/v1`) reste interne.
 | Dossier de sortie | `dist` |
 | Variable | `VITE_API_URL` = URL publique de l'API |
 
-`frontend/public/_redirects` renvoie toute URL vers `index.html`. Dans
-`frontend/public/_headers`, remplacer `__API_ORIGIN__` par l'URL de l'API : sans cela, la
-politique de sécurité du contenu bloquera les appels.
+| Variable | `VITE_SITE_URL` = adresse publique du site (plan du site, balises canoniques) |
+
+Dans `frontend/public/_headers`, le repère `__API_ORIGIN__` est remplacé à la construction
+par l'origine de `VITE_API_URL` : sans cette variable, la politique de sécurité du contenu
+bloque les appels à l'API.
 
 ## Limites connues
 
-- **Paiement non branché.** Les boutons de la grille tarifaire (`/tarifs`) ne font que tracer
-  « Redirection Stripe » ; aucun droit n'est créé automatiquement.
+- **Paiement en mode test** : la production utilise les clés de test Stripe ; aucun
+  encaissement réel tant que les clés et le webhook de production ne sont pas configurés.
+- **Mentions légales incomplètes** : l'identité de l'éditeur reste à renseigner dans
+  `frontend/src/lib/legal.ts` ; d'ici là, les pages légales ne sont pas indexées.
+- **Surveillance** : test de fumée et alertes tournent sur le serveur lui-même ; rien ne
+  prévient s'il tombe entièrement.
 - **Limitation de débit en mémoire** : valable pour un seul processus backend.
 - **Transports et commerces** : données OpenStreetMap figées à la date de la dernière ingestion
-  (tâche mensuelle à planifier sur le VPS).
-- **Bruit** : Maine-et-Loire (route et fer) et Loire-Atlantique (fer) seulement.
+  (tâche mensuelle).
+- **Bruit** : cartes des grandes infrastructures routières et ferroviaires de 65 départements
+  (dont Paris, la petite couronne et le Rhône), soit environ 708 000 zones. Les autres
+  départements n'ont pas de flux publié sur Géo-IDE, ou un flux illisible à l'ingestion
+  (sources marquées `"actif": false` dans `infra/bruit/sources.json`, avec le motif) :
+  notamment les Bouches-du-Rhône, la Gironde, le Nord, la Haute-Garonne et le Bas-Rhin. Les
+  cartes d'agglomération (voirie communale) et le bruit des aéroports ne sont pas chargés.
 - **Encadrement des loyers** : liste codée en dur d'après service-public.gouv.fr (vérifiée le
   1er août 2026), dans `backend/app/services/providers/rental_rules.py` ; à relire à chaque
   nouveau décret.
 - **Charges de copropriété** : moyennes de 2018, proposées comme valeur de départ modifiable.
-- **Sauvegardes** : aucune sauvegarde de la base n'est planifiée.
+- **Sauvegardes** : quotidiennes, copiées hors site sur Cloudflare R2, mais non chiffrées.
 - **Licences à respecter** : indice ATMO (ODbL, attribution Atmo France et association
   régionale), OpenStreetMap (ODbL), données publiques sous Licence Ouverte.

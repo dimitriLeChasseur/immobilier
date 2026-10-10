@@ -1,53 +1,3761 @@
 {
-  "_commentaire": "Sources des cartes de bruit stratégiques (type A, indice Lden). Il n'existe pas de flux national : chaque direction départementale publie les siens sur Géo-IDE. Pour ajouter un territoire, chercher « bruit Lden <département> » sur data.gouv.fr et recopier l'URL du flux WFS « internet » (jusqu'à .internet.map inclus). Le type 'fichier' accepte une archive Shapefile (.zip) ou un GeoJSON.",
-  "metropoles": {
-    "angers": {
-      "libelle": "Angers Loire Métropole",
-      "bbox": [
-        -0.75,
-        47.36,
-        -0.38,
-        47.58
-      ]
-    },
-    "nantes": {
-      "libelle": "Nantes Métropole",
-      "bbox": [
-        -1.76,
-        47.1,
-        -1.34,
-        47.33
-      ]
-    }
-  },
+  "_commentaire": "Flux des cartes de bruit stratégiques (type A, indice Lden) publiés sur Géo-IDE par les directions départementales. Fichier écrit par scripts/discover_bruit_sources.py : le relancer plutôt que de l'éditer. Une source peut être désactivée à la main (\"actif\": false) ; elle est alors conservée telle quelle par le recensement.",
   "sources": [
     {
-      "id": "ddt49-route",
-      "metropole": "angers",
+      "id": "d01-infra_f_a_ld_s_001",
+      "departement": "01",
       "type": "wfs",
-      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38040/873990c4-3f8e-468c-be8c-080c7c68d694.internet.map",
-      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_049"
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37942/fr-120066022-orphan-1ea36134-ef24-454b-a490-cb7fc636f5c6.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_001"
     },
     {
-      "id": "ddt49-fer",
-      "metropole": "angers",
+      "id": "d01-infra_r_a39_a_ld_s_001",
+      "departement": "01",
       "type": "wfs",
-      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38040/435b3bdf-5ceb-4758-a998-f9c526308ff7.internet.map",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37942/fr-120066022-orphan-be5ca278-1570-4938-9c67-37348a640ac8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A39_A_LD_S_001"
+    },
+    {
+      "id": "d01-infra_r_a404_a_ld_s_001",
+      "departement": "01",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37942/fr-120066022-orphan-be5ca278-1570-4938-9c67-37348a640ac8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A404_A_LD_S_001"
+    },
+    {
+      "id": "d01-infra_r_a406_a_ld_s_001",
+      "departement": "01",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37942/fr-120066022-orphan-be5ca278-1570-4938-9c67-37348a640ac8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A406_A_LD_S_001"
+    },
+    {
+      "id": "d01-infra_r_a40_a_ld_s_001",
+      "departement": "01",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37942/fr-120066022-orphan-be5ca278-1570-4938-9c67-37348a640ac8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A40_A_LD_S_001"
+    },
+    {
+      "id": "d01-infra_r_a40_atmb_a_ld_s_001",
+      "departement": "01",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37942/fr-120066022-orphan-be5ca278-1570-4938-9c67-37348a640ac8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A40_ATMB_A_LD_S_001"
+    },
+    {
+      "id": "d01-infra_r_a42_a_ld_s_001",
+      "departement": "01",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37942/fr-120066022-orphan-be5ca278-1570-4938-9c67-37348a640ac8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A42_A_LD_S_001"
+    },
+    {
+      "id": "d01-infra_r_a432_a_ld_s_001",
+      "departement": "01",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37942/fr-120066022-orphan-be5ca278-1570-4938-9c67-37348a640ac8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A432_A_LD_S_001"
+    },
+    {
+      "id": "d01-infra_r_a46_a_ld_s_001",
+      "departement": "01",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37942/fr-120066022-orphan-be5ca278-1570-4938-9c67-37348a640ac8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A46_A_LD_S_001"
+    },
+    {
+      "id": "d01-infra_r_a6_a_ld_s_001",
+      "departement": "01",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37942/fr-120066022-orphan-be5ca278-1570-4938-9c67-37348a640ac8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A6_A_LD_S_001"
+    },
+    {
+      "id": "d01-infra_r_a_ld_s_001",
+      "departement": "01",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37942/fr-120066022-orphan-1ea36134-ef24-454b-a490-cb7fc636f5c6.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_001"
+    },
+    {
+      "id": "d02-infra_f_a_ld_s_002",
+      "departement": "02",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37944/da2d548f-5f50-483e-b703-6f29b5ae44d3.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_002"
+    },
+    {
+      "id": "d02-infra_r_a_ld_s_002",
+      "departement": "02",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37944/494cb860-649e-4316-919b-ea5e08f05616.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_002"
+    },
+    {
+      "id": "d02-infra_r_sanef_a_ld_02",
+      "departement": "02",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37944/e1fba6de-0fc7-4e6c-8207-35600de719ed.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_SANEF_A_LD_02",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 15 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d03-r_a_ld_s_003_e4",
+      "departement": "03",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37946/86eb1158-b986-4228-8a3a-c97a77163074.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_R_A_LD_S_003_E4"
+    },
+    {
+      "id": "d04-infra_r_a0051_a_ld_004",
+      "departement": "04",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37948/b728887e-c4ab-45c6-b081-62245faf5011.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0051_A_LD_004"
+    },
+    {
+      "id": "d04-infra_r_a_ld_s_004",
+      "departement": "04",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37948/0a4c2105-660c-4b08-a12b-e2aa21aa0add.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_004"
+    },
+    {
+      "id": "d06-infra_f_a_ld_s_006",
+      "departement": "06",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37952/fr-120066022-orphan-f6a19d78-0df6-4e1a-a935-8aa059bb0d06.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_006"
+    },
+    {
+      "id": "d06-infra_r_a_ld_s_006",
+      "departement": "06",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37952/efcce60d-01e9-4c3d-ab56-d2ed32d9128b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_006"
+    },
+    {
+      "id": "d07-infra_r_a_ld_s_007",
+      "departement": "07",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37954/357da0e9-ad1c-4181-b869-71c63c43730a.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_007"
+    },
+    {
+      "id": "d08-infra_f_204000_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_204000_A_LD_S_008",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d08-infra_r_a34_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A34_A_LD_S_008",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d08-infra_r_c1_charleville mezieres_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C1_charleville mezieres_A_LD_S_008",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d08-infra_r_c2_charleville mezieres_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C2_charleville mezieres_A_LD_S_008",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d08-infra_r_c3_charleville mezieres_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C3_charleville mezieres_A_LD_S_008",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d08-infra_r_c4_charleville mezieres_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C4_charleville mezieres_A_LD_S_008",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d08-infra_r_c5_charleville mezieres_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C5_charleville mezieres_A_LD_S_008",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d08-infra_r_d105_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D105_A_LD_S_008"
+    },
+    {
+      "id": "d08-infra_r_d1_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D1_A_LD_S_008",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d08-infra_r_d8043_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D8043_A_LD_S_008"
+    },
+    {
+      "id": "d08-infra_r_d8043a_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D8043A_A_LD_S_008"
+    },
+    {
+      "id": "d08-infra_r_d8051_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D8051_A_LD_S_008"
+    },
+    {
+      "id": "d08-infra_r_d8051a_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D8051A_A_LD_S_008"
+    },
+    {
+      "id": "d08-infra_r_d979_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D979_A_LD_S_008"
+    },
+    {
+      "id": "d08-infra_r_d988_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D988_A_LD_S_008"
+    },
+    {
+      "id": "d08-infra_r_d9_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D9_A_LD_S_008",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d08-infra_r_n43_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_N43_A_LD_S_008"
+    },
+    {
+      "id": "d08-infra_r_n51_a_ld_s_008",
+      "departement": "08",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37956/fr-120066022-orphan-a8259419-e29c-406a-8692-eb77eb0c42e4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_N51_A_LD_S_008"
+    },
+    {
+      "id": "d09-infra_r_a_ld_s_009",
+      "departement": "09",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37958/4185cbed-ebca-4a0b-bba1-ac4b1ff49d69.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_009"
+    },
+    {
+      "id": "d11-agregation_n_bruit_zbr_f_a_ld_s_011",
+      "departement": "11",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37962/34d216a0-dd9c-4582-bcd3-0b354352f767.internet.map",
+      "couche": "ms:Agregation_N_BRUIT_ZBR_F_A_LD_S_011"
+    },
+    {
+      "id": "d11-agregation_n_bruit_zbr_r_a_ld_s_011",
+      "departement": "11",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37962/1031e63b-beaa-48ec-8204-de5c609d8501.internet.map",
+      "couche": "ms:Agregation_N_BRUIT_ZBR_R_A_LD_S_011"
+    },
+    {
+      "id": "d11-infra_f_a_ld_s_011",
+      "departement": "11",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37962/a08834c1-2263-4354-87a7-bd9cc649c967.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_011"
+    },
+    {
+      "id": "d11-infra_r_a61_a_ld_s_011",
+      "departement": "11",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37962/c5ee0fb6-31ea-4ef6-8a2e-a1c75a90dd0f.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A61_A_LD_S_011"
+    },
+    {
+      "id": "d11-infra_r_a9_a_ld_s_011",
+      "departement": "11",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37962/36d3f1bb-ea91-4b6a-b082-5ea873a3194f.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A9_A_LD_S_011"
+    },
+    {
+      "id": "d11-infra_r_a_ld_s_011",
+      "departement": "11",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37962/e3637c12-080f-4568-9825-d4e0b2b99825.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_011"
+    },
+    {
+      "id": "d14-f_a_ld_4eme_ech_s_014",
+      "departement": "14",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37968/62385d83-76e1-45f1-9a98-65541e357965.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_F_A_LD_4EME_ECH_S_014"
+    },
+    {
+      "id": "d14-infra_a_ld_4eme_ech_s_014",
+      "departement": "14",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37968/80d6fe65-8933-40b7-af2d-1bcbcabeacef.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_A_LD_4EME_ECH_S_014",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d14-r_a_ld_4eme_ech_s_014",
+      "departement": "14",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37968/671d20a1-b41a-4a7c-94bc-ea69d446654e.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_R_A_LD_4EME_ECH_S_014",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d16-infra_a_ld_s_016",
+      "departement": "16",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37972/37d4fa0b-372a-486e-8ca4-04756096c246.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_A_LD_S_016"
+    },
+    {
+      "id": "d17-infra_f_570000_a_ld_s_017",
+      "departement": "17",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37974/7de0e28b-f257-4eda-8f5e-f77c5beff10d.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_570000_A_LD_S_017"
+    },
+    {
+      "id": "d17-infra_r_a_ld_s_017",
+      "departement": "17",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37974/a36c4d14-968d-42bf-8f4f-b5c6bf85b5af.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_017"
+    },
+    {
+      "id": "d19-infra_r_4ech_a20_a_ld_s_019",
+      "departement": "19",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37978/9a74d00f-6e1f-4d18-9a35-d7ef22ca8a0f.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_4ech_A20_A_LD_S_019"
+    },
+    {
+      "id": "d19-infra_r_4ech_a89_a_ld_s_019",
+      "departement": "19",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37978/dfbc212f-9406-4556-a5eb-9e33a2081eeb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_4ech_A89_A_LD_S_019"
+    },
+    {
+      "id": "d19-infra_r_4ech_a_ld_s_019",
+      "departement": "19",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37978/17177cff-37ea-4a9f-bb06-f41fdefdc9ba.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_4ech_A_LD_S_019"
+    },
+    {
+      "id": "d21-infra_f_752000_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-4aeb5686-8bbc-46e1-bf1f-5123334074ef.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_752000_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_f_830000_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-4aeb5686-8bbc-46e1-bf1f-5123334074ef.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_830000_A_LD_S_021",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d21-infra_f_843000_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-4aeb5686-8bbc-46e1-bf1f-5123334074ef.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_843000_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_f_849000_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-4aeb5686-8bbc-46e1-bf1f-5123334074ef.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_849000_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_f_850000_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-4aeb5686-8bbc-46e1-bf1f-5123334074ef.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_850000_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_f_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/aef18682-cad1-4bf1-8a50-53c2ac2a77aa.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_f_fusion_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/50eea41b-063f-47ee-a4f3-8ee2aa5cbb90.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_FUSION_A_LD_S_021",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d21-infra_f_toutes_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/914e5f87-2556-43a1-a7a0-a88c00f75b61.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_TOUTES_A_LD_S_021",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d21-infra_r_a311_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-3e251d21-2870-4ad3-9105-58229dbd45b0.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A311_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_a31_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-3e251d21-2870-4ad3-9105-58229dbd45b0.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A31_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_a36_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-3e251d21-2870-4ad3-9105-58229dbd45b0.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A36_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_a38_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-d463ac7f-22b8-4460-91bd-4955609dc2df.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A38_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_a39_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-3e251d21-2870-4ad3-9105-58229dbd45b0.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A39_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_a6_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-3e251d21-2870-4ad3-9105-58229dbd45b0.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A6_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/4c19289c-73e9-421c-b6f0-d5d67619ad08.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c100_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C100_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c101_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C101_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c102_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C102_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c103_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C103_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c104_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C104_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c105_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C105_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c106_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C106_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c107_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C107_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c108_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C108_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c109_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C109_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c10_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C10_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c10_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C10_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c110_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C110_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c111_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C111_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c112_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C112_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c113_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C113_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c114_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C114_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c115_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C115_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c116_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C116_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c117_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C117_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c118_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C118_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c119_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C119_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c11_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C11_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c11_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C11_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c120_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C120_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c121_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C121_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c122_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C122_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c123_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C123_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c124_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C124_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c125_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C125_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c126_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C126_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c127_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C127_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c128_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C128_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c129_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C129_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c12_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C12_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c130_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C130_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c131_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C131_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c132_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C132_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c133_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C133_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c134_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C134_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c135_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C135_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c136_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C136_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c137_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C137_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c138_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C138_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c139_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C139_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c13_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C13_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c140_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C140_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c141_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C141_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c142_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C142_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c143_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C143_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c144_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C144_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c145_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C145_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c146_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C146_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c147_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C147_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c148_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C148_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c149_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C149_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c14_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C14_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c150_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C150_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c151_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C151_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c152_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C152_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c153_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C153_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c154_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C154_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c155_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C155_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c156_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C156_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c157_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C157_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c158_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C158_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c159_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C159_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c15_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C15_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c160_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C160_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c161_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C161_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c16_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C16_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c17_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C17_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c18_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C18_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c19_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C19_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c1_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C1_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c1_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C1_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c20_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C20_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c21_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C21_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c22_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C22_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c23_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C23_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c24_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C24_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c25_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C25_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c26_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C26_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c27_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C27_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c28_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C28_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c29_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C29_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c2_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C2_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c2_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C2_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c30_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C30_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c31_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C31_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c32_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C32_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c33_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C33_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c34_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C34_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c35_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C35_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c36_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C36_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c37_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C37_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c38_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C38_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c39_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C39_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c3_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C3_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c3_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C3_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c40_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C40_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c41_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C41_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c42_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C42_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c43_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C43_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c44_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C44_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c45_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C45_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c46_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C46_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c47_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C47_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c48_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C48_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c49_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C49_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c4_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C4_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c4_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C4_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c50_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C50_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c51_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C51_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c52_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C52_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c53_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C53_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c54_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C54_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c55_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C55_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c56_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C56_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c57_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C57_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c58_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C58_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c59_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C59_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c5_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C5_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c5_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C5_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c60_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C60_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c61_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C61_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c62_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C62_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c64_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C64_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c65_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C65_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c66_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C66_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c67_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C67_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c68_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C68_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c69_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C69_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c6_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C6_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c6_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C6_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c70_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C70_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c71_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C71_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c72_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C72_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c73_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C73_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c74_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C74_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c75_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C75_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c76_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C76_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c77_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C77_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c78_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C78_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c79_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C79_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c7_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C7_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c7_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C7_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c80_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C80_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c81_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C81_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c82_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C82_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c83_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C83_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c84_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C84_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c85_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C85_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c86_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C86_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c87_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C87_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c88_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C88_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c89_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C89_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c8_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C8_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c8_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C8_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c90_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C90_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c91_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C91_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c92_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C92_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c93_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C93_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c94_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C94_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c95_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C95_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c96_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C96_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c97_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C97_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c98_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C98_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c99_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C99_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c9_beaune_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-18ad2876-0da8-4184-a33e-5f3ec6259b5b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C9_BEAUNE_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_c9_dijon_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-bb5d99a1-7197-45b1-bcf6-397e62bf3feb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C9_DIJON_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d107_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D107_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d107a_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D107A_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d108_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D108_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d111_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D111_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d122_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D122_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d122a_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D122A_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d28_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D28_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d470_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D470_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d700_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D700_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d70_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D70_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d905_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D905_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d905b_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D905B_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d906_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D906_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d968_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D968_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d971_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D971_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d973_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D973_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d974_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D974_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_d980_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-aa51328e-6f39-4fce-84d3-14f82ec122d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D980_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_fusion_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/ece7d8e0-5dd4-45bc-8055-d0e5db49c89e.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_FUSION_A_LD_S_021",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d21-infra_r_n274_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/fr-120066022-orphan-d463ac7f-22b8-4460-91bd-4955609dc2df.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_N274_A_LD_S_021"
+    },
+    {
+      "id": "d21-infra_r_toutes_a_ld_s_021",
+      "departement": "21",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37980/140f7c4d-d78a-42c1-9f5c-0b578b5e52cd.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_TOUTES_A_LD_S_021"
+    },
+    {
+      "id": "d22-infra_r_a_ld_s_022",
+      "departement": "22",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37982/65f78036-f1b0-4040-bc84-a6f2a815ccff.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_022",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d22-r_a_ld_s_022",
+      "departement": "22",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37982/21eb6e09-b852-40aa-ae10-2f8edbb2355f.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_R_A_LD_S_022",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d23-infra_r_a_ld_s_023",
+      "departement": "23",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37984/ae7b4457-3580-4ede-96a6-3d88cf138bb9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_023"
+    },
+    {
+      "id": "d26-infra_f_752000_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_752000_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_f_830000_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_830000_A_LD_S_026",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d26-infra_r_a49_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A49_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_a7_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A7_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_c1_bourg les valence_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C1_bourg les valence_A_LD_S_026",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) réponse WFS illisible (IndexError). À retenter avec --source."
+    },
+    {
+      "id": "d26-infra_r_c1_pierrelatte_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C1_Pierrelatte_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_c1_romans sur isere_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C1_romans sur isere_A_LD_S_026",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) réponse WFS illisible (IndexError). À retenter avec --source."
+    },
+    {
+      "id": "d26-infra_r_c1_valence_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C1_valence_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d104n_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D104N_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d111_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D111_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d11_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D11_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d11a_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D11A_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d164_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D164_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d2007n_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D2007N_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d2092n_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D2092N_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d2532n_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D2532N_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d261_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D261_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d432_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D432_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d458_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D458_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d51_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D51_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d532_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D532_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d532a_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D532A_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d532c_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D532C_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d533n_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D533N_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d534n_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D534N_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d538_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D538_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d538a_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D538A_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d540_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D540_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d540a_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D540A_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d59_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D59_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d67_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D67_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d68_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D68_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d71_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D71_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d7_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D7_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d858_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D858_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d886_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D886_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d92_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D92_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d93_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D93_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_d95n_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D95N_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_n102_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_N102_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_n532_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_N532_A_LD_S_026"
+    },
+    {
+      "id": "d26-infra_r_n7_a_ld_s_026",
+      "departement": "26",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37990/fr-120066022-orphan-f7331380-73e0-4ab6-ae1d-90948b15332c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_N7_A_LD_S_026",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d27-infra_f_340000_a_ld_s_027",
+      "departement": "27",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37992/4d80aaa4-15ae-47c9-9c40-d8bd72181d73.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_340000_A_LD_S_027",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d27-infra_f_a_ld_s_027",
+      "departement": "27",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37992/a9a106f3-e83c-46f7-b122-8eb21c3217ce.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_027"
+    },
+    {
+      "id": "d27-infra_r_a0013_a_ld_27",
+      "departement": "27",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37992/f2dd1fe0-db49-4ab8-ba19-2c8435eefaa0.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0013_A_LD_27",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d27-infra_r_a0131_a_ld_027",
+      "departement": "27",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37992/2e594670-5ae3-4395-8d84-e5e8f0b6c5ed.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0131_A_LD_027",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d27-infra_r_a0154_a_ld_027",
+      "departement": "27",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37992/2364e281-c5a9-4710-9b58-d8650cb59384.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0154_A_LD_027",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d27-infra_r_a28_a_ld_027",
+      "departement": "27",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37992/9f25a2d0-b4bb-4484-80c4-c2fe70099036.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A28_A_LD_027"
+    },
+    {
+      "id": "d27-infra_r_a_ld_s_027",
+      "departement": "27",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37992/ab9ce3e7-6eea-492f-a6cd-54e0fecd6e21.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_027"
+    },
+    {
+      "id": "d28-infra_autoroute_a_ld_s_028",
+      "departement": "28",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37994/0446a6c0-2493-42cd-a455-249367937cfa.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_AUTOROUTE_A_LD_S_028"
+    },
+    {
+      "id": "d28-infra_f_a_ld_s_028",
+      "departement": "28",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37994/1dd1b15d-84bc-4e74-ae93-b153b15a8444.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_028"
+    },
+    {
+      "id": "d28-infra_r_a_ld_s_028",
+      "departement": "28",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37994/16564dc8-ddd3-4d0e-afd5-0bf7ce7fc5d5.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_028"
+    },
+    {
+      "id": "d29-infra_r_a_ld_s_029",
+      "departement": "29",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37996/c4334657-2a6d-439b-b9e4-b00cb29a6495.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_029"
+    },
+    {
+      "id": "d2a-infra_r_a_ld_s_02a",
+      "departement": "2A",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37998/7a34854c-a5e0-4197-a1ed-b7bbfee5d0af.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_02A"
+    },
+    {
+      "id": "d2a-r_a_ld_s_02a",
+      "departement": "2A",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_37998/c8c9c510-7ba0-4a71-99c6-f4e9cbd7a82f.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_R_A_LD_S_02A",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d2b-infra_r_a_ld_s_02b",
+      "departement": "2B",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38000/e4de7e70-c40f-45f7-baaf-c5e73a035597.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_02B"
+    },
+    {
+      "id": "d2b-r_a_ld_s_02b",
+      "departement": "2B",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38000/dd8a767b-c5b3-4f47-93f4-283074869a34.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_R_A_LD_S_02B",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d30-infra_a_ld_s_030",
+      "departement": "30",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38002/fr-120066022-orphan-9a2b3663-5bbb-44a2-9044-8e368e38e86c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_A_LD_S_030"
+    },
+    {
+      "id": "d31-a_ld_s_031",
+      "departement": "31",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38004/bcd5a16d-e5f2-4ff5-9ba0-22c0c842c31a.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_A_LD_S_031",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (EmptyResponseError) réponse vide du service WFS (page 6674). À retenter avec --source."
+    },
+    {
+      "id": "d31-infra_asf_a_ld_s_031",
+      "departement": "31",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38004/6503ec80-0ecd-47e2-b1c3-38387561d2b9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_ASF_A_LD_S_031",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d31-infra_f_a_ld_s_031",
+      "departement": "31",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38004/95294861-70b2-4058-8b29-1915677298e8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_031",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d31-infra_r_a_ld_s_031",
+      "departement": "31",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38004/e8086513-4a2b-44ce-9588-82581fb2c6df.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_031",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d34-carte_a_lden_s_034",
+      "departement": "34",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38010/0b599d80-1bbd-4bed-a68a-9ac52a1bdbfe.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_CARTE_A_Lden_S_034",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d34-infra_f_a_ld_s_034",
+      "departement": "34",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38010/fae269ad-aacb-4edb-ab4b-208ffe01fac2.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_034"
+    },
+    {
+      "id": "d34-infra_r_a_ld_s_034",
+      "departement": "34",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38010/6133537e-0c85-4d39-b414-5d932f7a58c9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_034"
+    },
+    {
+      "id": "d34-infra_r_asf_a_ld_s_034",
+      "departement": "34",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38010/a40868a0-662e-415a-aa25-20619ede5b9e.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_ASF_A_LD_S_034"
+    },
+    {
+      "id": "d35-infra_s_f_a_ld_035",
+      "departement": "35",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38012/a28e7b12-3460-4bdc-be83-a0a8e6eff83c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_S_F_A_LD_035"
+    },
+    {
+      "id": "d35-infra_s_r_a_ld_035",
+      "departement": "35",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38012/3dcd668d-5779-4700-96f3-bf317f20945c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_S_R_A_LD_035"
+    },
+    {
+      "id": "d36-infra_r_a_ld_s_036",
+      "departement": "36",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38014/7751c737-0c2b-435d-b589-6891cfd1bb1a.internet.map",
+      "couche": "ms:n_bruit_zbr_infra_r_a_ld_s_036"
+    },
+    {
+      "id": "d37-infra_a10_a_lden_4e_s_037",
+      "departement": "37",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38016/71f3c4b5-92c7-4e09-809c-d7cf5175631e.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_A10_A_LDEN_4E_S_037"
+    },
+    {
+      "id": "d37-infra_a28_a_lden_4e_s_037",
+      "departement": "37",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38016/dde5c98b-e0df-440d-bebe-16130b47effe.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_A28_A_LDEN_4E_S_037"
+    },
+    {
+      "id": "d37-infra_a85_a_lden_4e_s_037",
+      "departement": "37",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38016/837a66c8-3bab-4c7a-af9c-bdf50493cb96.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_A85_A_LDEN_4E_S_037"
+    },
+    {
+      "id": "d37-infra_f_a_lden_4e_s_037",
+      "departement": "37",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38016/7937d7fa-7a8b-487d-afe1-361896064fe5.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LDEN_4E_S_037",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d37-infra_r_a_lden_4e_s_037",
+      "departement": "37",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38016/b592353f-f402-4e84-9611-476be770e606.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LDEN_4E_S_037",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d38-infra_f_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/fr-120066022-orphan-2770a13b-195c-4839-881c-86cb2a29228d.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_f_e4_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/7faf0bac-f17e-44d4-8ea3-81c076036113.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_E4_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_r_a41s_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/fr-120066022-orphan-f61d7ff1-4bc3-43fd-89b6-2222ae3d5001.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A41S_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_r_a432_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/fr-120066022-orphan-0ef46293-2f07-4add-a308-df092d537bf3.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A432_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_r_a43_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/fr-120066022-orphan-82ee2563-508d-4dc4-9ea7-1e1a7dbbafcc.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A43_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_r_a46s_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/fr-120066022-orphan-f0860943-3057-44c3-927f-985d53535cb7.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A46S_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_r_a48_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/fr-120066022-orphan-c1076ec2-5bc6-4897-a43c-6b4b3d1e53e7.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A48_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_r_a49_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/fr-120066022-orphan-e2fbce3b-a262-45bb-a2dc-0bbf13d08aef.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A49_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_r_a51_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/fr-120066022-orphan-894f6b28-a331-4adb-b301-97369d8b8190.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A51_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_r_a7_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/fr-120066022-orphan-e827487e-b4a9-4889-b60d-bebc6ac31aad.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A7_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_r_a7n_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/fr-120066022-orphan-7535d3fc-7094-4581-8321-98ba6a926245.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A7N_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_r_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/fr-120066022-orphan-17c6d573-2045-4800-b302-ca688c0b65b5.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_038"
+    },
+    {
+      "id": "d38-infra_r_agreg_e4_a_ld_s_038",
+      "departement": "38",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38018/1d980ae8-3e3c-4396-a02f-eaa95e7e97a4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_AGREG_E4_A_LD_S_038"
+    },
+    {
+      "id": "d39-4_infra_f_a_ld_s_039",
+      "departement": "39",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38020/159e35cc-6206-4899-a935-ad2004050774.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_4_INFRA_F_A_LD_S_039"
+    },
+    {
+      "id": "d39-4_infra_r_a_ld_s_039",
+      "departement": "39",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38020/acd7016d-8a33-43d7-83b9-cfbdcc4d2c85.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_4_INFRA_R_A_LD_S_039"
+    },
+    {
+      "id": "d40-infra_r_a63_a64_a_ld_s_040",
+      "departement": "40",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38022/04a569af-39de-4b8c-b639-d23b5deacf25.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A63_A64_A_LD_S_040"
+    },
+    {
+      "id": "d40-infra_r_a63_a_ld_s_040",
+      "departement": "40",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38022/ca7635ce-94f0-4cff-96d4-1214c90ab055.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A63_A_LD_S_040"
+    },
+    {
+      "id": "d40-infra_r_a_ld_s_040",
+      "departement": "40",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38022/d1395fdc-0685-4742-8551-bd5aabc564ad.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_040"
+    },
+    {
+      "id": "d41-infra_f_a_lden_s_041",
+      "departement": "41",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38024/5ee003a4-acaa-4b91-babc-9a851b557b1e.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LDEN_S_041",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d41-infra_r_a10_a_ld_s_041",
+      "departement": "41",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38024/ba7788fd-3186-4ed2-9a5f-5659b0e9e6b6.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A10_A_LD_S_041"
+    },
+    {
+      "id": "d41-infra_r_a71_a_ld_s_041",
+      "departement": "41",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38024/21761fb1-ea99-4760-827d-34123e87c60d.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A71_A_LD_S_041"
+    },
+    {
+      "id": "d41-infra_r_a85_a_ld_s_041",
+      "departement": "41",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38024/10a32fd5-61da-46e6-b792-54227fbd24b1.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A85_A_LD_S_041"
+    },
+    {
+      "id": "d41-infra_r_a_lden_s_041",
+      "departement": "41",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38024/d187b473-755d-4091-a0cf-dbbe05e79e13.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LDEN_S_041"
+    },
+    {
+      "id": "d44-infra_f_a_ld_s_044",
+      "departement": "44",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38030/16049988-8fbe-4fd3-a55d-80a117e8d6dd.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_044"
+    },
+    {
+      "id": "d44-r_a_ld_s_044",
+      "departement": "44",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38030/56e20800-dd3b-49ee-895a-e8f118f48ad0.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_R_A_LD_S_044"
+    },
+    {
+      "id": "d45-agregation_n_bruit_zbr_f_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/28c0abd0-4a2b-4922-87f9-20aa993f9f78.internet.map",
+      "couche": "ms:Agregation_N_BRUIT_ZBR_F_A_LD_S_045",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d45-agregation_n_bruit_zbr_r_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fc0457c2-5e29-4f02-991a-5ffdf4816a93.internet.map",
+      "couche": "ms:Agregation_N_BRUIT_ZBR_R_A_LD_S_045",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d45-infra_f_569000_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_569000_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_f_570000_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_570000_A_LD_S_045",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d45-infra_f_590000_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_590000_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_f_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/38707daf-c529-4dbf-b665-d486425c492a.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_a0006_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/4df50155-fb62-4f21-b1e1-d006992df5c8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0006_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_a0010_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/ec3c8a7a-d588-407e-96ce-02b5a15428f4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0010_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_a0071_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/dec142ac-8075-46f8-95a6-ad298374faae.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0071_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_a0077_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/91e788c2-a79b-490d-8d95-f0d3d413040e.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0077_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_a10_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fdb2ffe3-7829-476a-963e-5e9f2de1d385.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A10_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_a19_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A19_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_a6_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/8b9766a1-16b5-43f8-9585-4b0ccfb5c9eb.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A6_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_a71_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/e8f361ed-5b49-4fd9-b993-84a411d9ec16.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A71_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_a77_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/a839d585-b8aa-424e-8e82-a200bf8ea5d2.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A77_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/ffd31231-f66b-4115-b704-0f52b7faa8ab.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_c1 orleans metropole_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C1 orleans metropole_A_LD_S_045",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) réponse WFS illisible (IndexError). À retenter avec --source."
+    },
+    {
+      "id": "d45-infra_r_c2 montargis_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C2 montargis_A_LD_S_045",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) réponse WFS illisible (IndexError). À retenter avec --source."
+    },
+    {
+      "id": "d45-infra_r_c3 orleans_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C3 orleans_A_LD_S_045",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) réponse WFS illisible (IndexError). À retenter avec --source."
+    },
+    {
+      "id": "d45-infra_r_d14_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D14_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d2007_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D2007_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d2020_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D2020_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d2060_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D2060_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d2107_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D2107_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d2152_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D2152_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d2271_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D2271_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d2701_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D2701_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d520_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D520_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d8_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D8_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d920_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D920_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d921_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D921_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d928_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D928_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d93_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D93_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d948_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D948_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d94_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D94_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d952_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D952_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d960_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D960_A_LD_S_045"
+    },
+    {
+      "id": "d45-infra_r_d97_a_ld_s_045",
+      "departement": "45",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38032/fr-120066022-orphan-0c52e824-b2a7-4d0c-986a-a6d2bc035488.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D97_A_LD_S_045"
+    },
+    {
+      "id": "d47-infra_r_a62_a_ld_s_047",
+      "departement": "47",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38036/fr-120066022-orphan-4b326070-5bb3-41d9-a1b7-2f6763479480.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A62_A_LD_S_047"
+    },
+    {
+      "id": "d47-infra_r_a_ld_s_047",
+      "departement": "47",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38036/fr-120066022-orphan-4b326070-5bb3-41d9-a1b7-2f6763479480.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_047"
+    },
+    {
+      "id": "d48-infra_r_a_ld_s_048",
+      "departement": "48",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38038/fr-120066022-orphan-8e3886ee-f6ff-457b-982b-8f2fe7242440.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_048"
+    },
+    {
+      "id": "d49-infra_f_a_ld_s_049",
+      "departement": "49",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38040/435b3bdf-5ceb-4758-a998-f9c526308ff7.internet.map",
       "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_049"
     },
     {
-      "id": "ddtm44-fer",
-      "metropole": "nantes",
+      "id": "d49-infra_r_a_ld_s_049",
+      "departement": "49",
       "type": "wfs",
-      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38030/16049988-8fbe-4fd3-a55d-80a117e8d6dd.internet.map"
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38040/873990c4-3f8e-468c-be8c-080c7c68d694.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_049"
     },
     {
-      "id": "ddtm44-route",
-      "metropole": "nantes",
+      "id": "d50-infra_r_a_ld_s_050",
+      "departement": "50",
       "type": "wfs",
-      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/stack/mapfiles/1.4/org_38030/56e20800-dd3b-49ee-895a-e8f118f48ad0.internet.map",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38042/a15f474b-f4ef-492c-88d6-79cca0b9122b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_050"
+    },
+    {
+      "id": "d51-infra_f_a_ld_s_051",
+      "departement": "51",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38044/2f2d8ae1-1125-420a-abca-9733e53c23e8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_051"
+    },
+    {
+      "id": "d51-infra_r_a0004_a_ld_51",
+      "departement": "51",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38044/e189572e-150e-4b05-852b-6cde59e3263b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0004_A_LD_51",
       "actif": false,
-      "note": "Désactivé le 2026-10-05 : couche de 43 660 zones dont le service renvoie des pages vides de façon intermittente. À retenter, ou à remplacer par l'archive Shapefile (type 'fichier')."
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d51-infra_r_a0026_a_ld__51",
+      "departement": "51",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38044/8047682a-86ce-40d6-865b-30686295d102.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0026_A_LD__51",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d51-infra_r_a0034_a_ld_051",
+      "departement": "51",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38044/ad9dc7b1-c284-407a-a2d3-12e55e68311a.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0034_A_LD_051",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d51-infra_r_a0344_a_ld_051",
+      "departement": "51",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38044/e776d20d-4946-4475-bb75-0c518104bde8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0344_A_LD_051",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d51-infra_r_a_ld_s_051",
+      "departement": "51",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38044/47cda39d-e347-4aeb-894c-cbe9acba1651.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_051"
+    },
+    {
+      "id": "d52-infra_f_a_ld_s_052",
+      "departement": "52",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38046/b99575e3-1ccc-4a53-937a-1e59fb90bc4c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_052"
+    },
+    {
+      "id": "d52-infra_r_a31_a_ld_s_052",
+      "departement": "52",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38046/bec6513b-e757-4058-b21d-946c03756c63.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A31_A_LD_S_052"
+    },
+    {
+      "id": "d52-infra_r_a5_a_ld_s_052",
+      "departement": "52",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38046/43461fe7-2824-4cd3-96a7-11b0202ca5d9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A5_A_LD_S_052"
+    },
+    {
+      "id": "d52-infra_r_a_ld_s_052",
+      "departement": "52",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38046/195719f9-9302-4281-953a-f9f375a3b238.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_052"
+    },
+    {
+      "id": "d54-f_a_ld_s_054",
+      "departement": "54",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38050/b11b848e-56a6-4e5f-8059-8bb4053cd45f.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_F_A_LD_S_054",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d54-r_a_ld_s_054",
+      "departement": "54",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38050/2f4b7bcb-6193-4f97-9f9f-0b20abfdfd7b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_R_A_LD_S_054",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d55-infra_a_lden_055",
+      "departement": "55",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38052/1ca0c060-5908-4372-82f0-c28c7f6254c3.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_A_LDEN_055",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d56-infra_r_a_ld_s_056",
+      "departement": "56",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38054/4bc9d20f-a31a-43c7-bcbe-0ecaeb0bd633.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_056"
+    },
+    {
+      "id": "d57-infra_f_a_ld_s_057",
+      "departement": "57",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38056/fr-120066022-orphan-2f534ed9-b8e7-44ee-9aad-54f67ab4ee08.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_057"
+    },
+    {
+      "id": "d60-f_a_ld_s_060",
+      "departement": "60",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38062/ae044d8e-ef0d-4621-bc7a-7c0a8fc65a87.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_F_A_LD_S_060"
+    },
+    {
+      "id": "d60-infra_f_a_ld_s_060",
+      "departement": "60",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38062/41d155ae-aedb-4eba-b812-735763d3b5a3.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_060"
+    },
+    {
+      "id": "d60-infra_r_a_ld_s_060",
+      "departement": "60",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38062/8af020c0-b571-42d6-bd39-508edd6381d5.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_060"
+    },
+    {
+      "id": "d60-r_a_ld_s_060",
+      "departement": "60",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38062/f6676471-8ddc-48e9-80cc-bec07f0f14b7.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_R_A_LD_S_060",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d62-infra_f_a_ld_s_062",
+      "departement": "62",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38066/d59e6ee1-72a1-431b-8f00-44f0b67ac384.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_062"
+    },
+    {
+      "id": "d62-infra_r_a0001_a_ld_62",
+      "departement": "62",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38066/103e3d67-2bfa-413f-a400-883ba249fbef.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0001_A_LD_62",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d62-infra_r_a0002_a_ld_62",
+      "departement": "62",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38066/7a38dd06-0fa7-49be-ad0f-4c5e87dea282.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0002_A_LD_62",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d62-infra_r_a0016_a_ld_62",
+      "departement": "62",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38066/4f39ec7a-babe-4709-8820-a379b127758c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0016_A_LD_62",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d62-infra_r_a0026_a_ld_62",
+      "departement": "62",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38066/781f4cc1-3689-4b4b-bd6b-f6bf0c3200f7.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0026_A_LD_62",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d62-infra_r_a_ld_s_062",
+      "departement": "62",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38066/9416d8bb-4446-4fbe-a320-ff6e5bef6bcf.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_062"
+    },
+    {
+      "id": "d63-infra_f_a_ld_s_063",
+      "departement": "63",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38068/de5ca696-a1a3-47ed-8d87-9ea4e5ecdd3c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_063"
+    },
+    {
+      "id": "d63-infra_r_a_ld_non_agrege_s_063",
+      "departement": "63",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38068/0b365c4c-4ae4-42f9-9d2e-c5def0531085.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_NON_AGREGE_S_063"
+    },
+    {
+      "id": "d63-infra_r_a_ld_s_063",
+      "departement": "63",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38068/3ff65639-994e-4e98-b94c-aa3fcfd2437d.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_063"
+    },
+    {
+      "id": "d64-agregation_n_bruit_zbr_r_a_ld_s_064",
+      "departement": "64",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38070/55c32345-1ff2-4598-8d4b-604a6d9d2bc8.internet.map",
+      "couche": "ms:Agregation_N_BRUIT_ZBR_R_A_LD_S_064",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d65-infra_r_a64_a_ld_s_065",
+      "departement": "65",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38072/83804247-5164-44e4-b20e-862214aff50c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A64_A_LD_S_065"
+    },
+    {
+      "id": "d65-infra_r_a_ld_s_065",
+      "departement": "65",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38072/bf36d1e2-82d6-45b4-9cf6-a3c00ba55a8a.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_065"
+    },
+    {
+      "id": "d66-agregation_n_bruit_zbr_f_a_ld_s_066",
+      "departement": "66",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38074/20c7527c-3a70-49c6-8c61-d95d3e753929.internet.map",
+      "couche": "ms:Agregation_N_BRUIT_ZBR_F_A_LD_S_066"
+    },
+    {
+      "id": "d66-agregation_n_bruit_zbr_r_a_ld_s_066",
+      "departement": "66",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38074/17e7d646-2313-4ff3-a9ca-2ca3fb2d8ac8.internet.map",
+      "couche": "ms:Agregation_N_BRUIT_ZBR_R_A_LD_S_066"
+    },
+    {
+      "id": "d66-infra_r_a9_a_ld_s_066",
+      "departement": "66",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38074/94d79841-18bd-4dc7-8295-db9e4ba35ba9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A9_A_LD_S_066"
+    },
+    {
+      "id": "d69-infra_f_a_ld_s_069",
+      "departement": "69",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38080/8f19029c-0397-4191-8425-7046b2e0d6ae.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_069"
+    },
+    {
+      "id": "d69-infra_r_a_ld_s_069",
+      "departement": "69",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38080/355ef339-8364-41f9-bfac-85f73cb64694.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_069"
+    },
+    {
+      "id": "d70-infra_r_a_ld_s_070",
+      "departement": "70",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38082/a0d00718-d42f-4843-82d8-03f025ca9a43.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_070"
+    },
+    {
+      "id": "d71-infra_f_a_ld_s_071",
+      "departement": "71",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38084/0181b8fa-c6d2-4c6f-b03a-6d6cd9a1f1bc.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_071",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d71-infra_r_a_ld_s_071",
+      "departement": "71",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38084/68017a87-a7c2-4c3f-bf76-0eea2f097600.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_071",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d72-infra_f_a_ld_rff_s_072",
+      "departement": "72",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38086/93fca04f-6e39-48c0-b809-6dbecf2a7651.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_RFF_S_072"
+    },
+    {
+      "id": "d72-infra_r_a_ld_autoroutes_s_072",
+      "departement": "72",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38086/fce8b91f-98af-403f-87b4-86ff88af8d72.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_Autoroutes_S_072"
+    },
+    {
+      "id": "d72-infra_r_a_ld_routes_s_072",
+      "departement": "72",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38086/3503be4a-3a79-4097-9a84-ecb22d11d162.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_Routes_S_072"
+    },
+    {
+      "id": "d73-infra_f_a_ld_s_073",
+      "departement": "73",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38088/438af92b-5076-47ec-944f-ab519b6b3145.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_073"
+    },
+    {
+      "id": "d73-infra_r_a41n_a_ld_s_073",
+      "departement": "73",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38088/123cb73c-96da-44ba-b59d-94535e24298b.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A41N_A_LD_S_073"
+    },
+    {
+      "id": "d73-infra_r_a41s_a_ld_s_073",
+      "departement": "73",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38088/bd190e74-0a4d-4cff-b6a6-b7ce2f1e4633.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A41S_A_LD_S_073"
+    },
+    {
+      "id": "d73-infra_r_a430_a_ld_s_073",
+      "departement": "73",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38088/5b339b3d-ff3b-4ae0-95f3-7eac59cc74ff.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A430_A_LD_S_073"
+    },
+    {
+      "id": "d74-infra_r_a_ld_s_074",
+      "departement": "74",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38090/4832f54e-d9d4-4345-9b02-9fc7c2eb8002.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_074",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (EmptyResponseError) réponse vide du service WFS (page 0). À retenter avec --source."
+    },
+    {
+      "id": "d75-infra_r_a_ld_s_075",
+      "departement": "75",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-63989501-bf01-4322-b948-5cd1b8b03e05.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_075"
+    },
+    {
+      "id": "d75-infra_ratp_f_a_ld_s_075",
+      "departement": "75",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-63989501-bf01-4322-b948-5cd1b8b03e05.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_RATP_F_A_LD_S_075"
+    },
+    {
+      "id": "d75-infra_sncf_f_a_ld_s_075",
+      "departement": "75",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-63989501-bf01-4322-b948-5cd1b8b03e05.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_SNCF_F_A_LD_S_075"
+    },
+    {
+      "id": "d76-infra_f_340000_a_ld_s_076",
+      "departement": "76",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38092/f2ed9fe8-c1f5-473b-a560-a7de914d0d09.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_340000_A_LD_S_076",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d76-infra_f_a_ld_s_076",
+      "departement": "76",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38092/461db24f-d4ef-4c5b-a145-d3969bd499f0.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_076"
+    },
+    {
+      "id": "d76-infra_r_a_ld_s_076",
+      "departement": "76",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38092/3b8c86f9-03bb-40f2-a6a3-8796b0b7571c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_076"
+    },
+    {
+      "id": "d76-infra_r_c_a_ld_s_076",
+      "departement": "76",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38092/0278af05-089a-49ed-b3ab-2a4f6bd46c5e.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_C_A_LD_S_076",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d76-infra_r_conc_a_ld_s_076",
+      "departement": "76",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38092/4569d545-a940-4680-a811-9f6653fdfec0.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_CONC_A_LD_S_076",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 129 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d76-infra_r_d_a_ld_s_076",
+      "departement": "76",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38092/133a6457-3258-4d68-9eac-aea1606bfbbf.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_D_A_LD_S_076"
+    },
+    {
+      "id": "d76-infra_r_n_a_ld_s_076",
+      "departement": "76",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38092/1ac2ca99-a81a-48eb-beaa-ceaa53e0acc4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_N_A_LD_S_076"
+    },
+    {
+      "id": "d77-infra_f_a_ld_s_077",
+      "departement": "77",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38094/009e4d1b-daae-4476-836e-45adaf35c612.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_077"
+    },
+    {
+      "id": "d77-infra_f_a_lden_s_077",
+      "departement": "77",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38094/03ddad22-c1af-4ab8-b114-b94ca577f86c.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LDEN_S_077",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (EmptyResponseError) réponse vide du service WFS (page 20). À retenter avec --source."
+    },
+    {
+      "id": "d77-infra_r_a_ld_s_077",
+      "departement": "77",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38094/ef7cf3ea-c45e-4476-8ed6-d60987848555.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_077"
+    },
+    {
+      "id": "d80-agregation_n_bruit_zbr_f_a_ld_s_080",
+      "departement": "80",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38100/db9d81c3-0e6e-416c-b64f-f8dfa3f8f32d.internet.map",
+      "couche": "ms:Agregation_N_BRUIT_ZBR_F_A_LD_S_080"
+    },
+    {
+      "id": "d80-agregation_n_bruit_zbr_r_a_ld_s_080",
+      "departement": "80",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38100/01ee6486-dad6-47f8-a026-89e15cba718c.internet.map",
+      "couche": "ms:Agregation_N_BRUIT_ZBR_R_A_LD_S_080"
+    },
+    {
+      "id": "d80-infra_f_a_ld_s_080",
+      "departement": "80",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38100/3bbbba6d-0be9-406e-b294-1a86e152fb49.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_080"
+    },
+    {
+      "id": "d80-infra_r_a_ld_s_080",
+      "departement": "80",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38100/8c8705b2-83cc-4bcf-8ed8-6d9937d7c918.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_080"
+    },
+    {
+      "id": "d81-infra_r_a_ld_s_081",
+      "departement": "81",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38102/fr-120066022-orphan-fa8ec962-d270-47e7-8eff-b73bc20af1d4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_081"
+    },
+    {
+      "id": "d82-infra_f_a_ld_s_082",
+      "departement": "82",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38104/5761db29-612d-4520-80e5-aa22136594c4.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_082"
+    },
+    {
+      "id": "d82-infra_r_a_ld_s_082",
+      "departement": "82",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38104/f85af0de-783d-445b-9e35-e55401e5b9ff.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_082"
+    },
+    {
+      "id": "d83-infra_f_930000_a_ld_s_083",
+      "departement": "83",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38106/53259340-245a-4226-9281-07a9d79302ee.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_930000_A_LD_S_083"
+    },
+    {
+      "id": "d83-infra_f_a_ld_s_083",
+      "departement": "83",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38106/02569448-72a7-4960-9be9-06cee1443c3a.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_083"
+    },
+    {
+      "id": "d83-infra_r_a0008_a_ld_083",
+      "departement": "83",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38106/64e8b50a-7cf7-44da-9f61-ed4c8de23087.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0008_A_LD_083",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d83-infra_r_a0050_a_ld_083",
+      "departement": "83",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38106/271b0ccb-1168-4b36-93d2-cd54548a3853.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0050_A_LD_083"
+    },
+    {
+      "id": "d83-infra_r_a0057_a_ld_083",
+      "departement": "83",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38106/a2098ac7-7ac1-48b0-b598-0e7f49dea863.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0057_A_LD_083",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 0 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d83-infra_r_a570_a_ld_s_083",
+      "departement": "83",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38106/0f801b3e-3ff7-4f2b-ba43-d6d23caf05c9.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A570_A_LD_S_083"
+    },
+    {
+      "id": "d83-infra_r_a_ld_s_083",
+      "departement": "83",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38106/e05f21a6-e5e0-4b2e-955c-22692139a014.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_083"
+    },
+    {
+      "id": "d83-infra_r_n98_a_ld_s_083",
+      "departement": "83",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38106/485b3984-a947-42b5-a0c4-4cac26e4b224.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_N98_A_LD_S_083"
+    },
+    {
+      "id": "d83-infra_vc_a_ld_s_083",
+      "departement": "83",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38106/035cd178-4d30-4b7e-ae4d-70e12d036fe1.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_VC_A_LD_S_083",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d83-infra_vm_a_ld_s_083",
+      "departement": "83",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38106/be64ea8e-4e28-42e2-8e3a-dd6106fcfeec.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_VM_A_LD_S_083",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d83-intra_rd_a_ld_s_083",
+      "departement": "83",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38106/2a01415a-d2fc-4c2c-8360-312d44dfc1d3.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INTRA_RD_A_LD_S_083",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (HTTPError) 500 Server Error: Erreur Interne de Servlet. À retenter avec --source."
+    },
+    {
+      "id": "d85-agregation_n_bruit_zbr_r_a_ld_s_085",
+      "departement": "85",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38110/e46a6d66-3d00-459c-a21a-7e1f1fa7bd16.internet.map",
+      "couche": "ms:Agregation_N_BRUIT_ZBR_R_A_LD_S_085",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (EmptyResponseError) réponse vide du service WFS (page 0). À retenter avec --source."
+    },
+    {
+      "id": "d85-infra_r_a83_a_ld_s_085",
+      "departement": "85",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38110/d37a6a28-0f79-4450-8f4d-0db196dec178.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A83_A_LD_S_085"
+    },
+    {
+      "id": "d85-infra_r_a87_a_ld_s_085",
+      "departement": "85",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38110/03a6db33-d460-4639-869d-6384e2938785.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A87_A_LD_S_085"
+    },
+    {
+      "id": "d85-infra_r_a_ld_s_085",
+      "departement": "85",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38110/6ca627cf-b1a1-4c13-9fd7-4b840c70aa7d.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_085"
+    },
+    {
+      "id": "d86-infra_f_a_ld_s_086",
+      "departement": "86",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38112/32b1990e-e434-4228-9aa0-01efb0a221f8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_086"
+    },
+    {
+      "id": "d86-infra_r_a10n_a_ld_s_086",
+      "departement": "86",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38112/892584bd-17df-44a7-a580-d2ac80cc7d0a.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A10N_A_LD_S_086"
+    },
+    {
+      "id": "d86-infra_r_a10s_a_ld_s_086",
+      "departement": "86",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38112/b944595d-6eeb-44c4-a802-05f1986208a1.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A10S_A_LD_S_086"
+    },
+    {
+      "id": "d86-infra_r_a_ld_s_086",
+      "departement": "86",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38112/011b19a0-11a4-4c52-ab81-468177ed51b8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_086"
+    },
+    {
+      "id": "d87-infra_r_a_ld_s_087",
+      "departement": "87",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38114/0f090c4e-d3c9-41ee-acaf-640093f76820.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_087"
+    },
+    {
+      "id": "d88-infra_f_a_ld_s_088",
+      "departement": "88",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38116/fr-120066022-orphan-8ea82294-1212-4e96-a481-bbd9d5f485b8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_088"
+    },
+    {
+      "id": "d88-infra_r_a31_a_ld_s_088",
+      "departement": "88",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38116/fr-120066022-orphan-8ea82294-1212-4e96-a481-bbd9d5f485b8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A31_A_LD_S_088"
+    },
+    {
+      "id": "d88-infra_r_a_ld_s_088",
+      "departement": "88",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38116/fr-120066022-orphan-8ea82294-1212-4e96-a481-bbd9d5f485b8.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_088"
+    },
+    {
+      "id": "d91-infra_r_a_ld_s_091",
+      "departement": "91",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-41c9a524-ed75-49f0-8fce-5ff4322d6e02.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_091"
+    },
+    {
+      "id": "d91-infra_ratp_f_a_ld_s_091",
+      "departement": "91",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-41c9a524-ed75-49f0-8fce-5ff4322d6e02.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_RATP_F_A_LD_S_091"
+    },
+    {
+      "id": "d91-infra_sncf_f_a_ld_s_091",
+      "departement": "91",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-41c9a524-ed75-49f0-8fce-5ff4322d6e02.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_SNCF_F_A_LD_S_091"
+    },
+    {
+      "id": "d92-infra_r_a_ld_s_092",
+      "departement": "92",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-9fefedd4-54ef-4693-9e99-ef08280ef134.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_092"
+    },
+    {
+      "id": "d92-infra_ratp_f_a_ld_s_092",
+      "departement": "92",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-9fefedd4-54ef-4693-9e99-ef08280ef134.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_RATP_F_A_LD_S_092"
+    },
+    {
+      "id": "d92-infra_sncf_f_a_ld_s_092",
+      "departement": "92",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-9fefedd4-54ef-4693-9e99-ef08280ef134.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_SNCF_F_A_LD_S_092"
+    },
+    {
+      "id": "d93-infra_r_a04_a_ld_s_093",
+      "departement": "93",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-a87ab20c-d686-4b3a-af87-49b97a8a1f6f.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A04_A_LD_S_093",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d93-infra_r_a_ld_s_093",
+      "departement": "93",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-a87ab20c-d686-4b3a-af87-49b97a8a1f6f.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_093"
+    },
+    {
+      "id": "d93-infra_ratp_f_a_ld_s_093",
+      "departement": "93",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-a87ab20c-d686-4b3a-af87-49b97a8a1f6f.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_RATP_F_A_LD_S_093"
+    },
+    {
+      "id": "d93-infra_sncf_f_a_ld_s_093",
+      "departement": "93",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-a87ab20c-d686-4b3a-af87-49b97a8a1f6f.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_SNCF_F_A_LD_S_093"
+    },
+    {
+      "id": "d94-infra_r_a_ld_s_094",
+      "departement": "94",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-142e9f08-6a20-4cd8-946f-14a9825d54d6.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_094"
+    },
+    {
+      "id": "d94-infra_ratp_f_a_ld_s_094",
+      "departement": "94",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-142e9f08-6a20-4cd8-946f-14a9825d54d6.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_RATP_F_A_LD_S_094"
+    },
+    {
+      "id": "d94-infra_sncf_f_a_ld_s_094",
+      "departement": "94",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-142e9f08-6a20-4cd8-946f-14a9825d54d6.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_SNCF_F_A_LD_S_094"
+    },
+    {
+      "id": "d95-agregation_n_bruit_zbr_f_a_ld_s_095",
+      "departement": "95",
+      "type": "wfs",
+      "url": "http://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38124/fr-120066022-orphan-5c7a3343-9630-4213-a29a-3da0af266da2.internet.map",
+      "couche": "ms:Agregation_N_BRUIT_ZBR_F_A_LD_S_095",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (EmptyResponseError) réponse vide du service WFS (page 4374). À retenter avec --source."
+    },
+    {
+      "id": "d95-infra_f_a_ld_s_095",
+      "departement": "95",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38124/fr-120066022-orphan-ae67265e-c496-4ffd-b96a-66221d4578a3.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_F_A_LD_S_095"
+    },
+    {
+      "id": "d95-infra_r_a0001_a_ld_95",
+      "departement": "95",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38124/fr-120066022-orphan-ae67265e-c496-4ffd-b96a-66221d4578a3.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0001_A_LD_95",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d95-infra_r_a0016_a_ld_95",
+      "departement": "95",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38124/fr-120066022-orphan-ae67265e-c496-4ffd-b96a-66221d4578a3.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A0016_A_LD_95",
+      "actif": false,
+      "note": "Désactivée le 2026-10-10, illisible à l'ingestion : (ValueError) aucune zone exploitable sur 5 entités lues. À retenter avec --source."
+    },
+    {
+      "id": "d95-infra_r_a_ld_s_095",
+      "departement": "95",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_38124/fr-120066022-orphan-ae67265e-c496-4ffd-b96a-66221d4578a3.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_R_A_LD_S_095"
+    },
+    {
+      "id": "d95-infra_sncf_f_a_ld_s_095",
+      "departement": "95",
+      "type": "wfs",
+      "url": "https://ogc.geo-ide.developpement-durable.gouv.fr/wxs?map=/opt/data/carto/geoide-catalogue/1.4/org_3954051/fr-120066022-orphan-b5ed8b99-04a5-4cad-82c4-f292cdbe3d70.internet.map",
+      "couche": "ms:N_BRUIT_ZBR_INFRA_SNCF_F_A_LD_S_095"
     }
   ]
 }

@@ -1,4 +1,0 @@
-# Cloudflare Pages : application monopage. Toute URL inconnue est servie par index.html
-# (code 200), ce qui évite un 404 au rechargement ou sur un lien partagé.
-# Les fichiers existants (assets, favicon) restent servis tels quels.
-/*    /index.html    200

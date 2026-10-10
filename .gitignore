@@ -65,3 +65,6 @@ npm-debug.log*
 Thumbs.db
 .scannerwork/
 *.log
+
+# Émulateur Cloudflare Pages (npx wrangler pages dev dist)
+.wrangler/

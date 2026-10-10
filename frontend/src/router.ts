@@ -80,7 +80,13 @@ export const router = createRouter({
     ...LEGAL_ROUTES,
     // La fiche fixe elle-même ses balises, une fois la commune chargée.
     { path: '/commune/:slug', name: 'commune', component: () => import('./views/CommuneView.vue') },
-    { path: '/:pathMatch(.*)*', redirect: { name: 'audit' } },
+    // L'hébergeur sert ces adresses avec le code 404 (404.html) : la vue le dit à l'écran.
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: () => import('./views/NotFoundView.vue'),
+      meta: { title: `Page introuvable | ${SITE_NAME}`, private: true },
+    },
   ],
   scrollBehavior: () => ({ top: 0 }),
 })

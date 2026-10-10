@@ -22,6 +22,8 @@ const COMMUNES_FILE = join(ROOT, 'seo', 'communes.json')
 // Les pages légales n'entrent au plan du site qu'une fois l'identité de l'éditeur complétée.
 const LEGAL_PATHS = LEGAL_INCOMPLETE ? [] : ['/mentions-legales', '/cgv', '/confidentialite']
 const STATIC_PATHS = ['/', '/tarifs', '/communes', ...LEGAL_PATHS]
+// Pages de l'application : chacune reçoit son fichier, pour répondre 200 sans repli général.
+const APP_PATHS = ['/tarifs', '/communes', '/compte', '/mot-de-passe', '/mentions-legales', '/cgv', '/confidentialite']
 
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -113,6 +115,17 @@ function communeHtml(template: string, profile: CommuneProfile, base: string): s
   return replaceOnce(html, /<div id="app"><\/div>/, `<div id="app">${staticBody(page)}</div>`)
 }
 
+/** Page servie avec le code 404 ; l'application y affiche ensuite sa vue « introuvable ». */
+function notFoundHtml(template: string): string {
+  let html = replaceOnce(template, /<title>[\s\S]*?<\/title>/, '<title>Page introuvable | Audit Immobilier</title>')
+  html = replaceOnce(html, /<meta name="robots"[\s\S]*?\/>/, '<meta name="robots" content="noindex, follow" />')
+  return replaceOnce(
+    html,
+    /<div id="app"><\/div>/,
+    '<div id="app"><main><h1>Page introuvable</h1><p><a href="/">Auditer une adresse</a></p></main></div>',
+  )
+}
+
 function sitemap(base: string, communes: CommuneProfile[]): string {
   const paths = [...STATIC_PATHS, ...communes.map((commune) => `/commune/${commune.slug}`)]
   const urls = paths.map((path) => `<url><loc>${escapeHtml(`${base}${path}`)}</loc></url>`).join('')
@@ -125,8 +138,12 @@ function main(): void {
   const base = siteUrl()
 
   for (const commune of communes) {
-    write(join(DIST, 'commune', commune.slug, 'index.html'), communeHtml(template, commune, base))
+    // Un fichier « <slug>.html » et non un dossier : l'adresse sans barre finale, celle du plan
+    // du site et de la balise canonique, est alors servie directement, sans redirection.
+    write(join(DIST, 'commune', `${commune.slug}.html`), communeHtml(template, commune, base))
   }
+  for (const path of APP_PATHS) write(join(DIST, `${path.slice(1)}.html`), template)
+  write(join(DIST, '404.html'), notFoundHtml(template))
   const links = communes.map(({ nom, slug, departement_code }) => ({ nom, slug, departement_code }))
   write(join(DIST, 'communes.json'), JSON.stringify(links))
 
