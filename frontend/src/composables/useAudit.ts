@@ -22,6 +22,7 @@ export const DEFAULT_SOURCES: SourceName[] = [
   'ecoles',
   'permis_construire',
   'marche_locatif',
+  'quartier',
   'connectivite',
   'copropriete',
   'reseau_mobile',

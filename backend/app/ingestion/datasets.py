@@ -2,6 +2,7 @@
 
 import csv
 import io
+import json
 import logging
 import zipfile
 from datetime import date
@@ -381,4 +382,143 @@ async def ingest_school_sectors(
     ]
     if rows:
         await repository.replace_school_sectors(rows, everything=options.departements is None)
+    return len(rows)
+
+
+# INSEE Filosofi — revenus disponibles par IRIS (« Revenus, pauvreté et niveau de vie »).
+# Diffusé pour les IRIS des communes d'au moins 5 000 habitants environ.
+_IRIS_INCOME_URL = (
+    "https://www.insee.fr/fr/statistiques/fichier/8229323/BASE_TD_FILO_IRIS_2021_DISP_CSV.zip"
+)
+_IRIS_INCOME_YEAR = 2021
+_INCOME_SUFFIX = f"{_IRIS_INCOME_YEAR % 100}"
+
+# INSEE — recensement, base communale « Évolution et structure de la population ».
+_POPULATION_URL = (
+    "https://www.insee.fr/fr/statistiques/fichier/8581696/base-cc-evol-struct-pop-2022_csv.zip"
+)
+_POPULATION_YEAR = 2022
+_POPULATION_COLUMNS = ("P22_POP", "P16_POP", "P11_POP")
+
+# ANCT — périmètres des quartiers prioritaires 2024, hexagone et outre-mer en WGS84.
+_QPV_URL = "https://www.data.gouv.fr/api/1/datasets/r/942d4ee8-8142-4556-8ea1-335537ce1119"
+_QPV_FILE_SUFFIX = "wgs84.geojson"
+_QPV_GEOMETRIES = frozenset({"Polygon", "MultiPolygon"})
+_QPV_MINIMUM = 1000
+
+
+def _data_file(archive: zipfile.ZipFile) -> str:
+    """Fichier de données d'une archive INSEE, livrée avec un fichier de métadonnées."""
+    return next(name for name in archive.namelist() if not name.lower().startswith("meta"))
+
+
+def parse_iris_income_row(row: dict[str, str]) -> Row | None:
+    """Revenus d'un IRIS ; « ns », « nd » et « s » (secret statistique) deviennent None."""
+    code_iris = row.get("IRIS", "").strip()
+    if len(code_iris) != _IRIS_CODE_LENGTH:
+        return None
+
+    def euros(column: str) -> int | None:
+        value = to_number(row.get(f"DISP_{column}{_INCOME_SUFFIX}"))
+        return round(value) if value is not None and value > 0 else None
+
+    poverty = to_number(row.get(f"DISP_TP60{_INCOME_SUFFIX}"))
+    median = euros("MED")
+    if median is None and poverty is None:
+        return None
+    return (code_iris, _IRIS_INCOME_YEAR, median, euros("Q1"), euros("Q3"), poverty)
+
+
+async def ingest_iris_income(
+    downloader: Downloader, repository: IngestionRepository, options: IngestionOptions
+) -> int:
+    archive = zipfile.ZipFile(io.BytesIO(await downloader.content(_IRIS_INCOME_URL)))
+    with archive.open(_data_file(archive)) as raw:
+        reader = csv.DictReader(io.TextIOWrapper(raw, encoding="utf-8"), delimiter=";")
+        rows = [
+            parsed
+            for row in reader
+            # Les cinq premiers caractères d'un code IRIS sont le code de sa commune.
+            if (parsed := parse_iris_income_row(row)) is not None
+            and options.accepts(str(parsed[0])[:5])
+        ]
+    for batch in batched(rows, _BATCH_SIZE):
+        await repository.upsert_iris_income(batch)
+    return len(rows)
+
+
+def parse_population_row(code: str, counts: list[str]) -> Row | None:
+    """Population d'une commune aux trois recensements ; None sans population courante."""
+    current, six_years_ago, eleven_years_ago = (to_number(value) for value in counts)
+    if not is_insee_code(code) or current is None or current < 0:
+        return None
+
+    def whole(value: float | None) -> int | None:
+        return round(value) if value is not None and value >= 0 else None
+
+    return (code, _POPULATION_YEAR, round(current), whole(six_years_ago), whole(eleven_years_ago))
+
+
+async def ingest_population(
+    downloader: Downloader, repository: IngestionRepository, options: IngestionOptions
+) -> int:
+    archive = zipfile.ZipFile(io.BytesIO(await downloader.content(_POPULATION_URL)))
+    total = 0
+    with archive.open(_data_file(archive)) as raw:
+        # Trois colonnes utiles sur plus de trois cents : lecture par rang, sans dictionnaire.
+        reader = csv.reader(io.TextIOWrapper(raw, encoding="utf-8"), delimiter=";")
+        header = next(reader)
+        code_at = header.index("CODGEO")
+        counts_at = [header.index(column) for column in _POPULATION_COLUMNS]
+        rows = (
+            parsed
+            for line in reader
+            if (parsed := parse_population_row(line[code_at], [line[at] for at in counts_at]))
+            is not None
+            and options.accepts(str(parsed[0]))
+        )
+        for batch in batched(rows, _BATCH_SIZE):
+            await repository.upsert_population(batch)
+            total += len(batch)
+    return total
+
+
+def parse_priority_district(feature: dict[str, object]) -> Row | None:
+    properties, geometry = feature.get("properties"), feature.get("geometry")
+    if not isinstance(properties, dict) or not isinstance(geometry, dict):
+        return None
+    code, name = properties.get("code_qp"), properties.get("lib_qp")
+    if not isinstance(code, str) or not isinstance(name, str) or not code.strip():
+        return None
+    if geometry.get("type") not in _QPV_GEOMETRIES:
+        return None
+    commune_code, commune = properties.get("insee_com"), properties.get("lib_com")
+    return (
+        code.strip(),
+        name.strip(),
+        commune_code if isinstance(commune_code, str) else None,
+        commune if isinstance(commune, str) else None,
+        json.dumps(geometry),
+    )
+
+
+async def ingest_priority_districts(
+    downloader: Downloader, repository: IngestionRepository, options: IngestionOptions
+) -> int:
+    """Périmètres des quartiers prioritaires : toujours la France entière, le fichier est petit."""
+    archive = zipfile.ZipFile(io.BytesIO(await downloader.content(_QPV_URL)))
+    name = next(name for name in archive.namelist() if name.lower().endswith(_QPV_FILE_SUFFIX))
+    collection = json.loads(archive.read(name))
+    features = collection.get("features") if isinstance(collection, dict) else None
+    if not isinstance(features, list):
+        raise ValueError("fichier des quartiers prioritaires illisible")
+    rows = [
+        parsed
+        for feature in features
+        if isinstance(feature, dict) and (parsed := parse_priority_district(feature)) is not None
+    ]
+    # Un fichier presque vide signale une édition cassée : on garde les périmètres en place.
+    if len(rows) < _QPV_MINIMUM:
+        raise ValueError(f"seulement {len(rows)} quartiers prioritaires lus")
+    await repository.replace_priority_districts(rows)
     return len(rows)

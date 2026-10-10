@@ -424,6 +424,36 @@ export interface BruitData {
 }
 
 /** Nom de source -> forme de ses données. */
+/** Profil du quartier : revenus à l'IRIS, quartier prioritaire, population de la commune. */
+export interface QuartierData {
+  iris: { code: string; nom: string | null } | null
+  /** null quand l'INSEE ne diffuse pas les revenus de ce quartier. */
+  revenus: {
+    annee: number
+    revenu_median: number | null
+    revenu_q1: number | null
+    revenu_q3: number | null
+    taux_pauvrete_pct: number | null
+    reference_nationale: { revenu_median: number; taux_pauvrete_pct: number } | null
+  } | null
+  /** Sans `nom` : aucun quartier prioritaire dans le rayon. null : périmètres non chargés. */
+  quartier_prioritaire?: {
+    dans_un_quartier: boolean
+    rayon_m: number
+    code?: string
+    nom?: string
+    commune?: string | null
+    distance_m?: number
+  } | null
+  population?: {
+    annee: number
+    habitants: number
+    evolution_6_ans_pct: number | null
+    evolution_11_ans_pct: number | null
+    arrondissement: boolean
+  } | null
+}
+
 export interface SourceDataMap {
   georisques: GeorisquesData
   cadastre: CadastreData
@@ -440,6 +470,7 @@ export interface SourceDataMap {
   ecoles: EcolesData
   permis_construire: PermisData
   marche_locatif: MarcheLocatifData
+  quartier: QuartierData
   connectivite: ConnectiviteData
   copropriete: CoproprieteData
   reseau_mobile: ReseauMobileData

@@ -51,6 +51,10 @@ export const SOURCE_INFO: Record<SourceName, SourceInfo> = {
     title: 'Marché locatif du quartier',
     emptyText: 'Pas de donnée de recensement pour ce quartier.',
   },
+  quartier: {
+    title: 'Profil du quartier',
+    emptyText: 'Pas de donnée de l’INSEE pour ce quartier.',
+  },
   connectivite: {
     title: 'Internet fixe',
     emptyText: 'Pas de statistique d’éligibilité pour cette commune.',
@@ -102,5 +106,5 @@ export function orderedCategories<T>(categories: Record<string, T>): [string, T]
 export const SCHOOL_KIND_LABELS = { ecole: 'École', college: 'Collège', lycee: 'Lycée' } as const
 
 export const DATA_SOURCES =
-  'BAN, DVF, Géorisques, IGN, ADEME, INSEE, SSMSI, DGFiP, Éducation nationale, SDES, ARCEP, ANFR, ' +
+  'BAN, DVF, Géorisques, IGN, ADEME, INSEE, ANCT, SSMSI, DGFiP, Éducation nationale, SDES, ARCEP, ANFR, ' +
   'directions départementales des territoires (bruit), Atmo France et associations agréées de surveillance de la qualité de l’air, OpenStreetMap'

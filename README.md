@@ -120,7 +120,7 @@ secrets. Le fichier `.env` n'est jamais versionné.
 | `SONAR_ADMIN_PASSWORD`, `SONAR_TOKEN` | Écrits par `scripts/sonar-setup.sh` | — | — |
 
 Réglages du backend, facultatifs (valeurs par défaut dans `backend/app/core/config.py`) :
-`HTTP_TIMEOUT_S` (9), `PROVIDER_DEADLINE_S` (20), `REPORT_VERSION` (5), `CACHE_TTL_HOURS` (168),
+`HTTP_TIMEOUT_S` (9), `PROVIDER_DEADLINE_S` (20), `REPORT_VERSION` (15), `CACHE_TTL_HOURS` (168),
 `CACHE_PARTIAL_TTL_MINUTES` (15), `RATE_LIMIT_REQUESTS` (30 par minute et par IP).
 
 Frontend (`frontend/.env`) : `VITE_API_URL`, l'URL publique de l'API, et
@@ -131,7 +131,7 @@ de compte ; ce n'est pas un secret).
 
 | Jeu | Commande | Fréquence conseillée |
 |---|---|---|
-| Délinquance (SSMSI), taxe foncière (DGFiP), IPS des établissements, logements par IRIS (INSEE), fibre (ARCEP), carte des loyers (ANIL), zones tendues (zonage TLV), carte scolaire des collèges publics, permis de construire (SITADEL) | `docker compose run --rm backend python -m app.ingestion all` | Trimestrielle ; mensuelle pour `sitadel` |
+| Délinquance (SSMSI), taxe foncière (DGFiP), IPS des établissements, logements par IRIS (INSEE), fibre (ARCEP), carte des loyers (ANIL), zones tendues (zonage TLV), carte scolaire des collèges publics, revenus par IRIS (INSEE Filosofi), population des communes (INSEE), quartiers prioritaires (ANCT), permis de construire (SITADEL) | `docker compose run --rm backend python -m app.ingestion all` | Trimestrielle ; mensuelle pour `sitadel` |
 | Cartes de bruit stratégiques (Lden) | `uv run scripts/ingest_bruit_lden.py` | Mensuelle |
 
 L'ingestion est idempotente et vide le cache des rapports à la fin. Un jeu ou un département peut
@@ -452,6 +452,11 @@ bloque les appels à l'API.
   (sources marquées `"actif": false` dans `infra/bruit/sources.json`, avec le motif) :
   notamment les Bouches-du-Rhône, la Gironde, le Nord, la Haute-Garonne et le Bas-Rhin. Les
   cartes d'agglomération (voirie communale) et le bruit des aéroports ne sont pas chargés.
+- **Profil du quartier** : les revenus (Filosofi 2021) ne sont diffusés par l'INSEE que pour
+  les IRIS des communes les plus peuplées, soit environ 14 500 quartiers ; ailleurs la carte le
+  dit. Le repère national affiché est codé en dur pour cette édition, et les adresses des
+  fichiers (revenus, population 2022, quartiers prioritaires 2024) changent à chaque millésime :
+  elles sont à mettre à jour dans `backend/app/ingestion/datasets.py`.
 - **Encadrement des loyers** : liste codée en dur d'après service-public.gouv.fr (vérifiée le
   1er août 2026), dans `backend/app/services/providers/rental_rules.py` ; à relire à chaque
   nouveau décret.

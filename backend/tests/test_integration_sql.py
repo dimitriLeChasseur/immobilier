@@ -34,6 +34,9 @@ _CLEANUP = (
     ("ref_loyers", "code_insee LIKE $1", "0099%"),
     ("ref_carte_scolaire", "code_insee LIKE $1", "0099%"),
     ("ref_zone_tendue", "code_insee LIKE $1", "0099%"),
+    ("insee_iris_revenus", "code_iris LIKE $1", "0099%"),
+    ("insee_population", "code_insee LIKE $1", "0099%"),
+    ("geo_qpv", "code_qp LIKE $1", "QTEST%"),
 )
 
 
@@ -279,3 +282,59 @@ async def test_tense_zone_is_found_under_any_of_the_commune_codes(
         "reference": "test",
     }
     assert await repository.tense_zone(["00998"]) is None
+
+
+async def test_priority_district_is_the_one_containing_the_point_else_the_nearest(
+    pool: asyncpg.Pool, repository: PostgresReferenceRepository
+) -> None:
+    for code, name, west in (("QTEST1", "Près", LON), ("QTEST2", "Loin", LON + 0.003)):
+        await pool.execute(
+            "INSERT INTO geo_qpv (code_qp, nom, code_insee, commune, geom)"
+            " VALUES ($1, $2, '00990', 'Testville', ST_GeomFromEWKT($3))",
+            code,
+            name,
+            square(west, LAT),
+        )
+    assert await repository.priority_districts_loaded()
+
+    inside = await repository.priority_district(LAT + 0.0005, LON + 0.0005, 500)
+    assert inside == {"code_qp": "QTEST1", "nom": "Près", "commune": "Testville", "distance_m": 0}
+
+    # Environ 110 m à l'ouest du premier périmètre, plus de 400 m du second.
+    near = await repository.priority_district(LAT + 0.0005, LON - 0.001, 500)
+    assert near is not None and near["code_qp"] == "QTEST1"
+    assert 100 <= near["distance_m"] <= 120
+
+    assert await repository.priority_district(LAT + 0.0005, LON - 0.001, 50) is None
+    assert await repository.priority_district(LAT + 0.5, LON + 0.5, 500) is None
+
+
+async def test_income_and_population_lookups(
+    pool: asyncpg.Pool, repository: PostgresReferenceRepository
+) -> None:
+    await pool.execute(
+        "INSERT INTO insee_iris_revenus"
+        " (code_iris, annee, revenu_median, revenu_q1, revenu_q3, taux_pauvrete_pct)"
+        " VALUES ('009900101', 2021, 23950, 16980, 34630, NULL)"
+    )
+    assert await repository.iris_income("009900101") == {
+        "annee": 2021,
+        "revenu_median": 23950,
+        "revenu_q1": 16980,
+        "revenu_q3": 34630,
+        "taux_pauvrete_pct": None,
+    }
+    assert await repository.iris_income("009909999") is None
+
+    await pool.execute(
+        "INSERT INTO insee_population (code_insee, annee, population, population_6, population_11)"
+        " VALUES ('00990', 2022, 1000, 900, NULL), ('00991', 2022, 100, 110, 120)"
+    )
+    # Le code le plus précis l'emporte : l'arrondissement avant sa commune.
+    arrondissement = await repository.population(["00991", "00990"])
+    assert arrondissement is not None
+    assert (arrondissement["code_insee"], arrondissement["population"]) == ("00991", 100)
+    commune = await repository.population(["00998", "00990"])
+    assert commune is not None
+    assert (commune["population"], commune["population_11"]) == (1000, None)
+    assert await repository.population(["00998"]) is None

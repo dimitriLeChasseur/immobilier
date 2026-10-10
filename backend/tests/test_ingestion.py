@@ -76,6 +76,9 @@ def test_cli_arguments() -> None:
         "loyers",
         "zone_tendue",
         "carte_scolaire",
+        "filosofi",
+        "population",
+        "qpv",
         "sitadel",
     ]
     assert options.departements == frozenset({"49", "2A"})

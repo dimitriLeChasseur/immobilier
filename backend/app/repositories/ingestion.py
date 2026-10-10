@@ -141,6 +141,42 @@ _UPSERT_TENSE_ZONE = """
         imported_at = now()
 """
 
+_UPSERT_IRIS_INCOME = """
+    INSERT INTO insee_iris_revenus
+        (code_iris, annee, revenu_median, revenu_q1, revenu_q3, taux_pauvrete_pct)
+    VALUES ($1, $2, $3, $4, $5, $6)
+    ON CONFLICT (code_iris) DO UPDATE SET
+        annee = EXCLUDED.annee,
+        revenu_median = EXCLUDED.revenu_median,
+        revenu_q1 = EXCLUDED.revenu_q1,
+        revenu_q3 = EXCLUDED.revenu_q3,
+        taux_pauvrete_pct = EXCLUDED.taux_pauvrete_pct,
+        imported_at = now()
+"""
+
+_UPSERT_POPULATION = """
+    INSERT INTO insee_population (code_insee, annee, population, population_6, population_11)
+    VALUES ($1, $2, $3, $4, $5)
+    ON CONFLICT (code_insee) DO UPDATE SET
+        annee = EXCLUDED.annee,
+        population = EXCLUDED.population,
+        population_6 = EXCLUDED.population_6,
+        population_11 = EXCLUDED.population_11,
+        imported_at = now()
+"""
+
+# ST_MakeValid puis ST_CollectionExtract : un périmètre mal formé est réparé, pas rejeté.
+_INSERT_PRIORITY_DISTRICT = """
+    INSERT INTO geo_qpv (code_qp, nom, code_insee, commune, geom)
+    VALUES (
+        $1, $2, $3, $4,
+        ST_Multi(ST_CollectionExtract(ST_MakeValid(ST_SetSRID(ST_GeomFromGeoJSON($5), 4326)), 3))
+    )
+    ON CONFLICT (code_qp) DO UPDATE SET
+        nom = EXCLUDED.nom, code_insee = EXCLUDED.code_insee, commune = EXCLUDED.commune,
+        geom = EXCLUDED.geom, imported_at = now()
+"""
+
 _INSERT_SCHOOL_SECTOR = """
     INSERT INTO ref_carte_scolaire
         (code_insee, voie, numero_debut, numero_fin, parite, uai, secteur_unique)
@@ -181,6 +217,18 @@ class IngestionRepository:
 
     async def upsert_tense_zones(self, rows: Sequence[Row]) -> None:
         await self._executemany(_UPSERT_TENSE_ZONE, rows)
+
+    async def upsert_iris_income(self, rows: Sequence[Row]) -> None:
+        await self._executemany(_UPSERT_IRIS_INCOME, rows)
+
+    async def upsert_population(self, rows: Sequence[Row]) -> None:
+        await self._executemany(_UPSERT_POPULATION, rows)
+
+    async def replace_priority_districts(self, rows: Sequence[Row]) -> None:
+        """Remplace tous les périmètres, dans une transaction : un quartier retiré disparaît."""
+        async with db_errors(), self._pool.acquire() as connection, connection.transaction():
+            await connection.execute("DELETE FROM geo_qpv")
+            await connection.executemany(_INSERT_PRIORITY_DISTRICT, rows, timeout=900)
 
     async def replace_school_sectors(self, rows: Sequence[Row], *, everything: bool) -> None:
         """Remplace la carte scolaire : entière, ou seulement pour les communes fournies.

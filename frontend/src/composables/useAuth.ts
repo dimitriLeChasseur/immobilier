@@ -12,7 +12,6 @@ const MESSAGES: Record<string, string> = {
   'User already registered': 'Un compte existe déjà avec cette adresse : connectez-vous.',
   'Email not confirmed': 'Confirmez votre adresse via l’e-mail reçu, puis connectez-vous.',
   'Unsupported provider: provider is not enabled': 'La connexion Google n’est pas encore activée.',
-  'captcha verification process failed': 'La vérification anti-robot a échoué. Réessayez.',
 }
 
 // État partagé par toute l'application : une seule session à la fois.
@@ -21,6 +20,10 @@ const ready = ref(false)
 let initialised = false
 
 function translate(message: string): string {
+  // Le serveur d'authentification précise la cause entre parenthèses : seul le début est stable.
+  if (message.startsWith('captcha protection')) {
+    return 'La vérification anti-robot a échoué. Cochez la case de vérification puis réessayez.'
+  }
   return MESSAGES[message] ?? 'La connexion a échoué. Vérifiez vos informations et réessayez.'
 }
 

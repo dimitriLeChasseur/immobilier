@@ -44,7 +44,7 @@ const DEFINITIONS: StepDefinition[] = [
     key: 'neighbourhood',
     activeLabel: 'Exploration du quartier et des réseaux…',
     doneLabel: 'Quartier et réseaux explorés',
-    sources: ['proximite', 'ecoles', 'delinquance', 'connectivite', 'reseau_mobile'],
+    sources: ['proximite', 'ecoles', 'delinquance', 'quartier', 'connectivite', 'reseau_mobile'],
   },
 ]
 

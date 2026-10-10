@@ -42,6 +42,9 @@ _CLEAR_KEYS: dict[str, frozenset[str]] = {
     "ensoleillement": frozenset({"methode"}),
     "bruit": frozenset({"indice"}),
     "marche_locatif": frozenset({"permis_de_louer"}),
+    # La population est celle de la commune ; revenus et quartier prioritaire sont propres
+    # à l'adresse.
+    "quartier": frozenset({"iris", "population"}),
     "cadastre": frozenset(),
     "urbanisme": frozenset(),
 }

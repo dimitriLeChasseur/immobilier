@@ -24,6 +24,9 @@ from app.ingestion.datasets import (
     ingest_connectivity,
     ingest_crime,
     ingest_iris_housing,
+    ingest_iris_income,
+    ingest_population,
+    ingest_priority_districts,
     ingest_property_tax,
     ingest_rents,
     ingest_school_sectors,
@@ -47,6 +50,9 @@ DATASETS: dict[str, Ingester] = {
     "loyers": ingest_rents,
     "zone_tendue": ingest_tense_zones,
     "carte_scolaire": ingest_school_sectors,
+    "filosofi": ingest_iris_income,
+    "population": ingest_population,
+    "qpv": ingest_priority_districts,
     "sitadel": ingest_permits,
 }
 _DOWNLOAD_TIMEOUT_S = 900

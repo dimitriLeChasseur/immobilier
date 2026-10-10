@@ -17,6 +17,7 @@ from app.services.audit_service import AuditPolicy, AuditService
 from app.services.billing import BillingService
 from app.services.communes import CommuneService, TabularRents
 from app.services.geocoding import BanGeocoder
+from app.services.iris import IrisLocator
 from app.services.providers.apicarto import CadastreProvider, UrbanismeProvider
 from app.services.providers.base import Provider
 from app.services.providers.building import BuildingProvider
@@ -33,6 +34,7 @@ from app.services.providers.housing import (
     RentalMarketProvider,
 )
 from app.services.providers.market import RentsProvider
+from app.services.providers.neighbourhood import NeighbourhoodProvider
 from app.services.providers.poi import PoiProvider
 from app.services.providers.reference import (
     CrimeProvider,
@@ -59,6 +61,7 @@ def build_audit_service(
     )
     reference = PostgresReferenceRepository(pool)
     ors_key = settings.ors_api_key.get_secret_value() if settings.ors_api_key else None
+    iris = IrisLocator(http)
     providers: list[Provider] = [
         GeorisquesProvider(http),
         CadastreProvider(http),
@@ -84,7 +87,10 @@ def build_audit_service(
         PropertyTaxProvider(reference),
         SchoolsProvider(reference, HigherEducationFinder(http)),
         PermitsProvider(reference),
-        RentalMarketProvider(http, reference, abc_resource_id=settings.zonage_abc_resource_id),
+        RentalMarketProvider(
+            http, reference, abc_resource_id=settings.zonage_abc_resource_id, iris=iris
+        ),
+        NeighbourhoodProvider(reference, iris),
         ConnectivityProvider(reference),
         CondoChargesProvider(),
         MobileNetworkProvider(http),

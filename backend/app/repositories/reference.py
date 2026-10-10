@@ -177,6 +177,34 @@ _IRIS_HOUSING = """
     WHERE code_iris = $1
 """
 
+_IRIS_INCOME = """
+    SELECT annee, revenu_median, revenu_q1, revenu_q3, taux_pauvrete_pct
+    FROM insee_iris_revenus
+    WHERE code_iris = $1
+"""
+
+# Code le plus précis d'abord (l'arrondissement avant sa commune).
+_POPULATION = """
+    SELECT code_insee, annee, population, population_6, population_11
+    FROM insee_population
+    WHERE code_insee = ANY($1::text[])
+    ORDER BY array_position($1::text[], code_insee::text)
+    LIMIT 1
+"""
+
+# Quartier prioritaire contenant le point (distance 0) ou, à défaut, le plus proche dans le
+# rayon. Le filtre en degrés passe par l'index spatial ; la distance exacte est en mètres.
+_PRIORITY_DISTRICT = """
+    WITH origin AS (SELECT ST_SetSRID(ST_MakePoint($1, $2), 4326) AS geom)
+    SELECT q.code_qp, q.nom, q.commune,
+           round(ST_Distance(q.geom::geography, origin.geom::geography))::int AS distance_m
+    FROM geo_qpv q, origin
+    WHERE ST_DWithin(q.geom, origin.geom, $3::float8 / 70000.0)
+      AND ST_DWithin(q.geom::geography, origin.geom::geography, $3)
+    ORDER BY distance_m
+    LIMIT 1
+"""
+
 _CONNECTIVITY = """
     SELECT date_donnees, nb_locaux, eligibles_fibre, eligibles_cable, eligibles_4g_fixe
     FROM arcep_connectivite
@@ -269,6 +297,16 @@ class ReferenceRepository(Protocol):
     async def iris_housing(self, code_iris: str) -> dict[str, Any] | None: ...
 
     async def connectivity(self, codes: list[str]) -> dict[str, Any] | None: ...
+
+    async def iris_income(self, code_iris: str) -> dict[str, Any] | None: ...
+
+    async def population(self, codes: list[str]) -> dict[str, Any] | None: ...
+
+    async def priority_district(
+        self, lat: float, lon: float, radius_m: int
+    ) -> dict[str, Any] | None: ...
+
+    async def priority_districts_loaded(self) -> bool: ...
 
     async def noise_levels(self, lat: float, lon: float) -> list[dict[str, Any]]: ...
 
@@ -420,6 +458,31 @@ class PostgresReferenceRepository:
             if record is not None:
                 return _jsonable(record)
         return None
+
+    async def iris_income(self, code_iris: str) -> dict[str, Any] | None:
+        """Revenus et pauvreté du quartier, None si l'INSEE ne les diffuse pas pour lui."""
+        async with db_errors():
+            record = await self._pool.fetchrow(_IRIS_INCOME, code_iris)
+        return _jsonable(record) if record is not None else None
+
+    async def population(self, codes: list[str]) -> dict[str, Any] | None:
+        """Population de la commune (ou de l'arrondissement) aux trois derniers recensements."""
+        async with db_errors():
+            record = await self._pool.fetchrow(_POPULATION, codes)
+        return _jsonable(record) if record is not None else None
+
+    async def priority_district(
+        self, lat: float, lon: float, radius_m: int
+    ) -> dict[str, Any] | None:
+        """Quartier prioritaire qui contient le point, ou le plus proche dans le rayon."""
+        async with db_errors():
+            record = await self._pool.fetchrow(_PRIORITY_DISTRICT, lon, lat, radius_m)
+        return _jsonable(record) if record is not None else None
+
+    async def priority_districts_loaded(self) -> bool:
+        """Vrai si les périmètres sont ingérés : sans eux, « aucun quartier » ne veut rien dire."""
+        async with db_errors():
+            return bool(await self._pool.fetchval("SELECT EXISTS (SELECT 1 FROM geo_qpv)"))
 
     async def noise_levels(self, lat: float, lon: float) -> list[dict[str, Any]]:
         """Classes de bruit au point, la plus forte d'abord."""

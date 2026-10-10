@@ -8,11 +8,10 @@ from app.core.geo import haversine_m
 from app.core.http import HttpClient
 from app.repositories.reference import ReferenceRepository
 from app.services.insights import noise_message
-from app.services.providers.apicarto import feature_properties
+from app.services.iris import IrisLocator
 from app.services.providers.base import AuditContext, ProviderData, as_rows, gather_parts
 from app.services.providers.rental_rules import VERIFIED_ON, rent_control
 
-_WFS_URL = "https://data.geopf.fr/wfs/ows"
 _GEO_COMMUNE_URL = "https://geo.api.gouv.fr/communes"
 
 # Charges de copropriété annuelles au m² (annonces immobilières, 2018, licence CC-BY-SA) :
@@ -73,10 +72,12 @@ class RentalMarketProvider:
         repository: ReferenceRepository,
         *,
         abc_resource_id: str | None = None,
+        iris: IrisLocator | None = None,
     ) -> None:
         self._http = http
         self._repository = repository
         self._abc_resource_id = abc_resource_id
+        self._iris = iris or IrisLocator(http)
 
     async def fetch(self, ctx: AuditContext) -> ProviderData:
         data, missing = await gather_parts(
@@ -126,32 +127,18 @@ class RentalMarketProvider:
         return None
 
     async def _occupancy(self, ctx: AuditContext) -> dict[str, Any] | None:
-        payload = await self._http.get_json(
-            "ign_wfs",
-            _WFS_URL,
-            params={
-                "SERVICE": "WFS",
-                "VERSION": "2.0.0",
-                "REQUEST": "GetFeature",
-                "TYPENAMES": "STATISTICALUNITS.IRISGE:iris_ge",
-                "OUTPUTFORMAT": "application/json",
-                "PROPERTYNAME": "code_iris,nom_iris",
-                "CQL_FILTER": f"INTERSECTS(geometrie,SRID=4326;POINT({ctx.lon} {ctx.lat}))",
-            },
-        )
-        zones = feature_properties(payload)
-        if not zones or not isinstance(zones[0].get("code_iris"), str):
+        iris = await self._iris.locate(ctx.lat, ctx.lon)
+        if iris is None:
             return None
-        code_iris = zones[0]["code_iris"]
         try:
-            row = await self._repository.iris_housing(code_iris)
+            row = await self._repository.iris_housing(iris.code)
         except RepositoryError as exc:
             raise SourceError("http_error", str(exc)) from exc
         if row is None:
             return None
         main_homes, dwellings = row["residences_principales"], row["logements"]
         return {
-            "iris": {"code": code_iris, "nom": zones[0].get("nom_iris")},
+            "iris": {"code": iris.code, "nom": iris.name},
             "annee": row["annee"],
             "logements": dwellings,
             "part_proprietaires_pct": _share(row["proprietaires"], main_homes),

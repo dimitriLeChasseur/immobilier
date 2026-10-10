@@ -31,7 +31,7 @@ class Settings(BaseSettings):
     source_quotas: dict[str, int] = Field(default_factory=lambda: {"bdnb": 100})
 
     # Cache des rapports
-    report_version: int = Field(default=14, ge=1, le=32767)
+    report_version: int = Field(default=15, ge=1, le=32767)
     cache_ttl_hours: int = Field(default=168, ge=1)
     cache_partial_ttl_minutes: int = Field(default=15, ge=1)
     air_quality_ttl_hours: int = Field(default=12, ge=1)

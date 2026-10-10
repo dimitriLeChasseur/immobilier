@@ -29,8 +29,9 @@ PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
 0 4 3 * * root $RUN "Ingestion des points d'intérêt" /var/log/immo-osm.log $UV run scripts/ingest_osm_poi.py
 # Permis de construire : le 5 de chaque mois.
 0 4 5 * * root $RUN "Ingestion des permis" /var/log/immo-ingestion.log docker compose run --rm -T backend python -m app.ingestion sitadel
-# Autres référentiels (délinquance, taxe foncière, IPS, IRIS, fibre) : chaque trimestre.
-0 5 6 1,4,7,10 * root $RUN "Ingestion des référentiels" /var/log/immo-ingestion.log docker compose run --rm -T backend python -m app.ingestion ssmsi dgfip ips iris arcep loyers zone_tendue carte_scolaire
+# Autres référentiels (délinquance, taxe foncière, IPS, IRIS, fibre, revenus, population,
+# quartiers prioritaires) : chaque trimestre.
+0 5 6 1,4,7,10 * root $RUN "Ingestion des référentiels" /var/log/immo-ingestion.log docker compose run --rm -T backend python -m app.ingestion ssmsi dgfip ips iris arcep loyers zone_tendue carte_scolaire filosofi population qpv
 CRON
 )"
 

@@ -9,6 +9,8 @@ import AddressSearch from '../components/AddressSearch.vue'
 import AuditDashboard from '../components/AuditDashboard.vue'
 import AuditStepper from '../components/AuditStepper.vue'
 import AuthModal from '../components/AuthModal.vue'
+import HomeIntro from '../components/HomeIntro.vue'
+import ReportNav from '../components/ReportNav.vue'
 import SynthesisPanel from '../components/SynthesisPanel.vue'
 import VisitChecklist from '../components/VisitChecklist.vue'
 import { useAccount } from '../composables/useAccount'
@@ -52,6 +54,15 @@ const authOpen = ref(false)
 const lastLabel = ref('')
 
 const active = computed(() => phase.value !== 'idle')
+// Sommaire : la synthèse n'y figure que si le rapport en a une, le cadastre n'a pas de section.
+const reportSections = computed(() => [
+  ...(meta.value?.synthese ? [{ id: 'section-synthesis', label: 'Synthèse' }] : []),
+  { id: 'section-market', label: 'Marché immobilier' },
+  { id: 'section-risks', label: 'Risques et urbanisme' },
+  { id: 'section-environment', label: 'Énergie et environnement' },
+  { id: 'section-neighbourhood', label: 'Vie de quartier' },
+  { id: 'section-checklist', label: 'Contre-visite' },
+])
 const settled = computed(() => phase.value === 'done' || phase.value === 'error')
 // Version restreinte : le serveur n'a pas envoyé les valeurs réservées aux audits achetés.
 const teaser = computed(() => meta.value?.access === 'teaser')
@@ -232,7 +243,7 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
 
 <template>
   <div>
-      <section :class="active ? 'py-6' : 'py-16 sm:py-24'">
+      <section :class="active ? 'py-6' : 'py-14 sm:py-20'">
         <div v-if="!active" class="mx-auto mb-8 max-w-2xl text-center">
           <h1 class="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
             Tout savoir sur une adresse avant d’acheter
@@ -258,6 +269,8 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
           </button>
         </p>
       </section>
+
+      <HomeIntro v-if="!active" @demo="run(DEMO_TARGET, DEMO_LABEL)" />
 
       <template v-if="active">
         <div
@@ -405,9 +418,11 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
             Recherchez votre adresse pour obtenir le même rapport : {{ UNIT_PRICE }}.
           </p>
 
-          <SynthesisPanel v-if="meta?.synthese" class="mb-10" :synthesis="meta.synthese" />
+          <!-- La clé recrée le sommaire quand la synthèse arrive : ses sections sont alors toutes dans la page. -->
+          <ReportNav :key="reportSections.length" :sections="reportSections" />
+          <SynthesisPanel v-if="meta?.synthese" id="section-synthesis" class="mb-10 scroll-mt-16" :synthesis="meta.synthese" />
           <AuditDashboard :sources="sources" :settled="settled" :street="Boolean(location?.rue)" />
-          <VisitChecklist v-model="checkedItems" class="mt-10" />
+          <VisitChecklist v-model="checkedItems" class="mt-10 scroll-mt-16" />
         </template>
       </template>
 

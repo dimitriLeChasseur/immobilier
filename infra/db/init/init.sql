@@ -330,6 +330,52 @@ CREATE TABLE IF NOT EXISTS immo.ref_carte_scolaire (
 CREATE INDEX IF NOT EXISTS ref_carte_scolaire_voie_idx
     ON immo.ref_carte_scolaire (code_insee, voie);
 
+-- INSEE Filosofi — revenus disponibles et pauvreté par IRIS. Les valeurs couvertes par le
+-- secret statistique ou non diffusées sont NULL.
+CREATE TABLE IF NOT EXISTS immo.insee_iris_revenus (
+    code_iris          text        NOT NULL,
+    annee              smallint    NOT NULL,
+    -- Niveau de vie annuel par unité de consommation, en euros.
+    revenu_median      integer,
+    revenu_q1          integer,
+    revenu_q3          integer,
+    taux_pauvrete_pct  numeric(4, 1),
+    imported_at        timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT insee_iris_revenus_pkey PRIMARY KEY (code_iris),
+    CONSTRAINT insee_iris_revenus_code_check CHECK (code_iris ~ '^[0-9AB]{9}$'),
+    CONSTRAINT insee_iris_revenus_values_check CHECK (
+        (revenu_median IS NULL OR revenu_median > 0)
+        AND (taux_pauvrete_pct IS NULL OR taux_pauvrete_pct BETWEEN 0 AND 100)
+    )
+);
+
+-- INSEE — population municipale de la commune aux trois derniers recensements comparables.
+CREATE TABLE IF NOT EXISTS immo.insee_population (
+    code_insee      immo.code_insee NOT NULL,
+    annee           smallint    NOT NULL,
+    population      integer     NOT NULL,
+    -- Recensements antérieurs de six et onze ans ; NULL pour une commune créée depuis.
+    population_6    integer,
+    population_11   integer,
+    imported_at     timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT insee_population_pkey PRIMARY KEY (code_insee),
+    CONSTRAINT insee_population_values_check CHECK (
+        population >= 0 AND coalesce(population_6, 0) >= 0 AND coalesce(population_11, 0) >= 0
+    )
+);
+
+-- ANCT — périmètres des quartiers prioritaires de la politique de la ville (QPV 2024).
+CREATE TABLE IF NOT EXISTS immo.geo_qpv (
+    code_qp      text        NOT NULL,
+    nom          text        NOT NULL,
+    code_insee   text,
+    commune      text,
+    geom         geometry(MultiPolygon, 4326) NOT NULL,
+    imported_at  timestamptz NOT NULL DEFAULT now(),
+    CONSTRAINT geo_qpv_pkey PRIMARY KEY (code_qp)
+);
+CREATE INDEX IF NOT EXISTS geo_qpv_geom_gist ON immo.geo_qpv USING gist (geom);
+
 -- Droits d'accès aux audits complets : une ligne par utilisateur et par adresse achetée.
 -- Alimentée après paiement (intégration Stripe à venir) ; sans ligne, l'API ne renvoie
 -- que la version « teaser » du rapport.
@@ -459,6 +505,7 @@ BEGIN
         'api_reports_cache', 'insee_ssmsi', 'insee_dgfip', 'geo_ips_ecoles', 'geo_sitadel',
         'insee_iris_logement', 'arcep_connectivite', 'geo_bruit_lden', 'geo_osm_poi',
         'ref_loyers', 'ref_zone_tendue', 'ref_carte_scolaire',
+        'insee_iris_revenus', 'insee_population', 'geo_qpv',
         'audit_entitlements',
         'user_credits', 'user_subscriptions', 'stripe_events', 'user_branding',
         'audit_history'

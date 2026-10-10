@@ -13,6 +13,7 @@ import CrimeCard from './cards/CrimeCard.vue'
 import DvfCard from './cards/DvfCard.vue'
 import EnergyCard from './cards/EnergyCard.vue'
 import MobileNetworkCard from './cards/MobileNetworkCard.vue'
+import NeighbourhoodCard from './cards/NeighbourhoodCard.vue'
 import NearbyCard from './cards/NearbyCard.vue'
 import NoiseCard from './cards/NoiseCard.vue'
 import ParcelCard from './cards/ParcelCard.vue'
@@ -78,7 +79,7 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
 <template>
   <div class="space-y-10">
     <section aria-labelledby="section-market">
-      <h2 id="section-market" class="mb-4 text-lg font-semibold text-slate-900">Marché immobilier</h2>
+      <h2 id="section-market" class="mb-4 scroll-mt-16 text-lg font-semibold text-slate-900">Marché immobilier</h2>
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <SourceCard class="lg:col-span-3" v-bind="card('dvf')">
           <template #default="{ data }"><DvfCard :data="data" /></template>
@@ -121,7 +122,7 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
     </section>
 
     <section aria-labelledby="section-risks">
-      <h2 id="section-risks" class="mb-4 text-lg font-semibold text-slate-900">Risques et urbanisme</h2>
+      <h2 id="section-risks" class="mb-4 scroll-mt-16 text-lg font-semibold text-slate-900">Risques et urbanisme</h2>
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <SourceCard class="lg:col-span-2" v-bind="card('georisques')">
           <template #default="{ data }"><RisksCard :data="data" :prevention-plan="preventionPlan" /></template>
@@ -142,7 +143,7 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
     </section>
 
     <section aria-labelledby="section-environment">
-      <h2 id="section-environment" class="mb-4 text-lg font-semibold text-slate-900">Énergie et environnement</h2>
+      <h2 id="section-environment" class="mb-4 scroll-mt-16 text-lg font-semibold text-slate-900">Énergie et environnement</h2>
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <SourceCard v-bind="card('dpe', true)">
           <template #default="{ data }"><EnergyCard :data="data" /></template>
@@ -160,7 +161,7 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
     </section>
 
     <section aria-labelledby="section-neighbourhood">
-      <h2 id="section-neighbourhood" class="mb-4 text-lg font-semibold text-slate-900">Vie de quartier</h2>
+      <h2 id="section-neighbourhood" class="mb-4 scroll-mt-16 text-lg font-semibold text-slate-900">Vie de quartier</h2>
       <div class="grid grid-cols-1 gap-4 lg:grid-cols-3">
         <SourceCard v-bind="card('proximite', true)">
           <template #default="{ data }"><NearbyCard :data="data" /></template>
@@ -173,6 +174,9 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
         </SourceCard>
         <SourceCard class="lg:col-span-2" v-bind="card('marche_locatif')">
           <template #default="{ data }"><RentalMarketCard :data="data" /></template>
+        </SourceCard>
+        <SourceCard class="lg:col-span-2" v-bind="card('quartier')">
+          <template #default="{ data }"><NeighbourhoodCard :data="data" /></template>
         </SourceCard>
         <SourceCard v-bind="card('connectivite', true)">
           <template #default="{ data }"><ConnectivityCard :data="data" /></template>

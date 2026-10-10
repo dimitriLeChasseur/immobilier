@@ -8,6 +8,8 @@ import type {
   EcolesData,
   GeorisquesData,
   MarcheLocatifData,
+  ProximiteData,
+  QuartierData,
   ReseauMobileData,
   SourceResults,
   TaxeFonciereData,
@@ -25,6 +27,7 @@ import {
 } from './format'
 import { inPreventionPlan, riskIndicators } from './insights'
 import { sectorNotice, tenseZoneNotice } from './housingRules'
+import { districtNotice, incomeGap, populationScope, populationTrend } from './neighbourhood'
 import { yieldLines } from './yield'
 import { isFailure, orderedCategories, POI_CATEGORY_LABELS, SCHOOL_KIND_LABELS } from './sources'
 
@@ -345,6 +348,28 @@ function rentalRows(rental: MarcheLocatifData | null | undefined): Rows {
   ]
 }
 
+function profileRows(profile: QuartierData | null | undefined): Rows {
+  if (!profile) return []
+  const income = profile.revenus
+  const quarter = profile.iris?.nom ?? profile.iris?.code ?? ''
+  const incomeRows: Rows = income
+    ? [
+        [
+          `Niveau de vie médian (quartier ${quarter}, ${income.annee})`,
+          [`${formatEuros(income.revenu_median)} par an`, incomeGap(income)].filter(Boolean).join(', '),
+        ],
+        ['Taux de pauvreté du quartier', formatPercent(income.taux_pauvrete_pct, 0)],
+      ]
+    : []
+  const district = districtNotice(profile.quartier_prioritaire)
+  const districtRows: Rows = district ? [[district.title, district.detail]] : []
+  const population = profile.population
+  const populationRows: Rows = population
+    ? [['Population', [populationScope(population), populationTrend(population)].filter(Boolean).join(' ; ')]]
+    : []
+  return [...incomeRows, ...districtRows, ...populationRows]
+}
+
 function connectivityRows(connectivity: ConnectiviteData | null | undefined): Rows {
   if (!connectivity) return []
   return [
@@ -375,31 +400,28 @@ function sectorRows(schools: EcolesData): Rows {
   return [[notice.title, [names, notice.detail].filter(Boolean).join(' — ')]]
 }
 
-function neighbourhood(sources: SourceResults): ReportSection {
-  const nearby = sources.proximite?.data
-  const schools = sources.ecoles?.data
-  const nearbyRows = orderedCategories(nearby?.categories ?? {}).map(([category, stats]): [string, string] => {
+function nearbyRows(nearby: ProximiteData | null | undefined): Rows {
+  const rows = orderedCategories(nearby?.categories ?? {}).map(([category, stats]): [string, string] => {
     const nearest = stats.plus_proche ? `, le plus proche à ${stats.plus_proche.marche_min} min` : ''
     const count = stats.nb ? `${formatInteger(stats.nb)} à moins de ${nearby?.rayon_m} m` : `Aucun à moins de ${nearby?.rayon_m} m`
     return [POI_CATEGORY_LABELS[category] ?? category, `${count}${nearest}`]
   })
-  const walkingRows: Rows = nearbyRows.length
-    ? [
-        [
-          'Temps de marche',
-          nearby?.methode_temps === 'itineraire_pieton' ? 'Calculés sur itinéraire piéton' : 'Estimés à vol d’oiseau',
-        ],
-      ]
-    : []
+  if (!rows.length) return []
+  const method = nearby?.methode_temps === 'itineraire_pieton' ? 'Calculés sur itinéraire piéton' : 'Estimés à vol d’oiseau'
+  return [...rows, ['Temps de marche', method]]
+}
+
+function neighbourhood(sources: SourceResults): ReportSection {
+  const schools = sources.ecoles?.data
   const schoolRows: Rows = schools ? [...schoolAverages(schools), ...sectorRows(schools)] : []
   return {
     title: 'Vie de quartier',
     rows: [
-      ...nearbyRows,
-      ...walkingRows,
+      ...nearbyRows(sources.proximite?.data),
       ...schoolRows,
       ...burglaryRow(sources.delinquance?.data),
       ...rentalRows(sources.marche_locatif?.data),
+      ...profileRows(sources.quartier?.data),
       ...connectivityRows(sources.connectivite?.data),
       ...mobileRows(sources.reseau_mobile?.data),
     ],

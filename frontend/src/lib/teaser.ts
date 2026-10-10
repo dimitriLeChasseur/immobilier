@@ -40,6 +40,11 @@ function riskCount(data: Data): string | null {
   return Array.isArray(risks) ? `${risks.length} risques recensés sur la commune` : null
 }
 
+function quarterName(data: Data): string | null {
+  const iris = data.iris as { nom?: unknown } | null | undefined
+  return typeof iris?.nom === 'string' ? `Revenus et profil du quartier « ${iris.nom} » analysés` : null
+}
+
 // Ce que l'on peut dire sans rien révéler : la preuve que l'analyse a eu lieu.
 const HOOKS: Partial<Record<SourceName, Hook>> = {
   dvf: (d) =>
@@ -57,6 +62,7 @@ const HOOKS: Partial<Record<SourceName, Hook>> = {
   connectivite: (d) => sentence(d.nb_locaux, (n) => `${formatInteger(n)} locaux analysés dans la commune`),
   delinquance: (d) => sentence(d.annee, (n) => `Statistiques ${n} de la commune analysées`),
   taxe_fonciere: (d) => sentence(d.annee, (n) => `Taux ${n} de la commune relevés`),
+  quartier: quarterName,
 }
 
 const DEFAULT_HOOK = 'Analyse réalisée pour cette adresse'

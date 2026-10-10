@@ -11,7 +11,7 @@ const remaining = computed(() => CHECKLIST_ITEMS.length - checked.value.length)
 
 <template>
   <section aria-labelledby="section-checklist" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <h2 id="section-checklist" class="text-lg font-semibold text-slate-900">{{ CHECKLIST_TITLE }}</h2>
+    <h2 id="section-checklist" class="scroll-mt-20 text-lg font-semibold text-slate-900">{{ CHECKLIST_TITLE }}</h2>
     <p class="mt-1 text-sm text-slate-600">
       Trois points que les données publiques ne permettent pas de vérifier à votre place.
     </p>
