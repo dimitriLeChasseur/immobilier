@@ -282,10 +282,11 @@ Une application monopage ne livre aux robots qu'une coquille vide. Le site expos
 - **une fiche par commune** (`/commune/angers-49007`) : taxe foncière, cambriolages, écoles,
   logement et fibre, comparés au département et à la France. Ces chiffres communaux sont
   publics et gratuits ; l'audit d'une adresse reste le produit payant ;
-- **l'accueil et les tarifs écrits en HTML** : à la construction, `vite build --ssr` compile
-  `src/prerender.ts`, puis `scripts/seo.ts` rend ces deux pages avec les composants de
-  l'application et écrit le résultat dans `index.html` et `tarifs.html`. Un robot sans
+- **les pages de l'application écrites en HTML** (accueil, tarifs, liste des communes, pages
+  légales) : à la construction, `vite build --ssr` compile `src/prerender.ts`, puis
+  `scripts/seo.ts` rend ces pages avec les composants de l'application. Un robot sans
   JavaScript lit le même contenu qu'un visiteur ; l'application le remplace à son démarrage.
+  Les pages légales portent `noindex` tant que l'identité de l'éditeur est incomplète.
   Pour ajouter une page, complétez `PRERENDERED_PATHS` ;
 - **des pages statiques** : à la construction, `scripts/seo.ts` écrit chaque fiche en HTML
   dans `dist/commune/<slug>.html` (servie sans barre finale, comme l'annoncent le plan du

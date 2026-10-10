@@ -1,5 +1,6 @@
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
+import { LEGAL_INCOMPLETE } from '../src/lib/legal'
 import { UNIT_PRICE } from '../src/lib/pricing'
 import { renderPage } from '../src/prerender'
 
@@ -24,5 +25,24 @@ describe('rendu statique des pages publiques', () => {
 
   it('refuse une page inconnue', async () => {
     await expect(renderPage('/page-inexistante')).rejects.toThrow('inconnue')
+  })
+})
+
+describe('rendu statique des pages secondaires', () => {
+  it('écrit la liste des communes chargée avant l’affichage', async () => {
+    const links = [{ nom: 'Angers', slug: 'angers-49007', departement_code: '49' }]
+    vi.stubGlobal('fetch', () => Promise.resolve(new Response(JSON.stringify(links))))
+    const page = await renderPage('/communes')
+    vi.unstubAllGlobals()
+    expect(page.body).toContain('Département 49')
+    expect(page.body).toContain('href="/commune/angers-49007"')
+    expect(page.noindex).toBe(false)
+  })
+
+  it('écrit les pages légales, hors index tant que l’éditeur est incomplet', async () => {
+    const page = await renderPage('/cgv')
+    expect(page.body).toContain('<h1')
+    expect(page.body).toContain('Dernière mise à jour')
+    expect(page.noindex).toBe(LEGAL_INCOMPLETE)
   })
 })

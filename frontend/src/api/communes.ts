@@ -17,10 +17,23 @@ export async function fetchCommune(code: string): Promise<CommuneProfile | null>
   return (await response.json()) as CommuneProfile
 }
 
+// Liste chargée avant l'affichage de la page (garde de la route) : la vue la lit sans attendre,
+// et la page écrite en HTML à la construction n'est pas remplacée par une liste vide.
+let links: CommuneLink[] = []
+
 /** Communes disposant d'une page, liste produite à la construction du site. */
-export async function fetchCommuneLinks(): Promise<CommuneLink[]> {
-  const response = await fetch('/communes.json')
-  if (!response.ok) return []
-  const payload: unknown = await response.json()
-  return Array.isArray(payload) ? (payload as CommuneLink[]) : []
+export function communeLinks(): CommuneLink[] {
+  return links
+}
+
+/** Charge la liste une fois ; un échec la laisse vide et sera retenté à la prochaine visite. */
+export async function loadCommuneLinks(): Promise<void> {
+  if (links.length) return
+  try {
+    const response = await fetch('/communes.json')
+    const payload: unknown = response.ok ? await response.json() : []
+    links = Array.isArray(payload) ? (payload as CommuneLink[]) : []
+  } catch {
+    links = []
+  }
 }

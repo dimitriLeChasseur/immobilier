@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 
+import { loadCommuneLinks } from './api/communes'
 import { LEGAL_INCOMPLETE } from './lib/legal'
 import { LEGAL_DOCUMENTS, type LegalKey } from './lib/legalContent'
 import { DEFAULT_DESCRIPTION, setPageMeta, SITE_NAME } from './lib/seo'
@@ -59,6 +60,7 @@ export const router = createRouter({
       path: '/communes',
       name: 'communes',
       component: () => import('./views/CommunesView.vue'),
+      beforeEnter: loadCommuneLinks,
       meta: {
         title: `Chiffres clés immobiliers par commune | ${SITE_NAME}`,
         description:

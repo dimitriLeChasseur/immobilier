@@ -1,16 +1,16 @@
 <script setup lang="ts">
-import { computed, onMounted, ref } from 'vue'
+import { computed } from 'vue'
 import { RouterLink } from 'vue-router'
 
-import { fetchCommuneLinks, type CommuneLink } from '../api/communes'
+import { communeLinks, type CommuneLink } from '../api/communes'
 
-const communes = ref<CommuneLink[]>([])
-const loaded = ref(false)
+// Déjà chargée par la garde de la route.
+const communes = communeLinks()
 
 // Regroupées par département, dans l'ordre des codes.
 const groups = computed(() => {
   const byDepartement = new Map<string, CommuneLink[]>()
-  for (const commune of communes.value) {
+  for (const commune of communes) {
     const group = byDepartement.get(commune.departement_code) ?? []
     group.push(commune)
     byDepartement.set(commune.departement_code, group)
@@ -18,14 +18,6 @@ const groups = computed(() => {
   return [...byDepartement.entries()]
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([code, items]) => ({ code, items: [...items].sort((a, b) => a.nom.localeCompare(b.nom, 'fr')) }))
-})
-
-onMounted(async () => {
-  try {
-    communes.value = await fetchCommuneLinks()
-  } finally {
-    loaded.value = true
-  }
 })
 </script>
 
@@ -47,7 +39,7 @@ onMounted(async () => {
         </li>
       </ul>
     </div>
-    <p v-if="loaded && !groups.length" class="mt-8 text-sm text-slate-500">
+    <p v-if="!groups.length" class="mt-8 text-sm text-slate-500">
       La liste des communes n’est pas disponible sur cet environnement.
     </p>
   </section>

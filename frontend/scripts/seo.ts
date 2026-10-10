@@ -1,6 +1,6 @@
 /**
- * Référencement, exécuté après « vite build » : pages de l'accueil, des tarifs et des communes
- * écrites en HTML, plan du site, robots.txt et liste des communes.
+ * Référencement, exécuté après « vite build » : accueil, tarifs, pages légales, liste et fiches
+ * des communes écrits en HTML, plan du site, robots.txt et liste des communes.
  *
  * Une application monopage ne livre aux robots qu'une coquille vide. Chaque fiche communale
  * est donc aussi écrite en HTML dans dist/commune/<slug>/index.html, avec le même contenu
@@ -27,10 +27,10 @@ const LEGAL_PATHS = LEGAL_INCOMPLETE ? [] : ['/mentions-legales', '/cgv', '/conf
 const STATIC_PATHS = ['/', '/tarifs', '/communes', ...LEGAL_PATHS]
 // Pages de l'application : chacune reçoit son fichier, pour répondre 200 sans repli général.
 // Pages écrites en HTML complet, avec leur contenu : celles que les moteurs doivent lire.
-const PRERENDERED_PATHS = ['/', '/tarifs']
+const PRERENDERED_PATHS = ['/', '/tarifs', '/communes', '/mentions-legales', '/cgv', '/confidentialite']
 // Coquille vide de l'application, servie par la fonction des fiches communales non écrites.
 const SHELL_PATH = '/app-shell'
-const APP_PATHS = [SHELL_PATH, '/communes', '/compte', '/mot-de-passe', '/mentions-legales', '/cgv', '/confidentialite']
+const APP_PATHS = [SHELL_PATH, '/compte', '/mot-de-passe']
 
 function escapeHtml(text: string): string {
   return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;')
@@ -100,11 +100,15 @@ function replaceOnce(html: string, pattern: RegExp, replacement: string): string
   return html.replace(pattern, () => replacement)
 }
 
+const ROBOTS_TAG = /<meta name="robots"[\s\S]*?\/>/
+const NOINDEX_TAG = '<meta name="robots" content="noindex, follow" />'
+
 interface Head {
   title: string
   description: string
   /** Chemin canonique de la page (« /tarifs »). */
   path: string
+  noindex?: boolean
 }
 
 /** Gabarit de l'application avec les balises et le contenu d'une page. */
@@ -114,6 +118,7 @@ function pageHtml(template: string, head: Head, body: string, base: string): str
     ? `<link rel="canonical" href="${escapeHtml(url)}" /><meta property="og:url" content="${escapeHtml(url)}" />`
     : ''
   let html = replaceOnce(template, /<title>[\s\S]*?<\/title>/, `<title>${escapeHtml(head.title)}</title>${canonical}`)
+  if (head.noindex) html = replaceOnce(html, ROBOTS_TAG, NOINDEX_TAG)
   html = replaceOnce(
     html,
     /<meta\s+name="description"[\s\S]*?\/>/,
@@ -143,10 +148,10 @@ function pageFile(path: string): string {
   return join(DIST, path === '/' ? 'index.html' : `${path.slice(1)}.html`)
 }
 
-async function prerender(): Promise<Map<string, RenderedPage>> {
+async function prerender(files: Record<string, string>): Promise<Map<string, RenderedPage>> {
   const bundle = join(SSR_DIR, 'prerender.js')
   if (!existsSync(bundle)) throw new Error('rendu des pages absent : lancez « npm run build »')
-  const pages = await renderPages(bundle, PRERENDERED_PATHS)
+  const pages = await renderPages(bundle, PRERENDERED_PATHS, files)
   rmSync(SSR_DIR, { recursive: true })
   return pages
 }
@@ -154,7 +159,7 @@ async function prerender(): Promise<Map<string, RenderedPage>> {
 /** Page servie avec le code 404 ; l'application y affiche ensuite sa vue « introuvable ». */
 function notFoundHtml(template: string): string {
   let html = replaceOnce(template, /<title>[\s\S]*?<\/title>/, '<title>Page introuvable | Audit Immobilier</title>')
-  html = replaceOnce(html, /<meta name="robots"[\s\S]*?\/>/, '<meta name="robots" content="noindex, follow" />')
+  html = replaceOnce(html, ROBOTS_TAG, NOINDEX_TAG)
   return replaceOnce(
     html,
     /<div id="app"><\/div>/,
@@ -180,15 +185,15 @@ async function main(): Promise<void> {
   }
   for (const path of APP_PATHS) write(pageFile(path), template)
   // En dernier pour l'accueil : index.html, le gabarit, n'est remplacé qu'une fois tout écrit.
-  const pages = await prerender()
+  const links = JSON.stringify(communes.map(({ nom, slug, departement_code }) => ({ nom, slug, departement_code })))
+  write(join(DIST, 'communes.json'), links)
+  const pages = await prerender({ '/communes.json': links })
   write(join(DIST, '404.html'), notFoundHtml(template))
   for (const [path, page] of pages) {
     // Fenêtres de connexion, fermées : sans intérêt pour un moteur, l'application les recrée.
     const body = page.body.replace(/<dialog[\s\S]*?<\/dialog>/g, '')
     write(pageFile(path), pageHtml(template, { ...page, path }, body, base))
   }
-  const links = communes.map(({ nom, slug, departement_code }) => ({ nom, slug, departement_code }))
-  write(join(DIST, 'communes.json'), JSON.stringify(links))
 
   // Un plan du site exige des adresses absolues : sans domaine configuré, il n'est pas produit.
   // Le rapport d'une adresse (paramètre lat) contient des ventes DVF : exclu pour tous les
