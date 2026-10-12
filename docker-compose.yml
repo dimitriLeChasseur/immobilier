@@ -315,7 +315,7 @@ services:
 
   studio:
     container_name: immo-studio
-    image: supabase/studio:2026.09.07-sha-7996410
+    image: supabase/studio:2026.10.05-sha-94b8b06
     profiles: ["admin"]
     restart: unless-stopped
     logging: *default-logging
