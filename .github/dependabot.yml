@@ -37,6 +37,11 @@ updates:
     directory: /backend
     schedule:
       interval: weekly
+    ignore:
+      # Le projet est calé sur Python 3.11 (CI, typage, dépendances) : seuls les correctifs
+      # de l'image sont proposés, un changement de version se fait d'un bloc, à la main.
+      - dependency-name: python
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: docker-compose
     directory: /
