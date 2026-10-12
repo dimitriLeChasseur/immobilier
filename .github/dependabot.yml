@@ -25,6 +25,13 @@ updates:
     groups:
       frontend:
         patterns: ["*"]
+    ignore:
+      # TypeScript 7 n'est pas encore accepté par typescript-eslint : npm ci échoue.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
+      # Les types de Node suivent la version utilisée par la CI, pas la dernière parue.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /backend
@@ -35,3 +42,12 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # Une version majeure de la base ou de PostgREST se prépare à la main (sauvegarde,
+      # essai sur une copie) : elle ne passe pas par une fusion automatique.
+      - dependency-name: "supabase/postgres"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "postgres"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "postgrest/postgrest"
+        update-types: ["version-update:semver-major"]
