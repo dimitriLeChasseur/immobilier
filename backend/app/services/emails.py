@@ -156,7 +156,7 @@ def auth_template(kind: str, *, site_url: str) -> str | None:
 
 
 def format_amount(cents: Any, currency: Any) -> str:
-    """« 4,99 € » à partir d'un montant en centimes."""
+    """« 2,99 € » à partir d'un montant en centimes."""
     amount = cents if isinstance(cents, int) else 0
     symbol = "€" if str(currency).lower() == "eur" else str(currency).upper()
     return f"{amount // 100},{amount % 100:02d} {symbol}"

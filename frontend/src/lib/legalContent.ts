@@ -88,11 +88,10 @@ const cgv: LegalDocument = {
       paragraphs: [
         'Le service fournit un contenu numérique : le rapport d’audit complet d’une adresse française, consultable en ligne et exportable en PDF. Un aperçu gratuit est accessible avant tout achat.',
         offerLine('unit'),
-        offerLine('pack5'),
         offerLine('pack'),
         offerLine('pro'),
         'Les prix sont indiqués en euros. Le prix applicable est celui affiché au moment de la commande.',
-        'Les crédits des packs (Pack Visites, Pack Investisseur) n’ont pas de date d’expiration tant que le compte existe. Ils ne sont ni cessibles ni remboursables une fois utilisés.',
+        'Les crédits du Pack Investisseur n’ont pas de date d’expiration tant que le compte existe. Ils ne sont ni cessibles ni remboursables une fois utilisés.',
       ],
     },
     {

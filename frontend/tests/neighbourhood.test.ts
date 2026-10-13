@@ -173,7 +173,7 @@ describe('présentation de la page d’accueil', () => {
     const text = plain(intro.text())
 
     expect(intro.findAll('ol > li')).toHaveLength(3)
-    expect(text).toContain('4,99 € par adresse')
+    expect(text).toContain('2,99 € par adresse')
     for (const heading of ['Marché immobilier', 'Risques et urbanisme', 'Énergie et environnement', 'Vie de quartier']) {
       expect(text).toContain(heading)
     }

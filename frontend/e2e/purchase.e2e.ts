@@ -243,7 +243,7 @@ async function journey(page: Page, stripe: FakeStripe): Promise<string> {
 
   // 2. Aperçu gratuit : le rapport est restreint et le bouton annonce le prix.
   await page.getByText('Aperçu gratuit.').waitFor()
-  const unlock = page.getByRole('button', { name: 'Débloquer l’audit complet pour 4,99 €' }).first()
+  const unlock = page.getByRole('button', { name: 'Débloquer l’audit complet pour 2,99 €' }).first()
   await unlock.waitFor()
   assert.equal(await page.getByRole('button', { name: 'Exporter en PDF' }).count(), 0)
   await unlock.click()
@@ -257,11 +257,11 @@ async function journey(page: Page, stripe: FakeStripe): Promise<string> {
   await page.getByText(ADDRESS.label).waitFor()
 
   // 4. Paiement : l'API demande une session à Stripe, au prix fixé par le serveur.
-  await page.getByRole('button', { name: 'Payer 4,99 €' }).click()
+  await page.getByRole('button', { name: 'Payer 2,99 €' }).click()
   await page.waitForURL(`${stripe.url}/pay/**`)
   const session = stripe.sessions.at(-1)
   assert.ok(session, 'aucune session de paiement demandée')
-  assert.equal(session.get('line_items[0][price_data][unit_amount]'), '499')
+  assert.equal(session.get('line_items[0][price_data][unit_amount]'), '299')
   assert.equal(session.get('line_items[0][price_data][currency]'), 'eur')
   assert.equal(session.get('metadata[offer]'), 'unit')
   assert.equal(session.get('customer_email'), EMAIL)

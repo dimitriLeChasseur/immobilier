@@ -62,8 +62,8 @@ Principes à connaître avant d'intervenir :
   journée ne comptent pas).
 - **Cache.** Un rapport complet est conservé 7 jours, un rapport partiel 15 minutes. Changer le
   format du rapport impose d'incrémenter `REPORT_VERSION`.
-- **Sécurité des données.** Les tables vivent dans le schéma `immo`, non exposé par PostgREST,
-  avec RLS activée. Le backend se connecte avec le rôle `immo_app`, sans droit de DDL.
+- **Sécurité des données.** Les tables vivent dans le schéma `immo`, avec RLS activée ;
+  aucune API REST automatique (PostgREST) n'est déployée. Le backend se connecte avec le rôle `immo_app`, sans droit de DDL.
 - **Réseau.** Seul Caddy publie des ports. Postgres (5433), Studio (3100) et SonarQube (9000)
   n'écoutent que sur `127.0.0.1` : on y accède par tunnel SSH.
 
@@ -321,7 +321,7 @@ l'adresse, les crédits du pack ou l'abonnement. Sans clés, ces routes réponde
 
 | Offre | Montant débité | Effet |
 | --- | --- | --- |
-| `unit` | 4,99 € | débloque l'adresse |
+| `unit` | 2,99 € | débloque l'adresse |
 | `pack` | 24,99 € | débloque l'adresse + 9 crédits (10 crédits sans adresse) |
 | `pro` | 49,00 € / mois | toutes les adresses tant que l'abonnement est actif |
 
@@ -424,8 +424,8 @@ restent sur la même version.
 UFW pour les ports qu'il publie : ne jamais publier un port interne sans le préfixe
 `127.0.0.1:` dans `docker-compose.yml`.
 
-`deploy/Caddyfile` expose en HTTPS l'API FastAPI et l'authentification Supabase (`/auth/v1`).
-PostgREST (`/rest/v1`) reste interne.
+`deploy/Caddyfile` expose en HTTPS l'API FastAPI et l'authentification Supabase (`/auth/v1`),
+rien d'autre.
 
 ### Frontend sur Cloudflare Pages
 

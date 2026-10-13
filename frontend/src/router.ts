@@ -52,7 +52,7 @@ export const router = createRouter({
       meta: {
         title: `Tarifs de l’audit immobilier | ${SITE_NAME}`,
         description:
-          'Audit complet d’une adresse à 4,99 €, packs de 5 ou 10 audits pour comparer plusieurs biens, ou abonnement ' +
+          'Audit complet d’une adresse à 2,99 €, pack de 10 audits pour comparer plusieurs biens, ou abonnement ' +
           'professionnel avec export PDF à votre logo. Aperçu gratuit sans compte.',
       },
     },

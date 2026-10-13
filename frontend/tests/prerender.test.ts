@@ -17,7 +17,7 @@ describe('rendu statique des pages publiques', () => {
   it('écrit la grille tarifaire avec ses propres balises', async () => {
     const page = await renderPage('/tarifs')
     expect(page.title).toContain('Tarifs')
-    expect(page.description).toContain('4,99')
+    expect(page.description).toContain('2,99')
     expect(page.body).toContain('Contre-Visite')
     expect(page.body).toContain('Pack Investisseur')
     expect(page.body).not.toContain('Comment ça marche')

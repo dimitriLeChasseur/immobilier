@@ -26,7 +26,7 @@ INVOICE = {
     "id": "in_1",
     "number": "A1B2C3D4-0001",
     "customer_email": "client@example.org",
-    "amount_paid": 499,
+    "amount_paid": 299,
     "currency": "eur",
     "status_transitions": {"paid_at": 1_791_549_000},
     "hosted_invoice_url": "https://invoice.stripe.com/i/acct_1/test_abc",
@@ -65,7 +65,7 @@ def test_templates_are_served_to_the_auth_service() -> None:
 
 
 def test_amounts_and_dates_are_written_the_french_way() -> None:
-    assert format_amount(499, "eur") == "4,99 €"
+    assert format_amount(299, "eur") == "2,99 €"
     assert format_amount(2499, "eur") == "24,99 €"
     assert format_amount(5880, "EUR") == "58,80 €"
     assert format_amount(None, "usd") == "0,00 USD"
@@ -76,12 +76,12 @@ def test_receipt_summarises_the_purchase_and_links_the_invoice() -> None:
     email = receipt_email(INVOICE, site_url=SITE)
     assert email is not None
     assert email.to == "client@example.org"
-    assert email.subject == "Votre reçu Audit Immobilier : 4,99 €"
+    assert email.subject == "Votre reçu Audit Immobilier : 2,99 €"
     for expected in (
         "Paiement confirmé",
         "Audit Contre-Visite (1 adresse)",
         "10 Rue du Canal 49100 Angers",
-        "4,99 €",
+        "2,99 €",
         "9 octobre 2026",
         "A1B2C3D4-0001",
         'href="https://pay.stripe.com/invoice/acct_1/test_abc/pdf"',
@@ -89,7 +89,7 @@ def test_receipt_summarises_the_purchase_and_links_the_invoice() -> None:
         f'href="{SITE}/compte"',
     ):
         assert expected in email.html
-    assert "Montant payé : 4,99 €" in email.text
+    assert "Montant payé : 2,99 €" in email.text
     assert "Facture (PDF) : https://pay.stripe.com/invoice/acct_1/test_abc/pdf" in email.text
 
 

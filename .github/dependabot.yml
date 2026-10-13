@@ -48,11 +48,10 @@ updates:
     schedule:
       interval: weekly
     ignore:
-      # Une version majeure de la base ou de PostgREST se prépare à la main (sauvegarde,
+      # Une version majeure de la base se prépare à la main (sauvegarde,
       # essai sur une copie) : elle ne passe pas par une fusion automatique.
       - dependency-name: "supabase/postgres"
         update-types: ["version-update:semver-major"]
       - dependency-name: "postgres"
         update-types: ["version-update:semver-major"]
-      - dependency-name: "postgrest/postgrest"
-        update-types: ["version-update:semver-major"]
+

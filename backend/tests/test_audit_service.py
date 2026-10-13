@@ -39,6 +39,9 @@ class FakeGeocoder:
             return None
         return Location(lat=lat, lon=lon, label="8 Rue de Rivoli", citycode="75101", ban_id=ban_id)
 
+    async def confirmed_id(self, lat: float, lon: float, ban_id: str) -> str | None:
+        return None
+
 
 class FakeProvider:
     def __init__(self, name: str, outcome: Any, delay: float = 0.0) -> None:

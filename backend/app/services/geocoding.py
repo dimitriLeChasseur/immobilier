@@ -64,6 +64,10 @@ class Geocoder(Protocol):
         """Localisation correspondant aux coordonnées, None si hors couverture."""
         ...
 
+    async def confirmed_id(self, lat: float, lon: float, ban_id: str) -> str | None:
+        """`ban_id` s'il désigne bien un numéro situé à ce point, None sinon."""
+        ...
+
 
 class BanGeocoder:
     """Géocodage inverse BAN ; si la BAN est indisponible, repli sur la commune."""
@@ -83,6 +87,10 @@ class BanGeocoder:
             return await self._from_ban(lat, lon, ban_id)
         except SourceError:
             return await self._from_commune(lat, lon, ban_id)
+
+    async def confirmed_id(self, lat: float, lon: float, ban_id: str) -> str | None:
+        chosen = await self._chosen_address(ban_id, lat, lon)
+        return chosen.id if chosen is not None else None
 
     async def _from_ban(self, lat: float, lon: float, ban_id: str) -> Location | None:
         payload = await self._http.get_json(

@@ -145,11 +145,16 @@ class FakeGeocoder:
 
     def __init__(self) -> None:
         self.fail = False
+        # Identifiant confirmé par la fiche du numéro quand la recherche inverse échoue.
+        self.confirmed: str | None = None
 
     async def reverse(self, lat: float, lon: float, ban_id: str) -> Location | None:
         if self.fail:
             raise SourceError("timeout", "ban")
         return Location(lat=lat, lon=lon, label="x", citycode="75101", adresse_id=RESOLVED_ID)
+
+    async def confirmed_id(self, lat: float, lon: float, ban_id: str) -> str | None:
+        return self.confirmed
 
 
 GEOCODER = FakeGeocoder()
@@ -158,6 +163,7 @@ GEOCODER = FakeGeocoder()
 @pytest.fixture(autouse=True)
 def _geocoder_is_up() -> None:
     GEOCODER.fail = False
+    GEOCODER.confirmed = None
 
 
 @pytest.fixture
@@ -249,7 +255,7 @@ def test_checkout_params_fix_the_price_server_side() -> None:
     params = checkout_params(OFFERS["unit"], USER, TARGET, site_url="https://app.example.org/")
     assert params["mode"] == "payment"
     assert params["managed_payments[enabled]"] == "false"
-    assert params["line_items[0][price_data][unit_amount]"] == "499"
+    assert params["line_items[0][price_data][unit_amount]"] == "299"
     assert params["line_items[0][price_data][currency]"] == "eur"
     assert params["metadata[user_id]"] == USER.id
     assert params["metadata[lat]"] == "48.86"
@@ -308,18 +314,18 @@ async def test_pack_without_address_credits_ten_audits(
     assert repository.purchases[0]["lat"] is None
 
 
-async def test_five_audit_pack_credits_like_a_pack_and_is_recorded_as_one(
+async def test_unit_purchase_never_credits_an_audit(
     service: BillingService, repository: FakeRepository
 ) -> None:
-    assert OFFERS["pack5"].amount_cents == 1499
-    await service.handle_event(checkout_event("pack5"))
-    assert repository.purchases[0]["credits"] == 4
-    # La base ne connaît qu'une origine « pack » pour les achats par lot.
-    assert repository.purchases[0]["origin"] == "pack"
-    await service.handle_event(checkout_event("pack5", event_id="evt_2", address=False))
-    assert repository.purchases[1]["credits"] == 5
-    await service.handle_event(checkout_event("unit", event_id="evt_3", address=False))
-    assert repository.purchases[2]["credits"] == 0
+    assert OFFERS["unit"].amount_cents == 299
+    await service.handle_event(checkout_event("unit", address=False))
+    assert repository.purchases[0]["credits"] == 0
+
+
+def test_the_five_audit_pack_is_no_longer_sold(client: TestClient, http: FakeHttp) -> None:
+    response = client.post("/api/v1/checkout", json={"offer": "pack5"}, headers=AUTH)
+    assert response.status_code == 422
+    assert http.calls == []
 
 
 async def test_event_delivered_twice_is_applied_once(
@@ -463,6 +469,19 @@ def test_checkout_survives_a_geocoder_outage(client: TestClient, http: FakeHttp)
     assert "metadata[ban_id]" not in http.calls[0][1]
 
 
+def test_the_number_record_rescues_the_identifier_when_the_search_is_down(
+    repository: FakeRepository, http: FakeHttp
+) -> None:
+    GEOCODER.fail = True
+    GEOCODER.confirmed = RESOLVED_ID
+    repository.credits = 1
+    service = make_service(repository, http, demo_address_id=RESOLVED_ID)
+    client = next(make_client(service, repository))
+    # L'adresse de démonstration reste reconnue : aucun crédit ne part.
+    assert client.post("/api/v1/unlock", json=ADDRESS, headers=AUTH).json()["credits"] == 1
+    assert repository.unlocked == []
+
+
 @pytest.mark.parametrize(
     "body",
     [
@@ -565,9 +584,7 @@ def test_the_demo_address_is_not_sold(repository: FakeRepository, http: FakeHttp
     assert http.calls == []
 
     # Un pack acheté depuis cette adresse crédite tous ses audits : aucun n'y est dépensé.
-    pack = client.post(
-        "/api/v1/checkout", json={"offer": "pack5", "address": ADDRESS}, headers=AUTH
-    )
+    pack = client.post("/api/v1/checkout", json={"offer": "pack", "address": ADDRESS}, headers=AUTH)
     assert pack.status_code == 200
     assert "metadata[lat]" not in http.calls[0][1]
 

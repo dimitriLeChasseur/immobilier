@@ -62,7 +62,7 @@ describe('détection des valeurs masquées par le serveur', () => {
 
 describe('carte verrouillée', () => {
   const open = vi.fn()
-  const provide = { [UNLOCK_KEY as symbol]: { open, label: computed(() => 'Débloquer l’audit complet pour 4,99 €') } }
+  const provide = { [UNLOCK_KEY as symbol]: { open, label: computed(() => 'Débloquer l’audit complet pour 2,99 €') } }
   const slots = { default: ({ data }: { data: unknown }) => `prix ${JSON.stringify(data)}` }
   const result = { status: 'ok' as const, data: { nb_ventes: 505, prix_m2_median: LOCKED }, missing: [], error: null, duration_ms: 3 }
 
@@ -78,7 +78,7 @@ describe('carte verrouillée', () => {
     const blurred = card.find('.locked-blur')
     expect(blurred.exists()).toBe(true)
     expect(blurred.attributes('aria-hidden')).toBe('true')
-    expect(card.find('button').text()).toBe('Débloquer l’audit complet pour 4,99 €')
+    expect(card.find('button').text()).toBe('Débloquer l’audit complet pour 2,99 €')
   })
 
   it('tient en une ligne hors de la carte phare, sans aperçu flouté répété', async () => {
@@ -89,7 +89,7 @@ describe('carte verrouillée', () => {
     expect(card.find('.locked-row').text()).toContain('Détail dans l’audit complet')
     const button = card.find('.locked-row button')
     expect(button.text()).toBe('Débloquer')
-    expect(button.attributes('aria-label')).toBe('Débloquer l’audit complet pour 4,99 €')
+    expect(button.attributes('aria-label')).toBe('Débloquer l’audit complet pour 2,99 €')
     const before = open.mock.calls.length
     await button.trigger('click')
     expect(open).toHaveBeenCalledTimes(before + 1)
@@ -106,7 +106,7 @@ describe('carte verrouillée', () => {
     const overlay = mount(LockedOverlay, { props: { compact: true }, global: { provide } })
     const button = overlay.find('button')
     expect(button.text()).toBe('Débloquer')
-    expect(button.attributes('aria-label')).toContain('pour 4,99 €')
+    expect(button.attributes('aria-label')).toContain('pour 2,99 €')
     await button.trigger('click')
     expect(open).toHaveBeenCalled()
   })
@@ -142,20 +142,19 @@ describe('grille tarifaire', () => {
   })
   beforeEach(() => localStorage.clear())
 
-  it('présente les quatre offres aux bons prix, le pack investisseur mis en avant', () => {
+  it('présente les trois offres aux bons prix, le pack investisseur mis en avant', () => {
     expect(OFFERS.map((offer) => [offer.name, offer.price, offer.priceNote, offer.cta])).toEqual([
-      ['Contre-Visite', '4,99 €', 'TTC, paiement unique', 'Payer 4,99 €'],
-      ['Pack Visites', '14,99 €', 'TTC, paiement unique', 'Payer 14,99 €'],
+      ['Contre-Visite', '2,99 €', 'TTC, paiement unique', 'Payer 2,99 €'],
       ['Pack Investisseur', '24,99 €', 'TTC, paiement unique', 'Payer 24,99 €'],
       ['Pro', '49,00 €', 'HT par mois', 'S’abonner'],
     ])
-    expect(OFFERS.map((offer) => offer.highlighted)).toEqual([false, false, true, false])
+    expect(OFFERS.map((offer) => offer.highlighted)).toEqual([false, true, false])
 
     const view = mount(PricingView, { global: { plugins: [router] } })
     const cards = view.findAll('ul > li.relative')
-    expect(cards).toHaveLength(4)
-    expect(cards[2]?.classes()).toContain('border-brand-600')
-    expect(cards[2]?.text()).toContain('Le plus avantageux')
+    expect(cards).toHaveLength(3)
+    expect(cards[1]?.classes()).toContain('border-brand-600')
+    expect(cards[1]?.text()).toContain('Le plus avantageux')
     // L'aperçu gratuit a sa propre colonne, avant les offres payantes.
     expect(view.find('ul > li').text()).toContain('Aperçu gratuit')
     expect(view.find('ul > li').text()).toContain('0 €')

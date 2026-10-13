@@ -7,7 +7,7 @@
 #
 # Caddy obtient et renouvelle le certificat tout seul ; HTTP (80) est redirigé vers HTTPS.
 # Différences avec infra/caddy/Caddyfile (développement) : le domaine est obligatoire, et
-# seules l'API FastAPI et l'authentification Supabase sont exposées. PostgREST reste interne.
+# seules l'API FastAPI et l'authentification Supabase sont exposées.
 {
 	email {$ACME_EMAIL}
 }
@@ -46,7 +46,7 @@
 		}
 	}
 
-	# Supabase Auth (inscription, connexion, retour Google). PostgREST reste interne.
+	# Supabase Auth (inscription, connexion, retour Google).
 	handle_path /auth/v1/* {
 		reverse_proxy auth:9999
 	}

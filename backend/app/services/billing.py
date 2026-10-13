@@ -46,8 +46,6 @@ class Offer:
     mode: str
     # Crédits ajoutés en plus de l'adresse débloquée par l'achat.
     extra_credits: int = 0
-    # Origine inscrite sur le droit d'accès ; par défaut l'identifiant de l'offre.
-    origin: str = ""
 
     def credits_for(self, has_address: bool) -> int:
         """Crédits ouverts par l'achat : sans adresse à débloquer, un pack les crédite tous."""
@@ -58,10 +56,7 @@ class Offer:
 
 # Prix fixés ici, côté serveur : le navigateur ne transmet que l'identifiant de l'offre.
 OFFERS: dict[str, Offer] = {
-    "unit": Offer("unit", "Audit Contre-Visite (1 adresse)", 499, "payment"),
-    "pack5": Offer(
-        "pack5", "Pack Visites (5 audits)", 1499, "payment", extra_credits=4, origin="pack"
-    ),
+    "unit": Offer("unit", "Audit Contre-Visite (1 adresse)", 299, "payment"),
     "pack": Offer("pack", "Pack Investisseur (10 audits)", 2499, "payment", extra_credits=9),
     "pro": Offer("pro", "Abonnement Pro (audits illimités)", 4900, "subscription"),
 }
@@ -297,13 +292,21 @@ class BillingService:
     async def address_id(self, target: CheckoutTarget) -> str | None:
         """Identifiant BAN de l'adresse achetée, résolu ici et jamais repris du navigateur.
 
-        Sans réponse du géocodeur, le droit reste attaché au seul point acheté.
+        Si la recherche de l'adresse la plus proche échoue, l'identifiant transmis est
+        vérifié auprès de la fiche du numéro, servie par un autre service. Sans aucune
+        réponse, le droit reste attaché au seul point acheté.
         """
         try:
             location = await self._geocoder.reverse(target.lat, target.lon, target.ban_id)
-        except SourceError:
-            return None
-        return location.adresse_id if location else None
+            if location is not None and location.adresse_id:
+                return location.adresse_id
+            reason = "aucune adresse à ce point"
+        except SourceError as exc:
+            reason = str(exc)
+        confirmed = await self._geocoder.confirmed_id(target.lat, target.lon, target.ban_id)
+        if confirmed is None:
+            logger.warning("Identifiant d'adresse non résolu (%s) : droit lié au point", reason)
+        return confirmed
 
     async def portal_url(self, user: AuthenticatedUser) -> str:
         """URL du portail client Stripe : factures, moyen de paiement, résiliation."""
@@ -422,7 +425,7 @@ class BillingService:
             lon=lon if has_address else None,
             label=metadata.get("label"),
             address_id=metadata.get("ban_id") if has_address else None,
-            origin=offer.origin or offer.id,
+            origin=offer.id,
             credits=credits,
         )
         return "fulfilled" if applied else "duplicate"

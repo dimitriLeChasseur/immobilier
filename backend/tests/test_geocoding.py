@@ -83,6 +83,15 @@ async def test_an_unverified_identifier_falls_back_to_the_nearest_address(lookup
     assert location.label == "8 Rue du Canal 49100 Angers"
 
 
+async def test_an_identifier_is_confirmed_only_at_the_point_it_designates() -> None:
+    geocoder = BanGeocoder(FakeHttp(number(-0.55110, 47.47410)))  # type: ignore[arg-type]
+    assert await geocoder.confirmed_id(*POINT, "49007_1350_00010") == "49007_1350_00010"
+    # Le même identifiant, présenté pour un point situé ailleurs, n'est pas retenu.
+    assert await geocoder.confirmed_id(47.5, -0.6, "49007_1350_00010") is None
+    down = BanGeocoder(FakeHttp(SourceError("timeout")))  # type: ignore[arg-type]
+    assert await down.confirmed_id(*POINT, "49007_1350_00010") is None
+
+
 @pytest.mark.parametrize("ban_id", ["", "49007", "49007_1350", "49007_1350_00010/../x"])
 async def test_only_house_number_identifiers_are_looked_up(ban_id: str) -> None:
     http = FakeHttp(number(-0.55110, 47.47410))
