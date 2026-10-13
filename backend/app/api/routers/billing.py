@@ -122,8 +122,10 @@ async def unlock_with_credit(
     """Débloque une adresse avec un crédit d'un pack."""
     target = body.to_target()
     try:
-        unlocked = await repository.spend_credit(
-            user.id, target.lat, target.lon, target.label, await billing.address_id(target)
+        address_id = await billing.address_id(target)
+        # L'adresse de démonstration est déjà ouverte à tous : elle ne coûte aucun crédit.
+        unlocked = billing.is_free(address_id) or await repository.spend_credit(
+            user.id, target.lat, target.lon, target.label, address_id
         )
         account = await repository.account(user.id)
     except RepositoryError as exc:

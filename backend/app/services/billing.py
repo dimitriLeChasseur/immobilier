@@ -240,6 +240,7 @@ class BillingService:
         site_url: str,
         pro_tax_rate_id: str | None = None,
         mailer: Mailer | None = None,
+        demo_address_id: str | None = None,
     ) -> None:
         self._http = http
         self._repository = repository
@@ -250,6 +251,11 @@ class BillingService:
         self._site_url = site_url
         self._pro_tax_rate_id = pro_tax_rate_id
         self._mailer = mailer
+        self._demo_address_id = demo_address_id
+
+    def is_free(self, address_id: str | None) -> bool:
+        """Vrai pour l'adresse de démonstration : son rapport complet est ouvert à tous."""
+        return bool(self._demo_address_id) and address_id == self._demo_address_id
 
     async def start_checkout(
         self, user: AuthenticatedUser, offer_id: str, target: CheckoutTarget | None
@@ -263,9 +269,11 @@ class BillingService:
             raise AlreadySubscribedError
         address_id = await self.address_id(target) if target else None
         # Le client ne paie pas deux fois ce qu'il a déjà : une adresse déjà ouverte, par un
-        # achat ou par son abonnement, n'est ni revendue ni décomptée d'un pack.
+        # achat, par son abonnement ou parce qu'elle sert de démonstration, n'est ni revendue
+        # ni décomptée d'un pack.
         owned = target is not None and (
             account["subscription_active"]
+            or self.is_free(address_id)
             or await self._repository.is_entitled(user.id, target.lat, target.lon, address_id)
         )
         if owned and offer.id == "unit":

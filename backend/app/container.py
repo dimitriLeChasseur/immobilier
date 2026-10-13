@@ -135,6 +135,7 @@ def build_billing_service(
         site_url=settings.site_url,
         pro_tax_rate_id=settings.stripe_pro_tax_rate_id,
         mailer=build_mailer(settings),
+        demo_address_id=settings.demo_address_id,
     )
 
 

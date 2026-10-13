@@ -171,7 +171,11 @@ def http() -> FakeHttp:
 
 
 def make_service(
-    repository: FakeRepository, http: FakeHttp, *, configured: bool = True
+    repository: FakeRepository,
+    http: FakeHttp,
+    *,
+    configured: bool = True,
+    demo_address_id: str | None = None,
 ) -> BillingService:
     return BillingService(
         http=http,  # type: ignore[arg-type]
@@ -181,6 +185,7 @@ def make_service(
         webhook_secret=WEBHOOK_SECRET if configured else None,
         api_url="https://stripe.test",
         site_url="https://app.example.org/",
+        demo_address_id=demo_address_id,
     )
 
 
@@ -538,6 +543,33 @@ def test_unlock_spends_one_credit(client: TestClient, repository: FakeRepository
     assert response.json() == {"email": USER.email, "credits": 1, "subscription_active": False}
     assert repository.unlocked == [(48.86, 2.33)]
     assert repository.unlocked_ids == [RESOLVED_ID]
+
+
+def test_the_demo_address_costs_no_credit(repository: FakeRepository, http: FakeHttp) -> None:
+    repository.credits = 2
+    client = next(
+        make_client(make_service(repository, http, demo_address_id=RESOLVED_ID), repository)
+    )
+    response = client.post("/api/v1/unlock", json=ADDRESS, headers=AUTH)
+    assert response.status_code == 200
+    assert response.json()["credits"] == 2
+    assert repository.unlocked == []
+
+
+def test_the_demo_address_is_not_sold(repository: FakeRepository, http: FakeHttp) -> None:
+    client = next(
+        make_client(make_service(repository, http, demo_address_id=RESOLVED_ID), repository)
+    )
+    unit = client.post("/api/v1/checkout", json={"offer": "unit", "address": ADDRESS}, headers=AUTH)
+    assert unit.status_code == 409
+    assert http.calls == []
+
+    # Un pack acheté depuis cette adresse crédite tous ses audits : aucun n'y est dépensé.
+    pack = client.post(
+        "/api/v1/checkout", json={"offer": "pack5", "address": ADDRESS}, headers=AUTH
+    )
+    assert pack.status_code == 200
+    assert "metadata[lat]" not in http.calls[0][1]
 
 
 def test_unlock_without_credit_is_402(client: TestClient) -> None:
