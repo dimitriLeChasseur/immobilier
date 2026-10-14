@@ -57,7 +57,7 @@ class Offer:
 # Prix fixés ici, côté serveur : le navigateur ne transmet que l'identifiant de l'offre.
 OFFERS: dict[str, Offer] = {
     "unit": Offer("unit", "Audit Contre-Visite (1 adresse)", 299, "payment"),
-    "pack": Offer("pack", "Pack Investisseur (10 audits)", 2499, "payment", extra_credits=9),
+    "pack": Offer("pack", "Pack Investisseur (10 audits)", 1999, "payment", extra_credits=9),
     "pro": Offer("pro", "Abonnement Pro (audits illimités)", 4900, "subscription"),
 }
 

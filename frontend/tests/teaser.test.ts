@@ -145,7 +145,7 @@ describe('grille tarifaire', () => {
   it('présente les trois offres aux bons prix, le pack investisseur mis en avant', () => {
     expect(OFFERS.map((offer) => [offer.name, offer.price, offer.priceNote, offer.cta])).toEqual([
       ['Contre-Visite', '2,99 €', 'TTC, paiement unique', 'Payer 2,99 €'],
-      ['Pack Investisseur', '24,99 €', 'TTC, paiement unique', 'Payer 24,99 €'],
+      ['Pack Investisseur', '19,99 €', 'TTC, paiement unique', 'Payer 19,99 €'],
       ['Pro', '49,00 €', 'HT par mois', 'S’abonner'],
     ])
     expect(OFFERS.map((offer) => offer.highlighted)).toEqual([false, true, false])

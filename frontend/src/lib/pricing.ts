@@ -50,11 +50,11 @@ export const OFFERS: readonly Offer[] = [
   {
     id: 'pack',
     name: 'Pack Investisseur',
-    price: '24,99 €',
+    price: '19,99 €',
     priceNote: 'TTC, paiement unique',
     description: 'Pack de 10 audits complets. Idéal pour comparer plusieurs biens lors de vos visites.',
-    features: ['10 audits complets', 'Export PDF de chaque adresse', 'Soit 2,50 € par audit'],
-    cta: 'Payer 24,99 €',
+    features: ['10 audits complets', 'Export PDF de chaque adresse', 'Soit 2,00 € par audit'],
+    cta: 'Payer 19,99 €',
     highlighted: true,
   },
   {

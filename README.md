@@ -322,7 +322,7 @@ l'adresse, les crédits du pack ou l'abonnement. Sans clés, ces routes réponde
 | Offre | Montant débité | Effet |
 | --- | --- | --- |
 | `unit` | 2,99 € | débloque l'adresse |
-| `pack` | 24,99 € | débloque l'adresse + 9 crédits (10 crédits sans adresse) |
+| `pack` | 19,99 € | débloque l'adresse + 9 crédits (10 crédits sans adresse) |
 | `pro` | 49,00 € / mois | toutes les adresses tant que l'abonnement est actif |
 
 Mise en route en local (mode test, aucun débit réel) :
