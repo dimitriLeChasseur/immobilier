@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { computed, inject } from 'vue'
 
-import { LOCKED } from '../lib/teaser'
+import { findingsCount, LOCKED } from '../lib/teaser'
 import { UNLOCK_KEY } from '../lib/unlock'
 import type { ReportSynthesis } from '../types/audit'
 
@@ -13,6 +13,14 @@ const unlock = inject(UNLOCK_KEY, null)
 const locked = computed(() =>
   [...props.synthesis.alertes, ...props.synthesis.points_forts].some((item) => item.titre === LOCKED),
 )
+// En aperçu, le titre annonce ce qui a été trouvé : c'est la seule partie lisible des constats.
+const heading = computed(() =>
+  locked.value
+    ? `Sur cette adresse : ${findingsCount(props.synthesis.alertes.length, props.synthesis.points_forts.length)}`
+    : 'L’essentiel',
+)
+// Intitulés masqués de longueurs variées : une même barre répétée trahirait le factice.
+const MASK_WIDTHS = ['w-4/5', 'w-3/5', 'w-2/3'] as const
 const columns = computed(() => [
   {
     id: 'alertes',
@@ -35,7 +43,7 @@ const columns = computed(() => [
 
 <template>
   <section aria-labelledby="synthesis-title" class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
-    <h2 id="synthesis-title" class="text-lg font-semibold text-slate-900">L’essentiel</h2>
+    <h2 id="synthesis-title" class="text-lg font-semibold text-slate-900">{{ heading }}</h2>
     <div class="mt-4 grid grid-cols-1 gap-4 md:grid-cols-2">
       <div v-for="column in columns" :key="column.id" class="min-w-0">
         <h3 class="mb-2 text-xs font-medium tracking-wide text-slate-500 uppercase">
@@ -54,7 +62,7 @@ const columns = computed(() => [
               {{ item.theme }}
             </p>
             <template v-if="item.titre === LOCKED">
-              <p class="mt-1 text-sm font-semibold blur-sm select-none" aria-hidden="true">Constat réservé à l’audit</p>
+              <p class="mt-2 h-3.5 rounded bg-current opacity-25 blur-[3px]" :class="MASK_WIDTHS[index % MASK_WIDTHS.length]" aria-hidden="true"></p>
               <p class="sr-only">Constat réservé à l’audit complet.</p>
             </template>
             <template v-else>
@@ -66,7 +74,7 @@ const columns = computed(() => [
       </div>
     </div>
     <div v-if="locked" class="mt-4 flex flex-wrap items-center justify-between gap-3">
-      <p class="text-sm text-slate-600">Le détail de chaque constat est inclus dans l’audit complet.</p>
+      <p class="text-sm text-slate-600">Ce que recouvre chaque constat, et ce qu’il faut vérifier en visite : dans l’audit complet.</p>
       <button
         v-if="unlock"
         type="button"

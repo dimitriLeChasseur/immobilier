@@ -19,7 +19,7 @@ const quarter = computed(() => props.data.iris?.nom ?? props.data.iris?.code ?? 
     <div v-if="income">
       <div class="flex flex-wrap gap-x-8 gap-y-3">
         <StatTile
-          label="Niveau de vie médian"
+          label="Niveau de vie médian" count-up
           :value="formatEuros(income.revenu_median)"
           hint="par an et par unité de consommation"
         />

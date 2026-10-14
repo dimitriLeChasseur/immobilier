@@ -102,6 +102,13 @@ describe('étapes de chargement', () => {
     expect(steps[2]?.expected).toBe(1)
   })
 
+  it('clôt toutes les étapes une fois le flux terminé, même sans réponse de certaines sources', () => {
+    // Le stepper reste affiché après l'audit : aucune roue ne doit tourner indéfiniment.
+    const steps = buildSteps(true, { dvf: answered }, names, true)
+    expect(steps.map((step) => step.state)).toEqual(['done', 'done', 'done', 'done', 'done'])
+    expect(steps.find((step) => step.key === 'market')).toMatchObject({ received: 1, expected: 2 })
+  })
+
   it('affiche les étapes et rassure quand l’attente se prolonge', async () => {
     vi.useFakeTimers()
     const stepper = mount(AuditStepper, { props: { located: true, sources: {}, sourceNames: names } })
@@ -113,6 +120,27 @@ describe('étapes de chargement', () => {
 
     await vi.advanceTimersByTimeAsync(5000)
     expect(stepper.text()).toContain('répondent lentement')
+    stepper.unmount()
+    vi.useRealTimers()
+  })
+
+  it('garde le message de lenteur une fois l’audit terminé, reformulé, pour ne pas faire remonter la page', async () => {
+    vi.useFakeTimers()
+    const stepper = mount(AuditStepper, { props: { located: true, sources: {}, sourceNames: names } })
+    await vi.advanceTimersByTimeAsync(5000)
+    await stepper.setProps({ settled: true })
+    expect(stepper.text()).toContain('ont répondu lentement')
+    expect(stepper.find('progress').attributes('value')).toBe('100')
+    expect(stepper.findAll('.animate-spin')).toHaveLength(0)
+    stepper.unmount()
+    vi.useRealTimers()
+  })
+
+  it('n’annonce aucune lenteur pour un rapport déjà terminé à l’affichage', async () => {
+    vi.useFakeTimers()
+    const stepper = mount(AuditStepper, { props: { located: true, sources: {}, sourceNames: names, settled: true } })
+    await vi.advanceTimersByTimeAsync(10_000)
+    expect(stepper.text()).not.toContain('lentement')
     stepper.unmount()
     vi.useRealTimers()
   })

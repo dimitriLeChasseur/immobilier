@@ -72,3 +72,58 @@ export function teaserHook(source: SourceName, data: unknown): string {
   if (typeof data !== 'object' || data === null) return DEFAULT_HOOK
   return HOOKS[source]?.(data as Data) ?? DEFAULT_HOOK
 }
+
+// Ce que contient chaque carte verrouillée, dit sans rien révéler du résultat : la promesse
+// remplace une mention générique répétée sur quinze cartes.
+const LOCKED_PROMISES: Partial<Record<SourceName, string>> = {
+  georisques: 'Sites Seveso, cavités et plans de prévention autour de l’adresse',
+  permis_construire: 'Chantiers autorisés autour de l’adresse, avec leur nature',
+  batiment: 'Année de construction, niveaux et étiquette énergie de l’immeuble',
+  cadastre: 'Surface et références de la parcelle',
+  urbanisme: 'Zonage du plan d’urbanisme et servitudes au point exact',
+  dpe: 'Étiquette énergie la plus fréquente du voisinage, numéro par numéro',
+  ensoleillement: 'Ensoleillement de l’adresse, été comme hiver',
+  bruit: 'Bruit des routes et voies ferrées à l’adresse',
+  proximite: 'Distance à pied de l’arrêt, du commerce et du soignant les plus proches',
+  ecoles: 'Collège de secteur et niveau social (IPS) des écoles proches',
+  marche_locatif: 'Locataires, logements vacants et permis de louer du quartier',
+  quartier: 'Revenu médian et taux de pauvreté du quartier',
+  reseau_mobile: 'Opérateurs et 5G des antennes proches',
+  copropriete: 'Charges de copropriété estimées pour votre surface',
+}
+
+export function lockedPromise(source: SourceName): string {
+  return LOCKED_PROMISES[source] ?? 'Détail dans l’audit complet'
+}
+
+/**
+ * Silhouette affichée floutée sous une carte verrouillée : un dessin fixe, jamais tiré des
+ * données (le serveur ne les envoie pas), qui laisse deviner la forme du résultat.
+ */
+export type GhostKind = 'scale' | 'meter' | 'tiles' | 'list'
+
+const GHOSTS: Partial<Record<SourceName, GhostKind>> = {
+  dpe: 'scale',
+  batiment: 'tiles',
+  bruit: 'meter',
+  ensoleillement: 'tiles',
+  quartier: 'tiles',
+  cadastre: 'tiles',
+  copropriete: 'tiles',
+  marche_locatif: 'tiles',
+}
+
+export function lockedGhost(source: SourceName): GhostKind {
+  return GHOSTS[source] ?? 'list'
+}
+
+function plural(count: number, singular: string, pluralForm: string): string {
+  return `${count} ${count > 1 ? pluralForm : singular}`
+}
+
+/** « 2 alertes et 1 point fort » : le nombre de constats, seule partie lisible en aperçu. */
+export function findingsCount(alerts: number, strengths: number): string {
+  const alertText = alerts ? plural(alerts, 'alerte', 'alertes') : 'aucune alerte'
+  const strengthText = strengths ? plural(strengths, 'point fort', 'points forts') : 'aucun point fort'
+  return `${alertText} et ${strengthText}`
+}

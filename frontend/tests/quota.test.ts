@@ -13,6 +13,7 @@ async function refusal(response: Response): Promise<string> {
   return new Promise((resolve) => {
     const handlers: AuditStreamHandlers = {
       onLocation: () => undefined,
+      onAccess: () => undefined,
       onSource: () => undefined,
       onDone: () => resolve('terminé sans erreur'),
       onError: resolve,
@@ -44,6 +45,40 @@ describe('refus du serveur à l’ouverture du flux', () => {
   it('transmet le plafond quotidien de l’offre Pro signalé dans le flux', async () => {
     const body = 'event: error\ndata: {"code":"daily_limit_reached","detail":"Plafond quotidien atteint."}\n\n'
     await expect(refusal(new Response(body, { status: 200 }))).resolves.toBe('Plafond quotidien atteint.')
+  })
+})
+
+describe('déroulé du flux', () => {
+  afterEach(() => vi.unstubAllGlobals())
+
+  const LOCATION = 'event: location\ndata: {"lat":47.47,"lon":-0.55,"label":"Angers","citycode":"49007"}\n\n'
+  const SOURCE = 'event: source\ndata: {"name":"dvf","result":{"status":"empty","data":null}}\n\n'
+
+  /** Rejoue un corps de flux et note, dans l'ordre, ce que reçoit l'interface. */
+  async function replay(body: string): Promise<string[]> {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(body, { status: 200 })))
+    const received: string[] = []
+    return new Promise((resolve) => {
+      openAuditStream(TARGET, {
+        onLocation: (location) => received.push(`location:${location.label}`),
+        onAccess: (access) => received.push(`access:${access}`),
+        onSource: (name) => received.push(`source:${name}`),
+        onDone: () => resolve([...received, 'done']),
+        onError: (message) => resolve([...received, `error:${message}`]),
+      })
+    })
+  }
+
+  it('annonce le niveau d’accès dès la localisation, avant les cartes', async () => {
+    const body = `${LOCATION}event: access\ndata: {"access":"teaser"}\n\n${SOURCE}event: done\ndata: {"access":"teaser"}\n\n`
+    expect(await replay(body)).toEqual(['location:Angers', 'access:teaser', 'source:dvf', 'done'])
+  })
+
+  it('signale une coupure en plein flux sans perdre les cartes déjà reçues', async () => {
+    // Connexion perdue (tunnel, mise en veille du téléphone) avant l'évènement final.
+    const events = await replay(`${LOCATION}${SOURCE}`)
+    expect(events.slice(0, 2)).toEqual(['location:Angers', 'source:dvf'])
+    expect(events.at(-1)).toContain('Impossible de joindre le service d')
   })
 })
 

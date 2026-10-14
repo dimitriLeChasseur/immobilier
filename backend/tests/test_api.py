@@ -115,7 +115,7 @@ def test_stream_emits_sse_events_in_order(client: TestClient) -> None:
     response = client.get("/api/v1/audit/stream", params={"lat": 48.8, "lon": 2.3})
     assert response.headers["content-type"].startswith("text/event-stream")
     events = [line[7:] for line in response.text.splitlines() if line.startswith("event: ")]
-    assert events == ["location", "source", "done"]
+    assert events == ["location", "access", "source", "done"]
 
 
 def test_stream_reports_unknown_location_as_error_event(client: TestClient) -> None:

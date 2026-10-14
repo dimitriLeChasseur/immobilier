@@ -15,6 +15,7 @@ import { fileURLToPath } from 'node:url'
 
 import {
   communePage,
+  nearbyCommunes,
   relatedCommunes,
   type CommuneLink,
   type CommunePage,
@@ -85,16 +86,19 @@ function write(path: string, content: string): void {
 }
 
 /** Contenu lisible sans JavaScript, remplacé par l'application à son démarrage. */
-function staticBody(page: CommunePage, related: CommuneLink[], departement: string): string {
+function linkList(communes: CommuneLink[]): string {
+  return communes.map((commune) => `<li><a href="/commune/${commune.slug}">${escapeHtml(commune.nom)}</a></li>`).join('')
+}
+
+function staticBody(page: CommunePage, nearby: CommuneLink[], related: CommuneLink[], departement: string): string {
   const summary = page.summary.length
     ? `<section><h2>En bref</h2><ul>${page.summary.map((sentence) => `<li>${escapeHtml(sentence)}</li>`).join('')}</ul></section>`
     : ''
-  const links = related
-    .map((commune) => `<li><a href="/commune/${commune.slug}">${escapeHtml(commune.nom)}</a></li>`)
-    .join('')
-  const neighbours = links
-    ? `<nav><h2>Autres communes du département ${escapeHtml(departement)}</h2><ul>${links}</ul></nav>`
+  const close = nearby.length ? `<nav><h2>Communes proches</h2><ul>${linkList(nearby)}</ul></nav>` : ''
+  const same = related.length
+    ? `<nav><h2>Autres communes du département ${escapeHtml(departement)}</h2><ul>${linkList(related)}</ul></nav>`
     : ''
+  const neighbours = close + same
   const sections = page.sections
     .map((section) => {
       const facts = section.facts
@@ -183,7 +187,9 @@ function communeHtml(template: string, profile: CommuneProfile, links: CommuneLi
       [profile.nom, path],
     ],
   }
-  const body = staticBody(page, relatedCommunes(links, profile), profile.departement_nom || profile.departement_code)
+  const nearby = nearbyCommunes(links, profile)
+  const related = relatedCommunes(links, profile, nearby)
+  const body = staticBody(page, nearby, related, profile.departement_nom || profile.departement_code)
   return pageHtml(template, head, body, base)
 }
 
@@ -223,7 +229,7 @@ async function main(): Promise<void> {
   // Vite laisse le repère tel quel quand la variable n'est pas définie (construction locale).
   const template = readFileSync(join(DIST, 'index.html'), 'utf8').replaceAll('%VITE_SITE_URL%', base)
 
-  const communeLinks = communes.map(({ nom, slug, departement_code }) => ({ nom, slug, departement_code }))
+  const communeLinks = communes.map(({ nom, slug, departement_code, centre }) => ({ nom, slug, departement_code, centre }))
   for (const commune of communes) {
     // Un fichier « <slug>.html » et non un dossier : l'adresse sans barre finale, celle du plan
     // du site et de la balise canonique, est alors servie directement, sans redirection.

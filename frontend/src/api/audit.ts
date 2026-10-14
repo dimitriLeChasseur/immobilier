@@ -14,8 +14,15 @@ export interface AuditTarget {
   banId: string
 }
 
+/** Niveau d'accès au rapport : complet, aperçu gratuit ou rapport d'exemple. */
+export type AuditAccess = NonNullable<ReportMeta['access']>
+
+const ACCESS_LEVELS: readonly AuditAccess[] = ['full', 'teaser', 'demo']
+
 export interface AuditStreamHandlers {
   onLocation: (location: AuditLocation) => void
+  /** Annoncé juste après la localisation : l'interface se met en place avant les cartes. */
+  onAccess: (access: AuditAccess) => void
   onSource: (name: SourceName, result: SourceResult) => void
   onDone: (meta: ReportMeta) => void
   onError: (message: string) => void
@@ -80,6 +87,9 @@ function dispatch({ event, data }: SseEvent, handlers: AuditStreamHandlers): boo
   if (event === 'location') {
     const location = parseJson<AuditLocation>(data)
     if (location) handlers.onLocation(location)
+  } else if (event === 'access') {
+    const access = parseJson<{ access?: unknown }>(data)?.access
+    if (ACCESS_LEVELS.includes(access as AuditAccess)) handlers.onAccess(access as AuditAccess)
   } else if (event === 'source') {
     const payload = parseJson<{ name: SourceName; result: SourceResult }>(data)
     if (payload) handlers.onSource(payload.name, payload.result)

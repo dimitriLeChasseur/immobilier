@@ -27,7 +27,7 @@ const widened = computed(() => typologies.value.some(([, , wide]) => wide))
 
 <template>
   <StatTile
-    label="Loyer d’annonce, appartement"
+    label="Loyer d’annonce, appartement" count-up
     :value="`${formatDecimal(data.loyer_m2_charges_comprises)} €/m²`"
     hint="Charges comprises, par mois"
   />

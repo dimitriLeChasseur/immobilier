@@ -5,7 +5,11 @@ import { MIN_PASSWORD_LENGTH, useAuth, type AuthOutcome } from '../composables/u
 import { CAPTCHA_SITE_KEY } from '../lib/captcha'
 import CaptchaWidget from './CaptchaWidget.vue'
 
-const props = defineProps<{ initialMode?: 'signup' | 'signin' }>()
+const props = defineProps<{
+  initialMode?: 'signup' | 'signin'
+  /** Ouverte pour débloquer une adresse : on rassure sur la suite, l'adresse n'est pas perdue. */
+  unlocking?: boolean
+}>()
 const open = defineModel<boolean>('open', { required: true })
 const emit = defineEmits<{ authenticated: [] }>()
 
@@ -100,8 +104,9 @@ async function withGoogle(): Promise<void> {
       <div class="flex items-start justify-between gap-4">
         <div>
           <h2 id="auth-title" class="text-lg font-semibold text-slate-900">{{ title }}</h2>
-          <p class="mt-1 text-sm text-slate-600">
-            Votre adresse est conservée : vous la retrouverez juste après.
+          <p v-if="unlocking" class="mt-1 text-sm text-slate-600">
+            <strong class="font-semibold text-slate-900">Plus qu’une étape.</strong> Votre adresse est gardée de
+            côté : vous retrouvez le rapport complet juste après.
           </p>
         </div>
         <button

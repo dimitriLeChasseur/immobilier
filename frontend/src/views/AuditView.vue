@@ -1,26 +1,31 @@
 <script setup lang="ts">
-import { computed, defineAsyncComponent, onBeforeUnmount, onMounted, provide, ref, watch } from 'vue'
+import { computed, defineAsyncComponent, h, onMounted, provide, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
 import type { AuditTarget } from '../api/audit'
-import { fetchBranding, type Branding } from '../api/account'
 import { unlockWithCredit } from '../api/billing'
 import AddressSearch from '../components/AddressSearch.vue'
 import AuditStepper from '../components/AuditStepper.vue'
 import AuthModal from '../components/AuthModal.vue'
+import DashboardPlaceholder from '../components/DashboardPlaceholder.vue'
+import HeroPreview from '../components/HeroPreview.vue'
 import HomeIntro from '../components/HomeIntro.vue'
 import ReportNav from '../components/ReportNav.vue'
+import StickyUnlockBar from '../components/StickyUnlockBar.vue'
 import SynthesisPanel from '../components/SynthesisPanel.vue'
+import SynthesisSkeleton from '../components/SynthesisSkeleton.vue'
 import VisitChecklist from '../components/VisitChecklist.vue'
 import { useAccount } from '../composables/useAccount'
 import { useAudit } from '../composables/useAudit'
 import { useAuth } from '../composables/useAuth'
+import { usePaymentReturn } from '../composables/usePaymentReturn'
+import { usePdfExport } from '../composables/usePdfExport'
 import { communeSlug } from '../lib/commune'
 import { DEMO_LABEL, DEMO_TARGET } from '../lib/demo'
 import { mapMarkers } from '../lib/markers'
-import { clearPendingAudit, savePendingAudit } from '../lib/pending'
+import { savePendingAudit } from '../lib/pending'
 import { UNIT_PRICE } from '../lib/pricing'
-import { buildReportSections, synthesisSections, unavailableSources } from '../lib/report'
+import { findingsCount, LOCKED } from '../lib/teaser'
 import { DEFAULT_DESCRIPTION, setPageMeta, SITE_NAME } from '../lib/seo'
 import { SOURCE_INFO } from '../lib/sources'
 import { UNLOCK_KEY } from '../lib/unlock'
@@ -28,36 +33,43 @@ import { readTarget, writeTarget } from '../lib/url'
 import type { AddressSuggestion, SourceName } from '../types/audit'
 
 // Leaflet, les cartes du rapport et leurs graphiques ne sont chargés qu'au premier rapport :
-// l'accueil n'en a pas besoin.
-const AuditDashboard = defineAsyncComponent(() => import('../components/AuditDashboard.vue'))
-const AuditMap = defineAsyncComponent(() => import('../components/AuditMap.vue'))
+// l'accueil n'en a pas besoin. Leur place est tenue pendant le téléchargement, sans délai,
+// pour que rien ne saute à leur arrivée.
+const AuditDashboard = defineAsyncComponent({
+  loader: () => import('../components/AuditDashboard.vue'),
+  loadingComponent: DashboardPlaceholder,
+  delay: 0,
+})
+const AuditMap = defineAsyncComponent({
+  loader: () => import('../components/AuditMap.vue'),
+  loadingComponent: {
+    render: () => h('output', { class: 'skeleton block h-72 w-full rounded-2xl lg:h-80', 'aria-label': 'Chargement de la carte' }),
+  },
+  delay: 0,
+})
 
-const { phase, location, sources, meta, errorMessage, sourceNames, start, reset } = useAudit()
+const { phase, location, sources, meta, access, arrivalRank, errorMessage, sourceNames, start, reset } = useAudit()
 const { user, accessToken, ready: authReady } = useAuth()
 const { account, refresh: refreshAccount } = useAccount()
 const router = useRouter()
 
-// Retour de la page de paiement : Stripe confirme l'achat au serveur en quelques secondes.
-const PAYMENT_CHECKS = 6
-const PAYMENT_CHECK_DELAY_MS = 2500
-const paid = ref(new URLSearchParams(window.location.search).get('paiement') === 'ok')
-let paymentChecks = 0
-let paymentTimer: ReturnType<typeof setTimeout> | undefined
 const unlockError = ref<string | null>(null)
 
 const initial = readTarget(window.location.search)
 const searchKey = ref(0)
 const lastTarget = ref<AuditTarget | null>(null)
 const checkedItems = ref<string[]>([])
-const exporting = ref(false)
-const exportFailed = ref(false)
 const authOpen = ref(false)
 const lastLabel = ref('')
+// Un audit, une instance du stepper : son minuteur repart de zéro à chaque lancement.
+const auditRun = ref(0)
 
 const active = computed(() => phase.value !== 'idle')
+// La synthèse, calculée en fin de flux, a sa place réservée pendant le chargement.
+const synthesisPending = computed(() => phase.value === 'loading')
 // Sommaire : la synthèse n'y figure que si le rapport en a une, le cadastre n'a pas de section.
 const reportSections = computed(() => [
-  ...(meta.value?.synthese ? [{ id: 'section-synthesis', label: 'Synthèse' }] : []),
+  ...(meta.value?.synthese || synthesisPending.value ? [{ id: 'section-synthesis', label: 'Synthèse' }] : []),
   { id: 'section-market', label: 'Marché immobilier' },
   { id: 'section-risks', label: 'Risques et urbanisme' },
   { id: 'section-environment', label: 'Énergie et environnement' },
@@ -66,9 +78,12 @@ const reportSections = computed(() => [
 ])
 const settled = computed(() => phase.value === 'done' || phase.value === 'error')
 // Version restreinte : le serveur n'a pas envoyé les valeurs réservées aux audits achetés.
-const teaser = computed(() => meta.value?.access === 'teaser')
+// Annoncée dès la localisation : bandeau et bouton de déblocage sont en place avant les cartes.
+const teaser = computed(() => access.value === 'teaser')
 // Rapport d'exemple : complet, ouvert à tous, sans rapport avec un achat.
-const demo = computed(() => meta.value?.access === 'demo')
+const demo = computed(() => access.value === 'demo')
+const { paid, late: paymentLate } = usePaymentReturn(phase, teaser, () => retry())
+const { exporting, exportFailed, exportPdf } = usePdfExport({ location, meta, sources, checkedItems }, teaser)
 const credits = computed(() => account.value?.credits ?? 0)
 const unlockLabel = computed(() => {
   // Le prix est annoncé avant la création de compte : personne ne s'inscrit pour le découvrir.
@@ -104,6 +119,7 @@ function run(target: AuditTarget, label: string): void {
   lastTarget.value = target
   lastLabel.value = label
   window.history.replaceState(null, '', writeTarget(target, label))
+  auditRun.value += 1
   start(target, accessToken.value)
 }
 
@@ -120,7 +136,9 @@ function onSelect(suggestion: AddressSuggestion): void {
 }
 
 function retry(): void {
-  if (lastTarget.value) start(lastTarget.value, accessToken.value)
+  if (!lastTarget.value) return
+  auditRun.value += 1
+  start(lastTarget.value, accessToken.value)
 }
 
 /** Dépense un crédit du pack pour cette adresse, puis redemande le rapport complet. */
@@ -151,6 +169,18 @@ function onAuthenticated(): void {
 
 provide(UNLOCK_KEY, { open: unlock, label: unlockLabel })
 
+// Barre collante de l'aperçu : elle reprend ce que l'audit a trouvé dès que la synthèse arrive.
+const unlockButton = ref<HTMLElement | null>(null)
+const stickySummary = computed(() => {
+  const synthesis = meta.value?.synthese
+  const findings = synthesis ? [...synthesis.alertes, ...synthesis.points_forts] : []
+  if (!synthesis || !findings.some((item) => item.titre === LOCKED)) {
+    return 'Prix des ventes voisines, bruit, bâtiment et synthèse de cette adresse'
+  }
+  return `Sur cette adresse : ${findingsCount(synthesis.alertes.length, synthesis.points_forts.length)}`
+})
+const stickyLabel = computed(() => (user.value && credits.value > 0 ? 'Débloquer (1 crédit)' : `Tout voir · ${UNIT_PRICE}`))
+
 function newSearch(): void {
   reset()
   lastTarget.value = null
@@ -161,43 +191,6 @@ function newSearch(): void {
     path: '/',
   })
   searchKey.value += 1
-}
-
-/** Marque blanche de l'abonné ; son absence ou une panne n'empêche jamais l'export. */
-async function loadBranding(): Promise<Branding | null> {
-  if (!accessToken.value || !account.value?.subscription_active) return null
-  try {
-    return await fetchBranding(accessToken.value)
-  } catch {
-    return null
-  }
-}
-
-async function exportPdf(): Promise<void> {
-  if (!location.value || teaser.value) return
-  exporting.value = true
-  exportFailed.value = false
-  try {
-    // jsPDF (~400 Ko) n'est téléchargé qu'au premier export.
-    const { buildReportPdf, collectCharts, reportFileName } = await import('../lib/pdf')
-    const unavailable = unavailableSources(sources.value).map(
-      (name) => SOURCE_INFO[name as SourceName]?.title ?? name,
-    )
-    buildReportPdf({
-      location: location.value,
-      meta: meta.value,
-      sections: [...synthesisSections(meta.value?.synthese), ...buildReportSections(sources.value)],
-      charts: collectCharts(),
-      unavailable,
-      checkedItems: checkedItems.value,
-      branding: await loadBranding(),
-    }).save(reportFileName(location.value))
-  } catch (error) {
-    console.error('Export PDF impossible', error)
-    exportFailed.value = true
-  } finally {
-    exporting.value = false
-  }
 }
 
 // L'audit attend de savoir si une session existe : un acheteur reçoit d'emblée le rapport complet.
@@ -221,54 +214,54 @@ watch(
   },
 )
 
-// Après un paiement, le rapport est redemandé tant que la confirmation de Stripe n'est pas arrivée.
-watch(phase, (current) => {
-  if (current !== 'done') return
-  if (!teaser.value) {
-    paid.value = false
-    clearPendingAudit()
-  } else if (paid.value && paymentChecks < PAYMENT_CHECKS) {
-    paymentChecks += 1
-    paymentTimer = setTimeout(retry, PAYMENT_CHECK_DELAY_MS)
-  }
-})
-
 onMounted(() => {
   started = started || !initial
   // Pack ou abonnement acheté sans adresse : le compte affiché doit refléter l'achat.
   if (paid.value) void refreshAccount()
 })
-
-onBeforeUnmount(() => clearTimeout(paymentTimer))
 </script>
 
 <template>
-  <div>
-      <section :class="active ? 'py-6' : 'py-14 sm:py-20'">
-        <div v-if="!active" class="mx-auto mb-8 max-w-2xl text-center">
-          <h1 class="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-            Tout savoir sur une adresse avant d’acheter
-          </h1>
-          <p class="mt-3 text-base text-slate-600">
-            Prix des ventes voisines, risques, urbanisme, écoles et environnement, réunis en quelques
-            secondes à partir des données publiques.
+  <!-- En aperçu, la barre collante ne doit pas recouvrir la fin du rapport. -->
+  <div :class="{ 'pb-24': teaser }">
+      <!-- Accueil : texte et recherche à gauche, maquette du rapport à droite. Le champ de recherche
+           garde le même parent une fois le rapport ouvert : il n'est pas recréé, sa saisie reste. -->
+      <section
+        :class="
+          active
+            ? 'py-6'
+            : 'grid grid-cols-1 items-center gap-12 py-12 sm:py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,28rem)] lg:py-20'
+        "
+      >
+        <div>
+          <div v-if="!active" class="mx-auto mb-8 max-w-2xl text-center lg:mx-0 lg:text-left">
+            <h1 class="text-3xl font-semibold tracking-tight text-balance text-slate-900 sm:text-4xl lg:text-5xl">
+              Ne signez pas avant d’avoir vu ce que l’annonce ne dit pas.
+            </h1>
+            <p class="mt-3 text-base text-slate-600">
+              Audit immobilier d’une adresse en une dizaine de secondes : ventes réelles autour du bien,
+              risques au point exact, bruit, diagnostics énergie du voisinage, permis en cours. Vingt bases
+              publiques croisées.
+            </p>
+          </div>
+          <output
+            v-if="paid && !active"
+            class="mx-auto mb-6 block max-w-2xl rounded-xl bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-900 lg:mx-0"
+          >
+            Merci, votre paiement est enregistré. Recherchez une adresse pour lancer un audit complet.
+          </output>
+          <div class="mx-auto" :class="active ? 'max-w-none' : 'max-w-2xl lg:mx-0'">
+            <AddressSearch :key="searchKey" :initial-label="initial?.label" @select="onSelect" />
+          </div>
+          <p v-if="!active" class="mx-auto mt-5 max-w-2xl text-center text-sm text-slate-600 lg:mx-0 lg:text-left">
+            Aperçu gratuit, sans compte. Rapport complet : <strong class="font-semibold text-slate-900">{{ UNIT_PRICE }}</strong>,
+            le prix d’un café en terrasse avant un engagement à 200 000 €.
+            <button type="button" class="font-medium text-brand-700 underline hover:text-brand-900" @click="run(DEMO_TARGET, DEMO_LABEL)">
+              Voir un rapport d’exemple
+            </button>
           </p>
         </div>
-        <output
-          v-if="paid && !active"
-          class="mx-auto mb-6 block max-w-2xl rounded-xl bg-emerald-50 px-4 py-3 text-center text-sm text-emerald-900"
-        >
-          Merci, votre paiement est enregistré. Recherchez une adresse pour lancer un audit complet.
-        </output>
-        <div class="mx-auto" :class="active ? 'max-w-none' : 'max-w-2xl'">
-          <AddressSearch :key="searchKey" :initial-label="initial?.label" @select="onSelect" />
-        </div>
-        <p v-if="!active" class="mx-auto mt-5 max-w-2xl text-center text-sm text-slate-600">
-          Aperçu gratuit et sans compte. Audit complet avec export PDF : {{ UNIT_PRICE }} par adresse.
-          <button type="button" class="font-medium text-brand-700 underline hover:text-brand-900" @click="run(DEMO_TARGET, DEMO_LABEL)">
-            Voir un rapport d’exemple
-          </button>
-        </p>
+        <HeroPreview v-if="!active" @demo="run(DEMO_TARGET, DEMO_LABEL)" />
       </section>
 
       <HomeIntro v-if="!active" @demo="run(DEMO_TARGET, DEMO_LABEL)" />
@@ -309,7 +302,11 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
                 <h1 v-if="location" class="mt-2 text-2xl font-semibold tracking-tight text-slate-900">
                   {{ location.label }}
                 </h1>
-                <output v-else class="skeleton mt-3 block h-8 w-4/5" aria-label="Recherche de l’adresse"></output>
+                <!-- Titre et ligne d'identification : même hauteur que l'adresse qui les remplace. -->
+                <output v-else class="mt-2 block" aria-label="Recherche de l’adresse">
+                  <span class="skeleton block h-8 w-4/5"></span>
+                  <span class="skeleton mt-1 block h-5 w-2/5"></span>
+                </output>
                 <p v-if="location" class="mt-1 text-sm text-slate-500">
                   Code INSEE {{ location.citycode }}<template v-if="location.rue">
                     · {{ location.rue.nb_numeros }} numéros · environ {{ location.rue.longueur_m }} m</template>
@@ -323,14 +320,18 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
                   bruit le long de la voie. Les autres blocs sont calculés depuis son milieu.
                 </p>
 
+                <!-- Gardé une fois l'audit terminé : sa disparition faisait remonter la page. Retiré sur
+                     une coupure : il cocherait comme faites des étapes jamais reçues. -->
                 <AuditStepper
-                  v-if="phase === 'loading'"
+                  v-if="phase !== 'error'"
+                  :key="auditRun"
                   class="mt-5"
                   :located="location !== null"
                   :sources="sources"
                   :source-names="sourceNames"
+                  :settled="phase === 'done'"
                 />
-                <p class="mt-5 text-sm text-slate-600" aria-live="polite">{{ statusText }}</p>
+                <p class="mt-5 min-h-5 text-sm text-slate-600" aria-live="polite">{{ statusText }}</p>
                 <p v-if="phase === 'error'" class="mt-2 text-sm text-rose-700" role="alert">
                   La connexion a été interrompue : {{ errorMessage }}
                 </p>
@@ -339,6 +340,7 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
               <div class="mt-6 flex flex-wrap gap-3">
                 <button
                   v-if="teaser"
+                  ref="unlockButton"
                   type="button"
                   class="rounded-lg bg-brand-700 px-4 py-2 text-sm font-medium text-white hover:bg-brand-900"
                   @click="unlock"
@@ -395,7 +397,7 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
           >
             <strong class="font-semibold">Paiement reçu.</strong>
             {{
-              paymentChecks < PAYMENT_CHECKS
+              !paymentLate
                 ? 'Déblocage de l’audit en cours…'
                 : 'La confirmation tarde : rechargez la page dans une minute. Vous ne serez pas débité deux fois.'
             }}
@@ -404,11 +406,10 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
             v-else-if="teaser"
             class="mb-6 rounded-2xl border border-brand-100 bg-brand-50 px-5 py-4 text-sm text-brand-900"
           >
-            <strong class="font-semibold">Aperçu gratuit.</strong>
-            Les chiffres de la commune (loyers, taxe foncière, délinquance, fibre) et la qualité de l’air
-            sont affichés en clair. Ce qui est propre à cette adresse (prix des ventes voisines, rendement,
-            bâtiment, bruit, permis, synthèse) est réservé à l’audit complet, export PDF inclus :
-            {{ UNIT_PRICE }}.
+            <strong class="font-semibold">Votre aperçu est prêt. L’essentiel est sous le voile.</strong>
+            Les chiffres de la commune sont en clair ; ce qui est propre à cette adresse (prix réels des
+            ventes voisines, rendement, bruit, bâtiment, synthèse) est dans l’audit complet :
+            {{ UNIT_PRICE }}, PDF inclus.
           </p>
           <p
             v-else-if="demo"
@@ -418,15 +419,19 @@ onBeforeUnmount(() => clearTimeout(paymentTimer))
             Voici ce que contient un audit complet, ici sur une adresse de démonstration à Angers.
             Recherchez votre adresse pour obtenir le même rapport : {{ UNIT_PRICE }}.
           </p>
+          <!-- Niveau d'accès pas encore annoncé : la place du bandeau d'aperçu, cas le plus courant, est tenue. -->
+          <div v-else-if="access === null && phase === 'loading'" class="skeleton mb-6 h-18.5 rounded-2xl" aria-hidden="true"></div>
 
-          <!-- La clé recrée le sommaire quand la synthèse arrive : ses sections sont alors toutes dans la page. -->
-          <ReportNav :key="reportSections.length" :sections="reportSections" />
+          <!-- La clé recrée le sommaire en fin de flux : il observe alors les sections définitives. -->
+          <ReportNav :key="`${reportSections.length}-${settled}`" :sections="reportSections" />
           <SynthesisPanel v-if="meta?.synthese" id="section-synthesis" class="mb-10 scroll-mt-16" :synthesis="meta.synthese" />
-          <AuditDashboard :sources="sources" :settled="settled" :street="Boolean(location?.rue)" />
+          <SynthesisSkeleton v-else-if="synthesisPending" id="section-synthesis" class="mb-10 scroll-mt-16" :teaser="teaser" />
+          <AuditDashboard :sources="sources" :settled="settled" :street="Boolean(location?.rue)" :arrival-rank="arrivalRank" />
           <VisitChecklist v-model="checkedItems" class="mt-10 scroll-mt-16" />
         </template>
       </template>
 
-    <AuthModal v-model:open="authOpen" @authenticated="onAuthenticated" />
+    <StickyUnlockBar v-if="teaser && !authOpen" :anchor="unlockButton" :summary="stickySummary" :label="stickyLabel" />
+    <AuthModal v-model:open="authOpen" unlocking @authenticated="onAuthenticated" />
   </div>
 </template>

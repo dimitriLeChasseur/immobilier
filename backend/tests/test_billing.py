@@ -277,6 +277,17 @@ def test_subscription_checkout_is_recurring_and_carries_the_user() -> None:
     assert params["success_url"] == "https://app.example.org/?paiement=ok"
 
 
+@pytest.mark.parametrize("offer", ["unit", "pack", "pro"])
+def test_checkout_requires_an_explicit_waiver_of_the_withdrawal_right(offer: str) -> None:
+    # Article L221-28 du Code de la consommation : l'accès immédiat suppose un accord exprès et
+    # une renonciation expresse ; une case à cocher obligatoire, pas une phrase sous le bouton.
+    params = checkout_params(OFFERS[offer], USER, None, site_url="https://app.example.org/")
+    assert params["consent_collection[terms_of_service]"] == "required"
+    message = params["custom_text[terms_of_service_acceptance][message]"]
+    assert "(https://app.example.org/cgv)" in message
+    assert "renonce à mon droit de rétractation" in message
+
+
 # --- Évènements
 
 

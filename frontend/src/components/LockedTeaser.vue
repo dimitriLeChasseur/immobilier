@@ -1,7 +1,9 @@
 <script setup lang="ts">
 import { inject } from 'vue'
 
+import type { GhostKind } from '../lib/teaser'
 import { UNLOCK_KEY } from '../lib/unlock'
+import LockedGhost from './LockedGhost.vue'
 import LockedOverlay from './LockedOverlay.vue'
 
 defineProps<{
@@ -9,9 +11,13 @@ defineProps<{
   hook: string
   /**
    * Aperçu flouté avec le bouton complet : réservé à la carte phare. Répété sur chaque carte,
-   * il noyait le rapport sous le même visuel ; les autres n'affichent qu'une ligne.
+   * il noyait le rapport sous le même visuel ; les autres ont une silhouette et un lien court.
    */
   featured?: boolean
+  /** Ce que la carte contient, sans le résultat. */
+  promise?: string
+  /** Forme de la silhouette floutée des cartes secondaires. */
+  ghost?: GhostKind
 }>()
 
 const unlock = inject(UNLOCK_KEY, null)
@@ -33,22 +39,29 @@ const unlock = inject(UNLOCK_KEY, null)
     </div>
     <LockedOverlay />
   </div>
-  <div v-else class="locked-row flex items-center gap-2 rounded-xl border border-dashed border-slate-300 bg-slate-50 px-3 py-2">
-    <svg viewBox="0 0 20 20" class="size-4 shrink-0 text-slate-500" fill="currentColor" aria-hidden="true">
-      <path
-        fill-rule="evenodd"
-        d="M10 1.5A4.5 4.5 0 0 0 5.5 6v2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V6A4.5 4.5 0 0 0 10 1.5ZM12.5 8V6a2.5 2.5 0 0 0-5 0v2h5Z"
-        clip-rule="evenodd"
-      />
-    </svg>
-    <span class="text-sm text-slate-600">Détail dans l’audit complet</span>
-    <button
-      type="button"
-      class="ml-auto rounded-lg px-2 py-1 text-sm font-medium text-brand-700 underline hover:bg-brand-50"
-      :aria-label="unlock?.label.value ?? 'Débloquer l’audit complet de cette adresse'"
-      @click="unlock?.open()"
-    >
-      Débloquer
-    </button>
-  </div>
+  <template v-else>
+    <div class="relative mb-3 overflow-hidden rounded-xl">
+      <LockedGhost :kind="ghost ?? 'list'" />
+      <!-- Voile : la silhouette reste devinable en haut, illisible vers le bas. -->
+      <div class="absolute inset-0 bg-linear-to-b from-white/0 via-white/40 to-white/90" aria-hidden="true"></div>
+    </div>
+    <div class="locked-row flex items-center gap-2 rounded-xl border border-slate-200 bg-slate-50/80 px-3 py-2">
+      <svg viewBox="0 0 20 20" class="size-4 shrink-0 text-slate-500" fill="currentColor" aria-hidden="true">
+        <path
+          fill-rule="evenodd"
+          d="M10 1.5A4.5 4.5 0 0 0 5.5 6v2H5a2 2 0 0 0-2 2v6a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-6a2 2 0 0 0-2-2h-.5V6A4.5 4.5 0 0 0 10 1.5ZM12.5 8V6a2.5 2.5 0 0 0-5 0v2h5Z"
+          clip-rule="evenodd"
+        />
+      </svg>
+      <span class="min-w-0 text-sm text-slate-600">{{ promise ?? 'Détail dans l’audit complet' }}</span>
+      <button
+        type="button"
+        class="ml-auto shrink-0 rounded-lg px-2 py-1 text-sm font-medium text-brand-700 underline hover:bg-brand-50"
+        :aria-label="unlock?.label.value ?? 'Débloquer l’audit complet de cette adresse'"
+        @click="unlock?.open()"
+      >
+        Débloquer
+      </button>
+    </div>
+  </template>
 </template>

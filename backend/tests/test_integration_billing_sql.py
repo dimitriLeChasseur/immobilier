@@ -11,6 +11,7 @@ L'accès d'administration ne sert qu'à créer puis supprimer les comptes de tes
 que le rôle applicatif ne peut pas écrire. La suppression emporte leurs lignes par cascade.
 """
 
+import asyncio
 import os
 import uuid
 from collections.abc import AsyncIterator
@@ -219,6 +220,30 @@ async def test_a_credit_unlocks_one_address_and_is_never_spent_twice(
     assert (await billing.account(user_id))["credits"] == 0
     assert not await billing.spend_credit(user_id, 0.7, 0.7, "3 rue du Test", "00999_3")
     assert [audit["origin"] for audit in await billing.audits(user_id, 10)] == ["pack", "pack"]
+
+
+async def test_a_last_credit_spent_twice_at_once_unlocks_a_single_address(
+    billing: PostgresBillingRepository, user_id: str
+) -> None:
+    # Deux onglets débloquent chacun une adresse au même instant avec le dernier crédit.
+    await billing.fulfil_purchase(
+        event_id=event("pack"),
+        event_type="checkout.session.completed",
+        user_id=user_id,
+        lat=None,
+        lon=None,
+        label=None,
+        address_id=None,
+        origin="pack",
+        credits=1,
+    )
+    outcomes = await asyncio.gather(
+        billing.spend_credit(user_id, LAT, LON, "1 rue du Test", BAN_ID),
+        billing.spend_credit(user_id, OTHER_LAT, OTHER_LON, "2 rue du Test", "00999_2"),
+    )
+    assert sorted(outcomes) == [False, True]
+    assert (await billing.account(user_id))["credits"] == 0
+    assert len(await billing.audits(user_id, 10)) == 1
 
 
 async def test_a_refund_revokes_the_address_and_the_unused_credits(

@@ -73,7 +73,7 @@ def _mark_demo(report: AuditReport, access: AccessCheck) -> AuditReport:
 async def stream_audit(
     query: AuditQueryDep, service: AuditServiceDep, access: AccessCheckDep
 ) -> StreamingResponse:
-    """Même rapport, émis source par source : `location`, `source`…, puis `done` ou `error`."""
+    """Rapport émis pas à pas : `location`, `access`, `source`…, puis `done` ou `error`."""
     return StreamingResponse(
         _sse_events(service, query, access),
         media_type="text/event-stream",
@@ -83,6 +83,13 @@ async def stream_audit(
 
 def _sse(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
+
+
+def _access_level(full_access: bool, demo: bool) -> str:
+    """Même valeur que `meta.access` de l'évènement final."""
+    if demo:
+        return "demo"
+    return "full" if full_access else "teaser"
 
 
 async def _sse_events(
@@ -97,6 +104,9 @@ async def _sse_events(
                 full_access = await access.allows(event.location)
                 demo = access.is_demo(event.location)
                 yield _sse("location", event.location.model_dump(mode="json"))
+                # Annoncé dès maintenant, et non avec `done` : l'interface place l'aperçu et son
+                # bouton de déblocage avant les cartes, la page ne bouge plus à la fin du flux.
+                yield _sse("access", {"access": _access_level(full_access, demo)})
             elif isinstance(event, DoneEvent):
                 meta = event.meta if full_access else mask_meta(event.meta)
                 if demo:

@@ -94,7 +94,7 @@ function onChargesInput(): void {
 
     <div v-else class="grid grid-cols-1 gap-6 lg:grid-cols-3">
       <div>
-        <StatTile label="Rendement brut" :value="formatPercent(gross)" :hint="selected?.label" />
+        <StatTile label="Rendement brut" count-up :value="formatPercent(gross)" :hint="selected?.label" />
         <table class="mt-3 w-full text-xs">
           <caption class="sr-only">Rendement brut par type de bien</caption>
           <thead>

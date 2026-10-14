@@ -26,7 +26,7 @@ watch(estimate, (value) => emit('estimate', value ? Math.round(value.propertyTax
 
 <template>
   <StatTile
-    label="Taux global sur le bâti"
+    label="Taux global sur le bâti" count-up
     :value="formatPercent(data.taux_tfb_total, 2)"
     :hint="`${data.libelle_commune}, ${data.annee}`"
   />

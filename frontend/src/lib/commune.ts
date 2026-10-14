@@ -54,6 +54,8 @@ export interface CommuneLink {
   nom: string
   slug: string
   departement_code: string
+  /** [longitude, latitude] du centre, pour proposer les communes les plus proches. */
+  centre?: [number, number] | null
 }
 
 export interface CommuneFact {
@@ -368,10 +370,39 @@ function summary(profile: CommuneProfile): string[] {
     .filter((sentence): sentence is string => sentence !== null)
 }
 
-/** Autres communes du même département qui ont une fiche, dans l'ordre de la liste (population). */
-export function relatedCommunes(links: readonly CommuneLink[], profile: Pick<CommuneProfile, 'slug' | 'departement_code'>): CommuneLink[] {
+const NEARBY_LIMIT = 8
+
+/** Distance approchée en kilomètres : largement assez précise pour classer des voisines. */
+function distanceKm([lon1, lat1]: [number, number], [lon2, lat2]: [number, number]): number {
+  const KM_PER_DEGREE = 111.32
+  const meanLat = ((lat1 + lat2) / 2) * (Math.PI / 180)
+  return Math.hypot((lon2 - lon1) * Math.cos(meanLat), lat2 - lat1) * KM_PER_DEGREE
+}
+
+/** Communes ayant une fiche, les plus proches d'abord, sans tenir compte des départements. */
+export function nearbyCommunes(links: readonly CommuneLink[], profile: Pick<CommuneProfile, 'slug' | 'centre'>): CommuneLink[] {
+  const origin = profile.centre
+  if (!origin) return []
   return links
-    .filter((link) => link.departement_code === profile.departement_code && link.slug !== profile.slug)
+    .filter((link): link is CommuneLink & { centre: [number, number] } => Boolean(link.centre) && link.slug !== profile.slug)
+    .map((link) => ({ link, km: distanceKm(origin, link.centre) }))
+    .sort((a, b) => a.km - b.km)
+    .slice(0, NEARBY_LIMIT)
+    .map(({ link }) => link)
+}
+
+/**
+ * Autres communes du même département qui ont une fiche, dans l'ordre de la liste (population),
+ * hors celles déjà proposées comme voisines.
+ */
+export function relatedCommunes(
+  links: readonly CommuneLink[],
+  profile: Pick<CommuneProfile, 'slug' | 'departement_code'>,
+  exclude: readonly CommuneLink[] = [],
+): CommuneLink[] {
+  const shown = new Set(exclude.map((link) => link.slug))
+  return links
+    .filter((link) => link.departement_code === profile.departement_code && link.slug !== profile.slug && !shown.has(link.slug))
     .slice(0, RELATED_LIMIT)
 }
 

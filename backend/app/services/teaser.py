@@ -47,12 +47,43 @@ _CLEAR_KEYS: dict[str, frozenset[str]] = {
     "quartier": frozenset({"iris", "population"}),
     "cadastre": frozenset(),
     "urbanisme": frozenset(),
+    # Chiffres de la commune, déjà publiés en clair sur les fiches communales : les masquer
+    # dans l'aperçu d'une adresse ne protégerait rien. Clés énumérées une à une, comme
+    # ailleurs : un champ propre à l'adresse ajouté plus tard reste masqué.
+    "loyers": frozenset(
+        {
+            "type_bien",
+            "loyer_m2_charges_comprises",
+            "intervalle_prediction",
+            "nb_observations",
+            "niveau_prediction",
+            "millesime",
+            "par_typologie",
+        }
+    ),
+    "taxe_fonciere": frozenset(
+        {
+            "annee",
+            "libelle_commune",
+            "taux_tfb_commune",
+            "taux_tfb_epci",
+            "taux_tfb_total",
+            "taux_teom",
+            "reperes",
+        }
+    ),
+    "delinquance": frozenset({"annee", "indicateurs"}),
+    "connectivite": frozenset(
+        {
+            "niveau",
+            "date_donnees",
+            "nb_locaux",
+            "part_fibre_pct",
+            "part_cable_pct",
+            "part_4g_fixe_pct",
+        }
+    ),
 }
-
-
-# Chiffres de la commune, déjà publiés en clair sur les fiches communales : les masquer
-# dans l'aperçu d'une adresse ne protégerait rien.
-_OPEN_SOURCES = frozenset({"loyers", "taxe_fonciere", "delinquance", "connectivite"})
 
 
 def _poi_counts(categories: Any) -> Any:
@@ -72,8 +103,6 @@ _PARTIAL: dict[tuple[str, str], Callable[[Any], Any]] = {
 
 
 def mask_data(source: str, data: dict[str, Any]) -> dict[str, Any]:
-    if source in _OPEN_SOURCES:
-        return data
     clear = _CLEAR_KEYS.get(source, frozenset())
     masked: dict[str, Any] = {}
     for key, value in data.items():

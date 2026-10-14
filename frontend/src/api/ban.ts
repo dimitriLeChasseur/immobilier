@@ -38,8 +38,15 @@ function toSuggestion(feature: BanFeature): AddressSuggestion | null {
   return suggestion
 }
 
-/** Suggestions d'adresses de la Base Adresse Nationale pour une saisie partielle. */
-export async function searchAddresses(query: string, signal?: AbortSignal): Promise<AddressSuggestion[]> {
+/**
+ * Suggestions d'adresses de la Base Adresse Nationale pour une saisie partielle, limitées à une
+ * commune (code INSEE) quand `citycode` est donné.
+ */
+export async function searchAddresses(
+  query: string,
+  signal?: AbortSignal,
+  citycode?: string,
+): Promise<AddressSuggestion[]> {
   const trimmed = query.trim()
   if (trimmed.length < MIN_QUERY_LENGTH) return []
 
@@ -47,6 +54,7 @@ export async function searchAddresses(query: string, signal?: AbortSignal): Prom
   url.searchParams.set('q', trimmed.slice(0, 200))
   url.searchParams.set('limit', String(MAX_RESULTS))
   url.searchParams.set('autocomplete', '1')
+  if (citycode) url.searchParams.set('citycode', citycode)
 
   const response = await fetch(url, { signal })
   if (!response.ok) throw new Error(`BAN ${response.status}`)

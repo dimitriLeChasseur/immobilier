@@ -27,6 +27,7 @@ const DEFAULT_ZOOM = 16
 const container = ref<HTMLDivElement | null>(null)
 let map: L.Map | undefined
 let overlay: L.LayerGroup | undefined
+let resizing: ResizeObserver | undefined
 
 function drawStreet(points: [number, number][], recentre: boolean): void {
   if (!map || !overlay) return
@@ -99,13 +100,20 @@ function draw(recentre = true): void {
 
 onMounted(() => {
   if (!container.value) return
-  map = L.map(container.value, { scrollWheelZoom: false })
+  // Sur écran tactile, un doigt fait défiler la page, pas la carte : elle occupe toute la
+  // largeur et piégeait le défilement. Le pincement à deux doigts zoome toujours.
+  map = L.map(container.value, { scrollWheelZoom: false, dragging: !L.Browser.mobile })
   L.tileLayer(IGN_TILES, {
     maxZoom: 19,
     attribution: '&copy; <a href="https://www.ign.fr/">IGN</a>, Géoplateforme',
   }).addTo(map)
   overlay = L.layerGroup().addTo(map)
   draw()
+  // Leaflet ne suit que la fenêtre : un cadre qui grandit avec sa colonne laisserait des tuiles grises.
+  if (typeof ResizeObserver !== 'undefined') {
+    resizing = new ResizeObserver(() => map?.invalidateSize())
+    resizing.observe(container.value)
+  }
 })
 
 watch(
@@ -116,7 +124,10 @@ watch(
   () => props.markers,
   () => draw(false),
 )
-onBeforeUnmount(() => map?.remove())
+onBeforeUnmount(() => {
+  resizing?.disconnect()
+  map?.remove()
+})
 </script>
 
 <template>

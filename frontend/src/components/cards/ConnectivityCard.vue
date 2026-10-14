@@ -20,7 +20,7 @@ const tone = computed(() => {
 
 <template>
   <StatTile
-    label="Locaux raccordables à la fibre"
+    label="Locaux raccordables à la fibre" count-up
     :value="formatPercent(data.part_fibre_pct)"
     :tone="tone"
     :hint="`sur ${formatInteger(data.nb_locaux)} locaux de la commune`"

@@ -41,6 +41,8 @@ const ADDRESS = {
   lat: 47.46976,
 }
 const STEP_TIMEOUT_MS = 90_000
+// Seuil « bon » de Google pour la stabilité visuelle (Cumulative Layout Shift).
+const MAX_LAYOUT_SHIFT = 0.1
 
 /** Réglages du .env de la racine ; les valeurs ne sont jamais affichées. */
 function rootEnv(): Record<string, string> {
@@ -231,21 +233,69 @@ async function stubAddressSearch(page: Page): Promise<void> {
   )
 }
 
+/** Cumule les décalages de mise en page non provoqués par l'utilisateur, dès le chargement. */
+async function recordLayoutShifts(page: Page): Promise<void> {
+  await page.addInitScript(() => {
+    const store = window as unknown as { layoutShift: number }
+    store.layoutShift = 0
+    new PerformanceObserver((list) => {
+      for (const entry of list.getEntries() as (PerformanceEntry & { value: number; hadRecentInput: boolean })[]) {
+        if (!entry.hadRecentInput) store.layoutShift += entry.value
+      }
+    }).observe({ type: 'layout-shift', buffered: true })
+  })
+}
+
+async function layoutShift(page: Page): Promise<number> {
+  return page.evaluate(() => (window as unknown as { layoutShift: number }).layoutShift)
+}
+
+/** Connexion perdue en plein audit : les cartes reçues restent, l'utilisateur peut relancer. */
+async function interruptedStream(page: Page): Promise<void> {
+  page.setDefaultTimeout(STEP_TIMEOUT_MS)
+  const location = { lat: ADDRESS.lat, lon: ADDRESS.lon, label: ADDRESS.label, citycode: '49007', postcode: '49100', ban_id: ADDRESS.id }
+  const air = { status: 'ok', data: { indice: 2, qualificatif: 'Moyen' }, missing: [], error: null, duration_ms: 5 }
+  await page.route('**/api/v1/audit/stream**', (route) =>
+    route.fulfill({
+      contentType: 'text/event-stream',
+      body:
+        `event: location\ndata: ${JSON.stringify(location)}\n\n` +
+        'event: access\ndata: {"access":"teaser"}\n\n' +
+        `event: source\ndata: ${JSON.stringify({ name: 'qualite_air', result: air })}\n\n`,
+    }),
+  )
+  const query = new URLSearchParams({ lat: String(ADDRESS.lat), lon: String(ADDRESS.lon), ban_id: ADDRESS.id, q: ADDRESS.label })
+  await page.goto(`${SITE}/?${query.toString()}`)
+  await page.getByText('La connexion a été interrompue').waitFor()
+  await page.getByRole('button', { name: 'Relancer l’audit' }).waitFor()
+  // La carte reçue avant la coupure garde ses données ; les étapes ne se disent pas terminées.
+  const airCard = page.getByRole('heading', { name: 'Qualité de l’air', exact: true }).locator('xpath=ancestor::section[1]')
+  assert.equal(await airCard.getByText('Indisponible').count(), 0, 'carte reçue perdue après la coupure')
+  assert.equal(await page.getByText('Marché immobilier calculé').count(), 0, 'étape cochée sans réponse')
+}
+
 async function journey(page: Page, stripe: FakeStripe): Promise<string> {
   page.setDefaultTimeout(STEP_TIMEOUT_MS)
   await stubAddressSearch(page)
+  await recordLayoutShifts(page)
 
   // 1. Recherche : le prix et l'aperçu gratuit sont annoncés dès l'accueil.
   await page.goto(SITE)
-  await page.getByText('Aperçu gratuit et sans compte').waitFor()
+  await page.getByText('Aperçu gratuit, sans compte').waitFor()
   await page.getByLabel('Adresse du bien').fill('10 rue saint-aubin angers')
   await page.getByRole('option', { name: /10 Rue Saint-Aubin/ }).click()
 
   // 2. Aperçu gratuit : le rapport est restreint et le bouton annonce le prix.
-  await page.getByText('Aperçu gratuit.').waitFor()
+  await page.getByText('Votre aperçu est prêt.').waitFor()
+  // Le champ de recherche n'est pas recréé à l'ouverture du rapport : l'adresse choisie y reste.
+  assert.equal(await page.getByLabel('Adresse du bien').inputValue(), ADDRESS.label)
   const unlock = page.getByRole('button', { name: 'Débloquer l’audit complet pour 2,99 €' }).first()
   await unlock.waitFor()
   assert.equal(await page.getByRole('button', { name: 'Exporter en PDF' }).count(), 0)
+  // Les cartes arrivent une à une : la page ne doit pas sauter pendant la lecture.
+  await page.getByText(/Rapport (généré à l’instant|récent repris du cache)/).waitFor()
+  const shift = await layoutShift(page)
+  assert.ok(shift < MAX_LAYOUT_SHIFT, `décalage de mise en page ${shift.toFixed(3)} pendant l’aperçu`)
   await unlock.click()
 
   // 3. Création de compte, qui mène à la page des tarifs avec l'adresse mémorisée.
@@ -266,6 +316,7 @@ async function journey(page: Page, stripe: FakeStripe): Promise<string> {
   assert.equal(session.get('metadata[offer]'), 'unit')
   assert.equal(session.get('customer_email'), EMAIL)
   assert.equal(session.get('metadata[ban_id]'), ADDRESS.id, 'adresse résolue par le serveur')
+  assert.equal(session.get('consent_collection[terms_of_service]'), 'required', 'renonciation expresse à la rétractation')
   const userId = session.get('client_reference_id')
   assert.ok(userId)
 
@@ -279,7 +330,7 @@ async function journey(page: Page, stripe: FakeStripe): Promise<string> {
   // 6. Rapport complet : export PDF proposé, plus aucun cadenas ni bandeau d'aperçu.
   await page.getByRole('button', { name: 'Exporter en PDF' }).waitFor()
   await page.getByText(/Rapport (généré à l’instant|récent repris du cache)/).waitFor()
-  assert.equal(await page.getByText('Aperçu gratuit.').count(), 0)
+  assert.equal(await page.getByText('Votre aperçu est prêt.').count(), 0)
   assert.equal(await page.locator('.locked-blur').count(), 0)
 
   // L'achat figure dans l'espace client.
@@ -332,6 +383,14 @@ async function main(): Promise<void> {
       throw error
     }
     console.log('Parcours d’achat : recherche, aperçu, inscription, paiement, déblocage — réussi.')
+    const interrupted = await browser.newPage()
+    try {
+      await interruptedStream(interrupted)
+    } catch (error) {
+      await interrupted.screenshot({ path: resolve(FRONTEND, 'e2e-echec.png'), fullPage: true }).catch(() => undefined)
+      throw error
+    }
+    console.log('Flux coupé en plein audit : cartes reçues conservées, relance proposée — réussi.')
   } finally {
     await browser.close()
     if (userId) await deleteAccount(userId)

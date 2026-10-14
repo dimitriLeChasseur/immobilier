@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, onBeforeUnmount, onMounted, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 
 import { buildSteps } from '../lib/steps'
 import type { SourceName, SourceResults } from '../types/audit'
@@ -8,6 +8,8 @@ const props = defineProps<{
   located: boolean
   sources: SourceResults
   sourceNames: readonly SourceName[]
+  /** Flux terminé : les étapes restent affichées, closes, pour que la page ne remonte pas. */
+  settled?: boolean
 }>()
 
 // Au-delà de ce délai, on explique l'attente plutôt que de laisser l'utilisateur douter.
@@ -17,17 +19,25 @@ const TICK_MS = 1000
 const elapsedMs = ref(0)
 let timer: ReturnType<typeof setInterval> | undefined
 
-const steps = computed(() => buildSteps(props.located, props.sources, props.sourceNames))
+const steps = computed(() => buildSteps(props.located, props.sources, props.sourceNames, props.settled))
 const total = computed(() => steps.value.reduce((sum, step) => sum + step.expected, 0))
 const received = computed(() => steps.value.reduce((sum, step) => sum + step.received, 0))
 const percent = computed(() => (total.value ? Math.round((received.value / total.value) * 100) : 0))
+// Une fois affiché, le message reste (reformulé) : son retrait ferait remonter la page.
 const slow = computed(() => elapsedMs.value >= PATIENCE_AFTER_MS)
 
 onMounted(() => {
+  if (props.settled) return
   timer = setInterval(() => {
     elapsedMs.value += TICK_MS
   }, TICK_MS)
 })
+watch(
+  () => props.settled,
+  (settled) => {
+    if (settled) clearInterval(timer)
+  },
+)
 onBeforeUnmount(() => clearInterval(timer))
 </script>
 
@@ -36,7 +46,7 @@ onBeforeUnmount(() => clearInterval(timer))
     <progress
       class="audit-progress"
       aria-label="Progression de l’audit"
-      :value="percent"
+      :value="settled ? 100 : percent"
       max="100"
     ></progress>
 
@@ -72,8 +82,14 @@ onBeforeUnmount(() => clearInterval(timer))
     </ol>
 
     <p v-if="slow" class="mt-3 text-xs text-slate-500">
-      Certaines bases publiques répondent lentement : l’analyse complète peut prendre une dizaine
-      de secondes. Les résultats déjà reçus s’affichent ci-dessous.
+      <template v-if="settled">
+        Certaines bases publiques ont répondu lentement : l’analyse a pris un peu plus de temps
+        que d’habitude. Tous les résultats reçus sont affichés ci-dessous.
+      </template>
+      <template v-else>
+        Certaines bases publiques répondent lentement : l’analyse complète peut prendre une dizaine
+        de secondes. Les résultats déjà reçus s’affichent ci-dessous.
+      </template>
     </p>
   </div>
 </template>

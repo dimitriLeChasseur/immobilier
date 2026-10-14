@@ -112,7 +112,7 @@ const cgv: LegalDocument = {
       heading: '5. Droit de rétractation',
       paragraphs: [
         'Le consommateur dispose en principe d’un délai de quatorze jours pour se rétracter d’un achat à distance.',
-        'Toutefois, conformément à l’article L. 221-28 du Code de la consommation, ce droit ne peut pas être exercé pour un contenu numérique fourni immédiatement, dès lors que le consommateur a demandé l’exécution avant la fin du délai et reconnu qu’il perdait son droit de rétractation. En validant son paiement, l’acheteur demande expressément l’accès immédiat à l’audit et renonce à son droit de rétractation pour les audits débloqués.',
+        'Toutefois, conformément à l’article L. 221-28 du Code de la consommation, ce droit ne peut pas être exercé pour un contenu numérique fourni immédiatement, dès lors que le consommateur a demandé l’exécution avant la fin du délai et reconnu qu’il perdait son droit de rétractation. Avant de payer, l’acheteur coche une case par laquelle il accepte les présentes conditions, demande expressément l’accès immédiat à l’audit et renonce à son droit de rétractation pour les audits débloqués.',
         'Les crédits non utilisés d’un pack peuvent être remboursés sur demande dans les quatorze jours suivant l’achat, au prorata des crédits restants.',
       ],
     },

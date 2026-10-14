@@ -34,7 +34,7 @@ const chart = computed<ChartConfiguration>(() => ({
 
 <template>
   <div class="flex flex-wrap gap-x-8 gap-y-3">
-    <StatTile label="Sur l’année" :value="`${data.score.annuel} %`" hint="du temps de jour sans masque" />
+    <StatTile label="Sur l’année" count-up :value="`${data.score.annuel} %`" hint="du temps de jour sans masque" />
     <StatTile label="Au solstice d’hiver" :value="`${data.score.solstice_hiver} %`" />
   </div>
   <p v-if="data.synthese" class="mt-3 rounded-xl bg-amber-50 px-3 py-2 text-sm text-amber-900">

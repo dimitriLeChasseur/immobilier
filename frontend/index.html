@@ -39,7 +39,19 @@
         "offers": [
           { "@type": "Offer", "name": "Contre-Visite", "price": "2.99", "priceCurrency": "EUR" },
           { "@type": "Offer", "name": "Pack Investisseur", "price": "19.99", "priceCurrency": "EUR" },
-          { "@type": "Offer", "name": "Pro", "price": "49.00", "priceCurrency": "EUR" }
+          {
+            "@type": "Offer",
+            "name": "Pro",
+            "price": "49.00",
+            "priceCurrency": "EUR",
+            "priceSpecification": {
+              "@type": "UnitPriceSpecification",
+              "price": "49.00",
+              "priceCurrency": "EUR",
+              "billingDuration": "P1M",
+              "unitCode": "MON"
+            }
+          }
         ]
       }
     </script>

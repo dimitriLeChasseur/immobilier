@@ -3,7 +3,7 @@ import { computed, ref } from 'vue'
 
 import { SOURCE_INFO } from '../lib/sources'
 import { inPreventionPlan } from '../lib/insights'
-import { isLocked, teaserHook } from '../lib/teaser'
+import { isLocked, lockedGhost, lockedPromise, teaserHook } from '../lib/teaser'
 import type { SourceDataMap, SourceName, SourceResult, SourceResults } from '../types/audit'
 import AirCard from './cards/AirCard.vue'
 import BuildingCard from './cards/BuildingCard.vue'
@@ -35,7 +35,13 @@ const props = defineProps<{
   settled: boolean
   /** Mode « rue » : une voie n'a pas de parcelle, le bloc cadastre est retiré. */
   street?: boolean
+  /** Rang d'arrivée de chaque source dans sa rafale : décale l'apparition des cartes. */
+  arrivalRank?: Partial<Record<SourceName, number>>
 }>()
+
+// Cascade de 40 ms par carte, plafonnée : un rapport en cache s'affiche en moins d'une demi-seconde.
+const STAGGER_MS = 40
+const STAGGER_MAX = 10
 
 const DEFAULT_SURFACE_M2 = 50
 
@@ -55,7 +61,16 @@ function resultOf<K extends SourceName>(name: K): SourceResult<SourceDataMap[K]>
 function card<K extends SourceName>(name: K, compact = false) {
   const result = resultOf(name)
   // Verrouillée, seule la carte des ventes garde l'aperçu flouté : les autres tiennent en une ligne.
-  return { ...SOURCE_INFO[name], result, compact, featured: name === 'dvf', hook: teaserHook(name, result?.data) }
+  return {
+    ...SOURCE_INFO[name],
+    result,
+    compact,
+    featured: name === 'dvf',
+    hook: teaserHook(name, result?.data),
+    promise: lockedPromise(name),
+    ghost: lockedGhost(name),
+    enterDelay: Math.min(props.arrivalRank?.[name] ?? 0, STAGGER_MAX) * STAGGER_MS,
+  }
 }
 
 // Une valeur masquée par le serveur (chaîne) n'est pas un nombre : le calcul est alors verrouillé.

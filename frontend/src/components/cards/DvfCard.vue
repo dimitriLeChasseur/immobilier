@@ -68,12 +68,12 @@ const chart = computed<ChartConfiguration>(() => ({
       <div class="mb-4 flex flex-wrap gap-x-8 gap-y-3">
         <StatTile
           v-if="data.recent"
-          :label="`Prix médian, ${data.recent.mois} derniers mois`"
+          :label="`Prix médian, ${data.recent.mois} derniers mois`" count-up
           :value="formatPricePerM2(data.recent.prix_m2_median)"
           :hint="recentHint"
         />
         <StatTile
-          :label="data.recent ? 'Prix médian sur 5 ans' : 'Prix médian'"
+          :label="data.recent ? 'Prix médian sur 5 ans' : 'Prix médian'" count-up
           :value="formatPricePerM2(data.prix_m2_median)"
           :hint="scope"
         />

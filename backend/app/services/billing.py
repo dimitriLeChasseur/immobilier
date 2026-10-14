@@ -152,6 +152,15 @@ def checkout_params(
         "metadata[offer]": offer.id,
         "success_url": _return_url(site_url, target, "ok"),
         "cancel_url": f"{site_url.rstrip('/')}/tarifs?paiement=annule",
+        # Case obligatoire sur la page de paiement : l'accès immédiat au contenu numérique n'est
+        # permis qu'après un accord et une renonciation exprès (art. L221-28 du Code de la
+        # consommation). Stripe exige l'adresse des CGV dans les réglages publics du compte.
+        "consent_collection[terms_of_service]": "required",
+        "custom_text[terms_of_service_acceptance][message]": (
+            f"J’accepte les [conditions générales de vente]({site_url.rstrip('/')}/cgv), "
+            "je demande l’accès immédiat à l’audit et je renonce à mon droit de rétractation "
+            "pour les audits débloqués."
+        ),
     }
     if user.email:
         params["customer_email"] = user.email

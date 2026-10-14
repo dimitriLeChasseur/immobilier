@@ -68,3 +68,28 @@
   filter: blur(6px);
   pointer-events: none;
 }
+
+/* Maquette de l'accueil : chaque couche dérive à sa vitesse (--depth) au fil du défilement.
+   Animation pilotée par le défilement, sans script : rien ne pèse sur la réactivité de la page.
+   Navigateur sans cette fonction : maquette fixe, rien ne casse. */
+@supports (animation-timeline: view()) {
+  .parallax-layer {
+    animation: parallax-drift linear both;
+    animation-timeline: view();
+  }
+}
+
+@keyframes parallax-drift {
+  from {
+    translate: 0 var(--depth, 0);
+  }
+  to {
+    translate: 0 calc(var(--depth, 0) * -1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .parallax-layer {
+    animation: none;
+  }
+}

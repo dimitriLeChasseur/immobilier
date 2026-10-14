@@ -58,7 +58,10 @@ onBeforeUnmount(() => chart?.destroy())
 </script>
 
 <template>
-  <div class="relative h-48">
+  <!-- Apparition du graphique par son cadre : le dessin lui-même reste instantané pour le PDF. -->
+  <div
+    class="relative h-48 origin-bottom transition-[opacity,scale] duration-700 ease-out starting:scale-y-95 starting:opacity-0 motion-reduce:transition-none"
+  >
     <!-- Le texte de repli décrit le graphique aux lecteurs d'écran. -->
     <canvas ref="canvas" :data-pdf-chart="label">{{ label }}</canvas>
   </div>

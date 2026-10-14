@@ -48,19 +48,21 @@ const DEFINITIONS: StepDefinition[] = [
   },
 ]
 
-function stateOf(received: number, expected: number, started: boolean): StepState {
-  if (received >= expected) return 'done'
+function stateOf(received: number, expected: number, started: boolean, settled: boolean): StepState {
+  if (settled || received >= expected) return 'done'
   return started ? 'active' : 'pending'
 }
 
 /**
  * Étapes affichées pendant l'audit. Le géocodage vient d'abord ; les autres avancent en
- * parallèle, au rythme réel des réponses du serveur.
+ * parallèle, au rythme réel des réponses du serveur. Une fois le flux terminé (`settled`),
+ * toutes sont closes : une source muette est en échec, plus en attente.
  */
 export function buildSteps(
   located: boolean,
   sources: SourceResults,
   expectedSources: readonly SourceName[],
+  settled = false,
 ): AuditStep[] {
   const known = new Set(DEFINITIONS.flatMap((definition) => definition.sources))
   const orphans = expectedSources.filter((name) => !known.has(name))
@@ -85,7 +87,7 @@ export function buildSteps(
       key: definition.key,
       activeLabel: definition.activeLabel,
       doneLabel: definition.doneLabel,
-      state: stateOf(received, names.length, located),
+      state: stateOf(received, names.length, located, settled),
       received,
       expected: names.length,
     })

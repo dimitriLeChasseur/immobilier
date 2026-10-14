@@ -24,7 +24,7 @@ from app.core.rate_limit import SlidingWindowRateLimiter
 from app.core.security import InvalidTokenError, decode_access_token
 from app.schemas.audit import AuditQuery, AuditReport, Location, ReportMeta, SourceResult
 from app.services.audit_service import AuditEvent, DoneEvent, LocationEvent, SourceEvent
-from app.services.teaser import LOCKED, mask_data, mask_report
+from app.services.teaser import _CLEAR_KEYS, LOCKED, mask_data, mask_report
 
 USER_ID = "7c9e6679-7425-40de-944b-e07fc1f90ae7"
 PARAMS = {"lat": 47.4706, "lon": -0.5517}
@@ -207,6 +207,31 @@ def test_stream_is_complete_for_a_buyer() -> None:
     assert LOCKED not in text
 
 
+def sse_events(text: str) -> list[tuple[str, str]]:
+    """Évènements d'un flux SSE, dans l'ordre : (nom, données JSON brutes)."""
+    events = []
+    for block in text.strip().split("\n\n"):
+        lines = dict(line.split(": ", 1) for line in block.splitlines())
+        events.append((lines["event"], lines["data"]))
+    return events
+
+
+def test_stream_announces_the_access_level_right_after_the_location(client: TestClient) -> None:
+    # L'interface affiche l'aperçu et son bouton de déblocage dès la première seconde,
+    # sans attendre la fin du flux : la page ne bouge plus quand le rapport se termine.
+    events = sse_events(client.get("/api/v1/audit/stream", params=PARAMS).text)
+    assert [name for name, _ in events[:2]] == ["location", "access"]
+    assert json.loads(events[1][1]) == {"access": "teaser"}
+
+
+def test_stream_announces_full_access_to_a_buyer() -> None:
+    client = next(make_client(Entitlements(granted=True)))
+    events = sse_events(
+        client.get("/api/v1/audit/stream", params=PARAMS, headers=bearer(token())).text
+    )
+    assert events[1] == ("access", json.dumps({"access": "full"}))
+
+
 def test_access_is_refused_by_default_when_the_check_fails() -> None:
     client = next(make_client(Entitlements(granted=True, broken=True)))
     response = client.get("/api/v1/audit", params=PARAMS, headers=bearer(token()))
@@ -279,11 +304,60 @@ def test_masking_does_not_alter_the_cached_report() -> None:
     assert REPORT.meta.access == "full"
 
 
+# Données réelles des quatre sources communales, telles que leurs fournisseurs les renvoient.
+COMMUNE_FIGURES: dict[str, dict[str, Any]] = {
+    "loyers": {
+        "type_bien": "appartement",
+        "loyer_m2_charges_comprises": 12.4,
+        "intervalle_prediction": [10.1, 14.9],
+        "nb_observations": 820,
+        "niveau_prediction": "commune",
+        "millesime": 2025,
+        "par_typologie": {"t1_t2": {"loyer_m2_charges_comprises": 14.2, "nb_observations": 300}},
+    },
+    "taxe_fonciere": {
+        "annee": 2025,
+        "libelle_commune": "ANGERS",
+        "taux_tfb_commune": 39.5,
+        "taux_tfb_epci": 0.0,
+        "taux_tfb_total": 39.5,
+        "taux_teom": 8.1,
+        "reperes": {"mediane_departement": 40.1, "mediane_nationale": 40.3},
+    },
+    "delinquance": {
+        "annee": 2025,
+        "indicateurs": [{"indicateur": "Cambriolages de logement", "taux_pour_mille": 4.1}],
+    },
+    "connectivite": {
+        "niveau": "commune",
+        "date_donnees": "2026-06-30",
+        "nb_locaux": 98000,
+        "part_fibre_pct": 96.0,
+        "part_cable_pct": None,
+        "part_4g_fixe_pct": 1.2,
+    },
+}
+
+
 def test_commune_figures_published_on_commune_pages_are_not_masked() -> None:
-    rents = {"loyer_m2": 12.4, "fourchette": {"bas": 10.1, "haut": 14.9}}
-    assert mask_data("loyers", rents) == rents
-    for source in ("taxe_fonciere", "delinquance", "connectivite"):
-        assert mask_data(source, {"valeur": 1, "ajout": [2]}) == {"valeur": 1, "ajout": [2]}
+    for source, data in COMMUNE_FIGURES.items():
+        assert mask_data(source, data) == data
+
+
+def test_a_field_added_later_to_a_commune_source_is_locked_by_default() -> None:
+    # Un champ propre à l'adresse ajouté à une source communale ne doit pas fuiter.
+    for source, data in COMMUNE_FIGURES.items():
+        masked = mask_data(source, {**data, "valeur_a_l_adresse": 123456})
+        assert masked["valeur_a_l_adresse"] == LOCKED, source
+
+
+SENTINEL = "VALEUR-QUI-NE-DOIT-PAS-SORTIR"
+
+
+def test_no_source_lets_an_unlisted_value_through() -> None:
+    # Chaque source connue reçoit une clé inédite contenant une valeur sentinelle.
+    for source in (*_CLEAR_KEYS, "source_inconnue"):
+        assert SENTINEL not in json.dumps(mask_data(source, {"cle_inedite": SENTINEL})), source
 
 
 def test_subscriber_over_the_daily_limit_is_stopped_not_downgraded(
@@ -324,6 +398,7 @@ def test_demo_address_is_open_to_everyone_and_flagged(monkeypatch: pytest.Monkey
         stream = client.get("/api/v1/audit/stream", params=PARAMS).text
         assert '"access": "demo"' in stream
         assert LOCKED not in stream
+        assert sse_events(stream)[1] == ("access", json.dumps({"access": "demo"}))
     finally:
         get_settings.cache_clear()
 

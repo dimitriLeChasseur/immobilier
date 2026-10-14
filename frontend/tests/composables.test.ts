@@ -156,6 +156,31 @@ describe('useAudit', () => {
     stop()
   })
 
+  it('connaît le niveau d’accès avant la fin du flux, puis l’oublie au lancement suivant', () => {
+    const { audit, handlers, stop } = setup()
+    audit.start(TARGET)
+    expect(audit.access.value).toBeNull()
+    handlers().onAccess('teaser')
+    expect(audit.access.value).toBe('teaser')
+
+    audit.start({ ...TARGET, lat: 48 })
+    expect(audit.access.value).toBeNull()
+    // Serveur antérieur à l'évènement « access » : le niveau vient de l'évènement final.
+    handlers().onDone({ generated_at: '2026-01-01T00:00:00Z', cached: false, is_partial: false, report_version: 1, duration_ms: 9, access: 'demo' })
+    expect(audit.access.value).toBe('demo')
+    stop()
+  })
+
+  it('garde les cartes reçues quand la connexion se coupe en plein flux', () => {
+    const { audit, handlers, stop } = setup()
+    audit.start(TARGET)
+    handlers().onSource('dvf', EMPTY)
+    handlers().onError('Connexion perdue')
+    expect(audit.phase.value).toBe('error')
+    expect(audit.sources.value.dvf).toEqual(EMPTY)
+    stop()
+  })
+
   it('annule le flux précédent quand un nouvel audit démarre ou que le composant disparaît', () => {
     const { audit, open, cancel, stop, handlers } = setup()
     audit.start(TARGET)

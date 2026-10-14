@@ -1,10 +1,16 @@
 <script setup lang="ts">
 import { computed, nextTick, ref, watch } from 'vue'
 
+import { searchAddresses } from '../api/ban'
 import { useAddressSearch } from '../composables/useAddressSearch'
 import type { AddressSuggestion } from '../types/audit'
 
-const props = defineProps<{ initialLabel?: string }>()
+const props = defineProps<{
+  initialLabel?: string
+  /** Limite les suggestions à une commune (code INSEE), sur sa fiche. */
+  citycode?: string
+  placeholder?: string
+}>()
 const emit = defineEmits<{ select: [suggestion: AddressSuggestion] }>()
 
 const LISTBOX_ID = 'address-suggestions'
@@ -15,7 +21,9 @@ const activeIndex = ref(-1)
 // Libellé inséré par le dernier choix : il ne doit pas relancer une recherche ni rouvrir la liste.
 let selectedLabel: string | null = null
 
-const { suggestions, loading, failed, clear } = useAddressSearch(query)
+const { suggestions, loading, failed, clear } = useAddressSearch(query, (text, signal) =>
+  searchAddresses(text, signal, props.citycode),
+)
 
 const expanded = computed(() => open.value && suggestions.value.length > 0)
 const activeId = computed(() => (activeIndex.value >= 0 ? `${LISTBOX_ID}-${activeIndex.value}` : undefined))
@@ -74,7 +82,7 @@ function submit(): void {
         autocomplete="off"
         spellcheck="false"
         maxlength="200"
-        placeholder="Saisissez une adresse, ex. 12 rue de la Paix, Angers"
+        :placeholder="placeholder ?? 'Saisissez une adresse, ex. 12 rue de la Paix, Angers'"
         class="w-full rounded-2xl border border-slate-300 bg-white py-4 pr-12 pl-12 text-base text-slate-900 shadow-sm placeholder:text-slate-400 focus:border-brand-600 focus:outline-none focus:ring-4 focus:ring-brand-100"
         aria-autocomplete="list"
         :aria-expanded="expanded"

@@ -81,11 +81,13 @@ describe('carte verrouillée', () => {
     expect(card.find('button').text()).toBe('Débloquer l’audit complet pour 2,99 €')
   })
 
-  it('tient en une ligne hors de la carte phare, sans aperçu flouté répété', async () => {
+  it('hors de la carte phare, montre une silhouette et sa promesse, sans répéter le grand aperçu', async () => {
     const card = mount(SourceCard, { props: { ...SOURCE_INFO.dvf, result, hook: '505 ventes analysées' }, slots, global: { provide } })
     expect(card.text()).toContain('505 ventes analysées')
     expect(card.text()).not.toContain('prix {')
-    expect(card.find('.locked-blur').exists()).toBe(false)
+    // Pas le faux prix au m² ni le grand bouton de la carte phare : une silhouette, puis un lien court.
+    expect(card.text()).not.toContain('€/m²')
+    expect(card.find('.locked-blur').attributes('aria-hidden')).toBe('true')
     expect(card.find('.locked-row').text()).toContain('Détail dans l’audit complet')
     const button = card.find('.locked-row button')
     expect(button.text()).toBe('Débloquer')
@@ -154,13 +156,16 @@ describe('grille tarifaire', () => {
     const cards = view.findAll('ul > li.relative')
     expect(cards).toHaveLength(3)
     expect(cards[1]?.classes()).toContain('border-brand-600')
-    expect(cards[1]?.text()).toContain('Le plus avantageux')
-    // L'aperçu gratuit a sa propre colonne, avant les offres payantes.
-    expect(view.find('ul > li').text()).toContain('Aperçu gratuit')
-    expect(view.find('ul > li').text()).toContain('0 €')
+    expect(cards[1]?.text()).toContain('Recommandé si vous visitez plusieurs biens')
+    // Ancrage vrai : 10 × 2,99 € = 29,90 €, contre 19,99 € pour le pack.
+    expect(cards[1]?.text()).toContain('2,00 € l’audit au lieu de 2,99 € · −33 %')
+    // Sur mobile, le pack recommandé passe avant les autres offres.
+    expect(cards[1]?.classes()).toContain('order-first')
+    // L'aperçu gratuit n'est plus une colonne de la grille : une porte d'entrée en dessous.
+    expect(view.findAll('ul > li.relative').some((card) => card.text().includes('Aperçu gratuit'))).toBe(false)
+    expect(view.find('[aria-labelledby="free-offer"]').text()).toContain('0 €')
+    expect(view.find('[aria-labelledby="pro-offer"]').text()).toContain('49,00 € HT par mois')
     expect(view.text()).toContain('Voir un rapport d’exemple')
-    expect(view.text()).toContain('Audit de Due Diligence complet pour 1 adresse + Export PDF.')
-    expect(view.text()).toContain('Rapports sans décompte + Export en marque blanche (Votre logo).')
   })
 
   it('rappelle l’adresse à débloquer et demande une connexion avant tout paiement', async () => {

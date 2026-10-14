@@ -11,13 +11,13 @@ Ce document sert de passation entre le développement et l'exploitation.
 ## Architecture
 
 ```
-Navigateur ── Vue 3 (Cloudflare Pages, à venir)
+Navigateur ── Vue 3 (Cloudflare Pages)
     │  autocomplétion : API Base Adresse Nationale (appel direct)
     │  audit : GET /api/v1/audit/stream (Server-Sent Events)
     ▼
 Caddy (80/443, TLS automatique) ── seul service exposé
     ▼
-FastAPI (backend/) ── pipeline asynchrone aiohttp, 18 sources en parallèle
+FastAPI (backend/) ── pipeline asynchrone aiohttp, 20 sources en parallèle
     ├── API publiques : BAN, Géorisques, API Carto IGN, DVF, ADEME, Overpass,
     │   Atmo France, ANFR, IGN altimétrie, data.gouv, OpenRouteService (facultatif)
     └── PostgreSQL 17 + PostGIS (image Supabase)
@@ -34,6 +34,7 @@ FastAPI (backend/) ── pipeline asynchrone aiohttp, 18 sources en parallèle
 | `infra/` | Caddyfile de développement, scripts SQL d'initialisation, sources des cartes de bruit |
 | `deploy/` | Fichiers de mise en production (pare-feu, Caddyfile HTTPS) |
 | `scripts/` | Génération du `.env`, analyse SonarQube, ingestion du bruit |
+| `CLAUDE.md`, `.claude/skills/` | Consignes et procédures pour les agents de code (ajout d'une source, mise en production…) |
 
 Principes à connaître avant d'intervenir :
 
@@ -325,10 +326,17 @@ l'adresse, les crédits du pack ou l'abonnement. Sans clés, ces routes réponde
 | `pack` | 19,99 € | débloque l'adresse + 9 crédits (10 crédits sans adresse) |
 | `pro` | 49,00 € / mois | toutes les adresses tant que l'abonnement est actif |
 
+La page de paiement porte une case obligatoire : accord aux CGV et renonciation au droit de
+rétractation pour l'accès immédiat à l'audit (art. L221-28 du Code de la consommation).
+**Prérequis, en mode Test comme en Live** : renseigner l'adresse des CGV
+(`<SITE_URL>/cgv`) dans *Settings > Business > Public details > Terms of service*. Sans elle,
+Stripe refuse de créer la session et tout paiement échoue.
+
 Mise en route en local (mode test, aucun débit réel) :
 
 1. Dans le tableau de bord Stripe, mode **Test** : *Developers > API keys*, copier la clé
-   secrète `sk_test_...` dans `STRIPE_SECRET_KEY` (fichier `.env`).
+   secrète `sk_test_...` dans `STRIPE_SECRET_KEY` (fichier `.env`), et renseigner l'adresse
+   des CGV (voir ci-dessus).
 2. Installer la [CLI Stripe](https://docs.stripe.com/stripe-cli), puis :
    ```bash
    stripe login
@@ -386,7 +394,9 @@ Trois suites complètent les tests unitaires :
   remboursements, plafond Pro). La seconde demande en plus `IMMO_TEST_ADMIN_DATABASE_URL`, pour
   créer ses comptes de test dans `auth.users`.
 - **Parcours d'achat de bout en bout** (`cd frontend && npm run e2e`, pile Docker démarrée) :
-  recherche, aperçu, création de compte, paiement et déblocage dans un vrai navigateur. Stripe
+  recherche, aperçu, création de compte, paiement et déblocage dans un vrai navigateur ; il
+  vérifie aussi la stabilité de la page pendant le flux (décalage de mise en page < 0,1) et la
+  reprise après une coupure réseau en plein audit. Stripe
   et la Base Adresse Nationale sont simulés (`STRIPE_API_URL`, `BAN_REVERSE_URL`,
   `BAN_LOOKUP_URL`) ; le compte créé est supprimé en sortant. En intégration continue, son
   échec bloque la mise en ligne du site.

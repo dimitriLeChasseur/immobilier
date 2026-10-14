@@ -7,6 +7,8 @@ export interface Offer {
   /** Précision fiscale et rythme de facturation. */
   priceNote: string
   description: string
+  /** Comparaison au prix à l'unité, sous le prix. */
+  anchor?: string
   features: string[]
   cta: string
   highlighted: boolean
@@ -38,7 +40,7 @@ export const OFFERS: readonly Offer[] = [
     name: 'Contre-Visite',
     price: UNIT_PRICE,
     priceNote: 'TTC, paiement unique',
-    description: 'Audit de Due Diligence complet pour 1 adresse + Export PDF.',
+    description: 'Une adresse, tout vérifié avant de faire une offre. Le PDF à apporter à la contre-visite.',
     features: [
       'Prix des ventes voisines, rendement et synthèse',
       'Bâtiment, DPE, bruit, permis, écoles, carte',
@@ -52,8 +54,10 @@ export const OFFERS: readonly Offer[] = [
     name: 'Pack Investisseur',
     price: '19,99 €',
     priceNote: 'TTC, paiement unique',
-    description: 'Pack de 10 audits complets. Idéal pour comparer plusieurs biens lors de vos visites.',
-    features: ['10 audits complets', 'Export PDF de chaque adresse', 'Soit 2,00 € par audit'],
+    description: 'Vous visitez plusieurs biens ? Passez-les tous au même crible.',
+    // 10 × 2,99 € = 29,90 € : le pack en coûte 19,99 €, soit un tiers de moins.
+    anchor: `2,00 € l’audit au lieu de ${UNIT_PRICE} · −33 %`,
+    features: ['10 audits complets, sans date limite', 'Export PDF de chaque adresse', 'Une adresse débloquée en un clic'],
     cta: 'Payer 19,99 €',
     highlighted: true,
   },
@@ -62,11 +66,11 @@ export const OFFERS: readonly Offer[] = [
     name: 'Pro',
     price: '49,00 €',
     priceNote: 'HT par mois',
-    description: 'Rapports sans décompte + Export en marque blanche (Votre logo).',
+    description: 'Pour les agents et chasseurs immobiliers : un dossier à votre logo pour chaque bien présenté.',
     features: [
       `Jusqu’à ${PRO_DAILY_ADDRESSES} nouvelles adresses par jour`,
-      'PDF à votre logo',
-      'Pour agents et chasseurs immobiliers',
+      'PDF en marque blanche, à votre logo',
+      'Résiliable à tout moment depuis votre compte',
     ],
     cta: 'S’abonner',
     highlighted: false,
