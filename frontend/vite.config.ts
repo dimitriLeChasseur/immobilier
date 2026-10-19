@@ -21,9 +21,10 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     coverage: {
       reporter: ['text-summary'],
-      // Seuils un peu sous la couverture mesurée en octobre 2026 (79,8 / 67,7 / 74,5 / 81,9 %) :
-      // ils arrêtent une régression nette.
-      thresholds: { statements: 78, branches: 66, functions: 73, lines: 80 },
+      // Seuils un peu sous la couverture mesurée par la CI en octobre 2026 (79,3 / 65,8 / 73,8 /
+      // 81,5 %) : ils arrêtent une régression nette. Un .env local couvre plus de branches,
+      // d'où une mesure locale plus haute : c'est celle de la CI qui compte.
+      thresholds: { statements: 78, branches: 64, functions: 72, lines: 80 },
     },
   },
 })
