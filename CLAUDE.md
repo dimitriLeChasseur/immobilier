@@ -13,6 +13,12 @@ intervention qui sort d'un seul fichier.
   messages de commit. Les identifiants de code restent en anglais, sauf les noms de source et
   les clés des données renvoyées (`quartier`, `taxe_fonciere`…), qui font partie du contrat
   de l'API.
+- **Le plus petit changement complet.** Lire le code et repérer tout ce que le changement
+  touche (appelants, tests, configuration) avant d'écrire ; puis réutiliser ce qui existe
+  dans le projet, la bibliothèque standard ou une dépendance installée, et n'écrire du code
+  neuf qu'en dernier. Ne jamais rogner sur la validation aux frontières, les erreurs qui
+  évitent une perte de données, la sécurité, l'accessibilité ni ce qui a été demandé.
+  Terminer en disant ce qui n'a pas été fait ou vérifié.
 - **Densité de commentaires** : un commentaire dit *pourquoi*, pas *quoi*. Suivre le style du
   fichier voisin.
 - **Secrets** : jamais dans le dépôt ni dans une sortie affichée. `.env` n'est pas versionné ;
@@ -40,7 +46,8 @@ docker compose up -d --build        # http://localhost
 
 Tests SQL sur une vraie base et commande d'intégration complète : section « Tests et
 qualité » du README. La CI (`.github/workflows/ci.yml`) impose des seuils de couverture
-(`--cov-fail-under` dans la commande pytest, `thresholds` dans `frontend/vite.config.ts`).
+(`--cov-fail-under` des deux commandes pytest, sans et avec base ; `thresholds` dans
+`frontend/vite.config.ts`).
 
 ## Avant de rendre la main
 

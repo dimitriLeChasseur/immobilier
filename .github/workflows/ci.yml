@@ -104,7 +104,10 @@ jobs:
           ./scripts/generate-env.sh
           docker compose up -d --wait db
 
-      - name: Exécuter les tests d'intégration SQL
+      # Toute la suite backend, tests SQL compris : la couverture mesurée ici est la vraie, le
+      # chemin de l'argent n'étant exercé que contre une base. Seuil un peu sous la couverture
+      # mesurée (87 % en octobre 2026).
+      - name: Exécuter les tests du backend avec la base, couverture comprise
         working-directory: backend
         run: |
           password="$(grep '^IMMO_APP_DB_PASSWORD=' ../.env | cut -d= -f2-)"
@@ -113,7 +116,9 @@ jobs:
           admin="$(grep '^POSTGRES_PASSWORD=' ../.env | cut -d= -f2-)"
           export IMMO_TEST_ADMIN_DATABASE_URL="postgresql://supabase_admin:${admin}@127.0.0.1:5433/postgres"
           export DATABASE_URL="$IMMO_TEST_DATABASE_URL" SUPABASE_JWT_SECRET=test
-          uv run pytest tests/test_integration_sql.py tests/test_integration_billing_sql.py -v
+          # -rs : un test SQL sauté (variable de connexion absente) apparaît dans le journal ; le
+          # seuil, inatteignable sans base (84 %), fait alors échouer le job.
+          uv run pytest -rs --cov=app --cov-report=term --cov-fail-under=86
 
       - name: Afficher les journaux de la base en cas d'échec
         if: failure()

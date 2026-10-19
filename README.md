@@ -381,8 +381,9 @@ build à chaque push ou pull request sur `main`, puis déclenche la mise en lign
 « Frontend sur Cloudflare Pages »). L'analyse SonarQube reste locale et gratuite (édition
 Community, commandes ci-dessus) : SonarQube Cloud n'est pas utilisé.
 
-Le même workflow refuse une couverture de tests en net recul (seuils dans la commande pytest
-et dans `frontend/vite.config.ts`). `.github/workflows/securite.yml` audite les dépendances
+Le même workflow refuse une couverture de tests en net recul : deux seuils pour le backend dans
+`ci.yml`, sans base (tests unitaires) et avec la base (toute la suite, tests SQL compris), et
+ceux de `frontend/vite.config.ts`. `.github/workflows/securite.yml` audite les dépendances
 livrées (`pip-audit`, `npm audit`) et cherche des secrets dans tout l'historique (`gitleaks`,
 faux positifs dans `.gitleaksignore`), à chaque push et chaque lundi ; il ne bloque pas la mise
 en ligne. Dependabot (`.github/dependabot.yml`) propose les mises à jour chaque semaine, dont

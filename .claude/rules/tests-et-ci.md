@@ -10,7 +10,7 @@ paths:
 
 # Tests et intégration continue
 
-- Ne jamais baisser un seuil de couverture (`--cov-fail-under` dans `ci.yml`, `thresholds`
+- Ne jamais baisser un seuil de couverture (les deux `--cov-fail-under` de `ci.yml`, `thresholds`
   dans `frontend/vite.config.ts`), ni ignorer, désactiver ou affaiblir un test pour faire
   passer la CI : corriger le code, ou signaler le blocage à l'utilisateur. Quand la couverture
   dépasse nettement un seuil, le remonter à environ un point sous le niveau atteint.

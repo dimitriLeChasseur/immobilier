@@ -27,7 +27,8 @@ Frontend, depuis `frontend/` :
 3. `npm run test -- --coverage`
 4. `npm run build`
 
-Le seuil de couverture backend se lit dans `.github/workflows/ci.yml` (`--cov-fail-under`) ;
+Le seuil de couverture backend est le `--cov-fail-under` du job sans base de
+`.github/workflows/ci.yml` (celui du job « Requêtes SQL sur PostGIS » suppose une base) ;
 celui du frontend est appliqué par `frontend/vite.config.ts`. Lis-les à chaque fois plutôt que
 de les retenir : ils changent.
 
