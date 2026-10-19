@@ -1,0 +1,17 @@
+{
+  "enabledPlugins": {
+    "mattpocock-skills@claude-plugins-official": false,
+    "pyright-lsp@claude-plugins-official": true,
+    "playwright@claude-plugins-official": true
+  },
+  "permissions": {
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git * push *)",
+      "Bash(git reset --hard *)",
+      "Bash(git * reset --hard *)",
+      "Bash(git clean *)",
+      "Bash(git * clean *)"
+    ]
+  }
+}

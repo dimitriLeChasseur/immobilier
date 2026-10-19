@@ -13,7 +13,8 @@ l'ordre et cocher chaque ligne dans le compte rendu final. Modèle récent à im
 ## 0. Avant d'écrire
 
 - La source est **gratuite et ouverte** (règle du projet). Noter sa licence, son producteur,
-  son millésime et sa limite de débit.
+  son millésime et sa limite de débit : le MCP `datagouv` donne la fiche du jeu de données ou
+  de l'API, la skill `research` étudie sa documentation officielle.
 - Choisir entre **appel en direct** (API publique) et **référentiel ingéré** (table du schéma
   `immo`, chargée par `app.ingestion`). Un fichier national statique ou une API lente se
   charge en base.
@@ -38,7 +39,8 @@ l'ordre et cocher chaque ligne dans le compte rendu final. Modèle récent à im
 - [ ] **Composition** : ajouter le fournisseur à la liste de `build_audit_service`
   (`backend/app/container.py`). Durée de cache propre à la source, si besoin : `source_ttls`.
 - [ ] **Aperçu gratuit** : `backend/app/services/teaser.py`. Ajouter les clés laissées en clair
-  dans `_CLEAR_KEYS` (tout le reste est masqué), ou la source entière dans `_OPEN_SOURCES`.
+  dans `_CLEAR_KEYS` (tout le reste est masqué), une à une même quand toute la source est
+  publique : un champ ajouté plus tard reste ainsi masqué par défaut.
 - [ ] **Synthèse** (facultatif) : une règle dans `backend/app/services/synthesis.py` si la
   donnée mérite une alerte ou un point fort.
 - [ ] **Test de fumée** : clés attendues dans `EXPECTED_KEYS` (`backend/app/smoke.py`) ;
@@ -71,7 +73,8 @@ l'ordre et cocher chaque ligne dans le compte rendu final. Modèle récent à im
   sortent pas en clair.
 - [ ] Référentiel ingéré : requête testée dans `backend/tests/test_integration_sql.py`.
 - [ ] Frontend : `frontend/tests/<module>.test.ts` pour la mise en forme et la carte.
-- [ ] Contrôles complets (voir `CLAUDE.md`), coverage comprise.
+- [ ] Contrôles complets, couverture comprise : agent `verificateur`, puis `gardien-du-projet`
+  sur le diff.
 
 ## 4. Documentation
 

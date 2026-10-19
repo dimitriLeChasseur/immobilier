@@ -13,7 +13,8 @@ visible de l'extérieur : ne rien lancer sans que l'utilisateur l'ait demandé d
 ## 1. Avant de pousser
 
 - `git status` propre, branche `main`, commits relus (`git log origin/main..HEAD`).
-- Contrôles locaux passés des deux côtés (commandes dans `CLAUDE.md`).
+- Contrôles locaux passés des deux côtés (agent `verificateur`) et aucun point bloquant
+  relevé par `gardien-du-projet` sur `git diff origin/main..HEAD`.
 - Le commit touche-t-il le schéma (`infra/db/init/init.sql`) ? Une instruction lourde (index
   sur une grande table) bloque les écritures pendant sa création : ne pas déployer pendant une
   ingestion planifiée (`deploy/install-cron.sh`, par exemple le 2 du mois à 4 h pour le bruit).

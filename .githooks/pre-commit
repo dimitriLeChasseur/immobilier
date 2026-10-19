@@ -1,0 +1,25 @@
+#!/usr/bin/env bash
+# Contrôles rapides avant chaque commit, limités au côté modifié. Les tests restent à la CI :
+# un push sur main met le site en ligne, ce hook évite seulement d'y envoyer une erreur de style
+# ou de typage. Il vérifie l'arbre de travail, pas uniquement ce qui est indexé.
+# Activation, une fois par clone : git config core.hooksPath .githooks
+set -euo pipefail
+
+root=$(git rev-parse --show-toplevel)
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+
+# Un .env indexé finirait dans l'historique, que gitleaks ne surveille qu'après le push.
+if grep -E '(^|/)\.env(\..+)?$' <<<"$staged" | grep -qvE '\.env\.example$'; then
+  echo "pre-commit : un fichier .env est indexé ; le retirer (git restore --staged <fichier>)." >&2
+  exit 1
+fi
+
+if grep -q '^backend/.*\.py$' <<<"$staged"; then
+  echo "pre-commit : ruff et mypy (backend)"
+  (cd "$root/backend" && uv run ruff check app tests && uv run mypy app tests)
+fi
+
+if grep -qE '^frontend/(src|tests|e2e)/' <<<"$staged"; then
+  echo "pre-commit : lint et typage (frontend)"
+  (cd "$root/frontend" && npm run -s lint && npm run -s typecheck)
+fi

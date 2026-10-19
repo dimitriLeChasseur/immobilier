@@ -83,6 +83,7 @@ les référentiels chargés.
 ## Démarrage en développement
 
 ```bash
+git config core.hooksPath .githooks   # contrôles rapides avant chaque commit (une seule fois)
 ./scripts/generate-env.sh          # crée .env avec des secrets aléatoires (une seule fois)
 docker compose up -d --build       # base, auth, API, proxy : http://localhost
 docker compose run --rm backend python -m app.ingestion all   # référentiels, ~30 min

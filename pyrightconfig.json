@@ -1,0 +1,9 @@
+{
+  // Lu par le plugin pyright-lsp de Claude Code, lancé depuis la racine : sans ces chemins, il
+  // ne trouve pas l'environnement uv du backend. mypy (strict) reste le contrôle de la CI.
+  "include": ["backend/app", "backend/tests"],
+  "venvPath": "backend",
+  "venv": ".venv",
+  "pythonVersion": "3.11",
+  "executionEnvironments": [{ "root": "backend" }]
+}
