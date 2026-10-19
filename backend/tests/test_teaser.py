@@ -10,6 +10,7 @@ import jwt
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from pydantic import BaseModel
 
 from app.api.deps import (
     get_anonymous_limiter,
@@ -22,7 +23,14 @@ from app.core.config import get_settings
 from app.core.errors import RepositoryError
 from app.core.rate_limit import SlidingWindowRateLimiter
 from app.core.security import InvalidTokenError, decode_access_token
-from app.schemas.audit import AuditQuery, AuditReport, Location, ReportMeta, SourceResult
+from app.schemas.audit import (
+    AuditQuery,
+    AuditReport,
+    Location,
+    ReportMeta,
+    SourceResult,
+    StreetInfo,
+)
 from app.services.audit_service import AuditEvent, DoneEvent, LocationEvent, SourceEvent
 from app.services.teaser import _CLEAR_KEYS, LOCKED, mask_data, mask_report
 
@@ -302,6 +310,40 @@ def test_masking_does_not_alter_the_cached_report() -> None:
     assert REPORT.sources["dvf"].data is not None
     assert REPORT.sources["dvf"].data["prix_m2_median"] == 3859
     assert REPORT.meta.access == "full"
+
+
+# Hors des données des sources, mask_report ne masque que ce qu'il nomme (la synthèse) : tout
+# autre champ du rapport part en clair dans l'aperçu. Chaque champ ci-dessous a été examiné ;
+# un champ ajouté au modèle fait échouer le test tant qu'il n'a pas été masqué dans
+# `teaser.py` ou reconnu public ici.
+REVIEWED_FIELDS: dict[type[BaseModel], set[str]] = {
+    AuditReport: {"location", "sources", "meta"},
+    # L'adresse saisie par le visiteur : rien qu'il ne connaisse déjà.
+    Location: {
+        "lat", "lon", "label", "citycode", "postcode", "city", "region", "ban_id",
+        "adresse_id", "voie", "numero", "rue", "voie_non_verifiee",
+    },  # fmt: skip
+    # La voie de l'adresse en mode rue, d'après la Base Adresse Nationale.
+    StreetInfo: {"id", "nom", "nb_numeros", "longueur_m", "points"},
+    # `data` passe par la liste blanche de chaque source ; le reste décrit l'état de l'appel.
+    SourceResult: {"status", "data", "missing", "error", "duration_ms", "fetched_at"},
+    # `synthese` est masquée par mask_meta ; le reste décrit la génération du rapport.
+    ReportMeta: {
+        "generated_at", "cached", "is_partial", "failed_sources", "access",
+        "report_version", "duration_ms", "synthese",
+    },  # fmt: skip
+}
+
+
+@pytest.mark.parametrize("model", REVIEWED_FIELDS, ids=lambda model: model.__name__)
+def test_every_report_field_outside_source_data_was_reviewed_for_the_teaser(
+    model: type[BaseModel],
+) -> None:
+    unreviewed = set(model.model_fields) - REVIEWED_FIELDS[model]
+    assert not unreviewed, (
+        f"{model.__name__} : champs non examinés {sorted(unreviewed)}, en clair dans l'aperçu. "
+        "Les masquer dans teaser.py, ou les ajouter à REVIEWED_FIELDS s'ils sont publics."
+    )
 
 
 # Données réelles des quatre sources communales, telles que leurs fournisseurs les renvoient.

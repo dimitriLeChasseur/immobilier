@@ -40,11 +40,11 @@ export const OFFERS: readonly Offer[] = [
     name: 'Contre-Visite',
     price: UNIT_PRICE,
     priceNote: 'TTC, paiement unique',
-    description: 'Une adresse, tout vérifié avant de faire une offre. Le PDF à apporter à la contre-visite.',
+    description: 'Une adresse, tout vérifié avant de faire une offre. Le PDF à apporter à la seconde visite.',
     features: [
       'Prix des ventes voisines, rendement et synthèse',
       'Bâtiment, DPE, bruit, permis, écoles, carte',
-      'Export PDF et checklist de contre-visite',
+      'Export PDF et checklist de seconde visite',
     ],
     cta: `Payer ${UNIT_PRICE}`,
     highlighted: false,

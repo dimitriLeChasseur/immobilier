@@ -3,6 +3,7 @@ import { createRouter, createWebHistory, type RouteRecordRaw } from 'vue-router'
 import { loadCommuneLinks } from './api/communes'
 import { LEGAL_INCOMPLETE } from './lib/legal'
 import { LEGAL_DOCUMENTS, type LegalKey } from './lib/legalContent'
+import { UNIT_PRICE } from './lib/pricing'
 import { DEFAULT_DESCRIPTION, setPageMeta, SITE_NAME } from './lib/seo'
 import AuditView from './views/AuditView.vue'
 
@@ -52,7 +53,7 @@ export const router = createRouter({
       meta: {
         title: `Tarifs de l’audit immobilier | ${SITE_NAME}`,
         description:
-          'Audit complet d’une adresse à 2,99 €, pack de 10 audits pour comparer plusieurs biens, ou abonnement ' +
+          `Audit complet d’une adresse à ${UNIT_PRICE}, pack de 10 audits pour comparer plusieurs biens, ou abonnement ` +
           'professionnel avec export PDF à votre logo. Aperçu gratuit sans compte.',
       },
     },

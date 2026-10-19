@@ -8,7 +8,7 @@ import { useAccount } from '../composables/useAccount'
 import { useAuth } from '../composables/useAuth'
 import { readPendingAudit } from '../lib/pending'
 import { DEMO_QUERY } from '../lib/demo'
-import { FREE_OFFER, OFFERS, PRO_DAILY_ADDRESSES, type Offer } from '../lib/pricing'
+import { FREE_OFFER, OFFERS, PRO_DAILY_ADDRESSES, UNIT_PRICE, type Offer } from '../lib/pricing'
 import { writeTarget } from '../lib/url'
 
 const { accessToken } = useAuth()
@@ -77,7 +77,7 @@ function manageSubscription(): Promise<void> {
   <section class="py-10 sm:py-14" aria-labelledby="pricing-title">
     <div class="mx-auto max-w-2xl text-center">
       <h1 id="pricing-title" class="text-3xl font-semibold tracking-tight text-slate-900 sm:text-4xl">
-        2,99 € pour ne rien découvrir après la signature.
+        {{ UNIT_PRICE }} pour ne rien découvrir après la signature.
       </h1>
       <p class="mt-3 text-base text-slate-600">
         L’aperçu d’une adresse est gratuit. L’audit complet ajoute les prix réels des ventes voisines, le

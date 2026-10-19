@@ -11,7 +11,7 @@ interface ReportState {
   location: Ref<AuditLocation | null>
   meta: Ref<ReportMeta | null>
   sources: Ref<SourceResults>
-  /** Points de la checklist de contre-visite cochés par l'utilisateur. */
+  /** Points de la checklist de seconde visite cochés par l'utilisateur. */
   checkedItems: Ref<string[]>
 }
 

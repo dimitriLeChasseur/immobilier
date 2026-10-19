@@ -74,7 +74,7 @@ const reportSections = computed(() => [
   { id: 'section-risks', label: 'Risques et urbanisme' },
   { id: 'section-environment', label: 'Énergie et environnement' },
   { id: 'section-neighbourhood', label: 'Vie de quartier' },
-  { id: 'section-checklist', label: 'Contre-visite' },
+  { id: 'section-checklist', label: 'Seconde visite' },
 ])
 const settled = computed(() => phase.value === 'done' || phase.value === 'error')
 // Version restreinte : le serveur n'a pas envoyé les valeurs réservées aux audits achetés.

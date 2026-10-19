@@ -21,8 +21,9 @@ export default defineConfig({
     include: ['tests/**/*.test.ts'],
     coverage: {
       reporter: ['text-summary'],
-      // Seuils un peu sous la couverture mesurée : ils arrêtent une régression nette.
-      thresholds: { statements: 68, branches: 55, functions: 60, lines: 70 },
+      // Seuils un peu sous la couverture mesurée en octobre 2026 (79,8 / 67,7 / 74,5 / 81,9 %) :
+      // ils arrêtent une régression nette.
+      thresholds: { statements: 78, branches: 66, functions: 73, lines: 80 },
     },
   },
 })

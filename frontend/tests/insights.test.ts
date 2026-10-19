@@ -364,10 +364,10 @@ describe('transparence sur les données manquantes', () => {
   })
 })
 
-describe('checklist de contre-visite', () => {
+describe('checklist de seconde visite', () => {
   it('affiche les trois points à vérifier sous forme de cases à cocher', () => {
     const checklist = mount(VisitChecklist, { props: { modelValue: [] } })
-    expect(checklist.find('h2').text()).toBe('Checklist de Contre-Visite')
+    expect(checklist.find('h2').text()).toBe('Checklist de seconde visite')
     expect(checklist.findAll('input[type="checkbox"]')).toHaveLength(3)
     const text = checklist.text()
     expect(text).toContain('Demander au vendeur la facture de la fibre optique')
@@ -394,7 +394,7 @@ describe('checklist de contre-visite', () => {
     const content = (checkedItems: string[]): string => buildReportPdf({ ...base, checkedItems }).output()
 
     const blank = content([])
-    expect(blank).toContain('Checklist de Contre-Visite')
+    expect(blank).toContain('Checklist de seconde visite')
     expect(blank).toContain('Demander le DPE complet')
     expect(blank).toContain('permis de louer')
     // Une case cochée ajoute des tracés (la coche) au document.

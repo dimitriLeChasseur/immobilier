@@ -5,7 +5,7 @@ export interface ChecklistItem {
   label: string
 }
 
-export const CHECKLIST_TITLE = 'Checklist de Contre-Visite'
+export const CHECKLIST_TITLE = 'Checklist de seconde visite'
 
 export const CHECKLIST_ITEMS: readonly ChecklistItem[] = [
   {
