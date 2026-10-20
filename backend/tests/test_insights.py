@@ -1,5 +1,6 @@
 """Règles métier de la couche Service et nouvelles sources (ANFR, bruit, itinéraires)."""
 
+from datetime import UTC, datetime, timedelta
 from typing import Any
 
 import pytest
@@ -431,18 +432,54 @@ def atmo(
     return {"properties": properties}
 
 
+def days_ago(days: int) -> str:
+    return (datetime.now(UTC).date() - timedelta(days=days)).isoformat()
+
+
+def episode(
+    day: str,
+    state: str,
+    code_pol: str = "7",
+    lib_pol: str = "O3",
+    zone: str = "49",
+    name: str = "Maine-et-Loire",
+) -> dict[str, Any]:
+    return {
+        "properties": {
+            "code_zone": zone,
+            "lib_zone": name,
+            "date_ech": day,
+            "etat": state,
+            "code_pol": code_pol,
+            "lib_pol": lib_pol,
+        }
+    }
+
+
 class AtmoHttp:
     """Flux Atmo France simulé : une réponse par liste de codes interrogée."""
 
-    def __init__(self, by_codes: dict[str, list[dict[str, Any]]], epci: Any = "200071553") -> None:
+    def __init__(
+        self,
+        by_codes: dict[str, list[dict[str, Any]]],
+        epci: Any = "200071553",
+        episodes: list[dict[str, Any]] | Exception | None = None,
+    ) -> None:
         self._by_codes, self._epci = by_codes, epci
+        self._episodes = episodes or []
         self.filters: list[str] = []
+        self.episode_filters: list[str] = []
 
     async def get_json(self, source: str, url: str, *, params: Any = None) -> Any:
         if source == "geo_api":
             if isinstance(self._epci, Exception):
                 raise self._epci
             return {"codeEpci": self._epci}
+        if params["typeNames"] == "alrt:alrt":
+            self.episode_filters.append(params["CQL_FILTER"])
+            if isinstance(self._episodes, Exception):
+                raise self._episodes
+            return {"features": self._episodes}
         self.filters.append(params["CQL_FILTER"])
         for codes, features in self._by_codes.items():
             if codes in params["CQL_FILTER"]:
@@ -461,6 +498,105 @@ async def test_air_quality_returns_todays_atmo_index_and_tomorrows_forecast() ->
     assert data["polluants_dominants"] == ["ozone"]
     assert data["producteur"] == "Air Pays de la Loire"
     assert "code_zone IN ('49007') AND date_ech >= '" in http.filters[0]
+
+
+async def test_air_quality_counts_the_pollution_episodes_of_the_last_twelve_months() -> None:
+    http = AtmoHttp(
+        {"'49007'": [atmo("49007", "2099-01-01", 3)]},
+        episodes=[
+            episode(days_ago(10), "INFORMATION ET RECOMMANDATION"),
+            # Même jour, autre polluant : un seul jour d'épisode, mais compté pour chacun.
+            episode(days_ago(10), "ALERTE", "5", "Particules fines PM10"),
+            # Alerte sur persistance : comptée comme une alerte. Code parasite, libellé fiable.
+            episode(days_ago(40), "ALERTE SUR PERSISTANCE", "08", "Ozone"),
+            episode(days_ago(41), "INFORMATION ET RECOMMANDATION", "7", "OZONE"),
+        ],
+    )
+    episodes = (await AirQualityProvider(http).fetch(ANGERS)).data["episodes"]  # type: ignore[arg-type]
+
+    assert episodes["zone"] == {"code": "49", "nom": "Maine-et-Loire"}
+    assert (episodes["debut"], episodes["fin"]) == (days_ago(365), days_ago(1))
+    assert (episodes["nb_jours"], episodes["nb_jours_alerte"]) == (3, 2)
+    assert episodes["par_polluant"] == [
+        {"polluant": "o3", "libelle": "ozone", "nb_jours": 3, "nb_jours_alerte": 1},
+        {"polluant": "pm10", "libelle": "particules PM10", "nb_jours": 1, "nb_jours_alerte": 1},
+    ]
+    assert episodes["suivi_quotidien"] is False
+    # Bassin d'air (Auvergne-Rhône-Alpes) par le point, département ailleurs, jours observés.
+    query = http.episode_filters[0]
+    assert "INTERSECTS(the_geom, SRID=4326;POINT(-0.5517 47.4706))" in query
+    assert "code_zone IN ('49')" in query
+    assert f"date_ech >= '{days_ago(365)}' AND date_ech < '{days_ago(0)}'" in query
+
+
+async def test_air_quality_tells_daily_tracking_from_published_episodes_only() -> None:
+    # Bretagne, Normandie : chaque jour est publié, « pas de dépassement » compris.
+    daily = AtmoHttp(
+        {"'49007'": [atmo("49007", "2099-01-01", 2)]},
+        episodes=[episode(days_ago(3), "PAS DE DEPASSEMENT")],
+    )
+    episodes = (await AirQualityProvider(daily).fetch(ANGERS)).data["episodes"]  # type: ignore[arg-type]
+    assert (episodes["suivi_quotidien"], episodes["nb_jours"]) == (True, 0)
+
+    silent = AtmoHttp({"'49007'": [atmo("49007", "2099-01-01", 2)]})
+    episodes = (await AirQualityProvider(silent).fetch(ANGERS)).data["episodes"]  # type: ignore[arg-type]
+    assert (episodes["suivi_quotidien"], episodes["nb_jours"]) == (False, 0)
+    assert episodes["zone"] == {"code": "49", "nom": None}
+
+
+async def test_air_quality_does_not_mix_the_aude_with_ile_de_france() -> None:
+    # Le code « 11 » désigne les deux : seul le libellé de la zone les distingue.
+    flux = [
+        episode(days_ago(5), "ALERTE", zone="11", name="AUDE"),
+        # Libellé accentué ou en casse mixte : reconnu quand même.
+        episode(days_ago(6), "INFORMATION ET RECOMMANDATION", zone="11", name=" Île-de-France"),
+    ]
+    paris = AuditContext(lat=48.85, lon=2.37, citycode="75111")
+    carcassonne = AuditContext(lat=43.21, lon=2.35, citycode="11069")
+    for ctx, name, alerts in ((paris, " Île-de-France", 0), (carcassonne, "AUDE", 1)):
+        http = AtmoHttp({ctx.citycode: [atmo(ctx.citycode, "2099-01-01", 2)]}, episodes=flux)
+        episodes = (await AirQualityProvider(http).fetch(ctx)).data["episodes"]  # type: ignore[arg-type]
+        assert (episodes["zone"]["nom"], episodes["nb_jours_alerte"]) == (name, alerts)
+        assert episodes["nb_jours"] == 1
+        assert "code_zone IN ('11')" in http.episode_filters[0]
+
+
+async def test_air_quality_queries_the_ardennes_with_and_without_the_leading_zero() -> None:
+    sedan = AuditContext(lat=49.70, lon=4.94, citycode="08409")
+    http = AtmoHttp({}, epci=None)
+    with pytest.raises(NoDataError):
+        await AirQualityProvider(http).fetch(sedan)  # type: ignore[arg-type]
+    assert "code_zone IN ('08', '8')" in http.episode_filters[0]
+
+
+async def test_air_quality_keeps_the_episodes_when_no_index_is_published() -> None:
+    http = AtmoHttp({}, epci=None, episodes=[episode(days_ago(2), "ALERTE")])
+    result = await AirQualityProvider(http).fetch(ANGERS)  # type: ignore[arg-type]
+    assert "indice" not in result.data
+    assert result.data["episodes"]["nb_jours_alerte"] == 1
+    assert result.missing == ()
+
+
+async def test_air_quality_is_partial_when_one_of_its_two_feeds_fails() -> None:
+    index_only = AtmoHttp(
+        {"'49007'": [atmo("49007", "2099-01-01", 2)]}, episodes=SourceError("timeout")
+    )
+    result = await AirQualityProvider(index_only).fetch(ANGERS)  # type: ignore[arg-type]
+    assert (result.data["indice"], result.data["episodes"]) == (2, None)
+    assert result.missing == ("episodes",)
+
+    class IndexDown(AtmoHttp):
+        async def get_json(self, source: str, url: str, *, params: Any = None) -> Any:
+            if source == "atmo_france" and params["typeNames"] != "alrt:alrt":
+                raise SourceError("http_error")
+            return await super().get_json(source, url, params=params)
+
+    episodes_only = IndexDown({}, episodes=[episode(days_ago(2), "ALERTE")])
+    result = await AirQualityProvider(episodes_only).fetch(ANGERS)  # type: ignore[arg-type]
+    assert result.missing == ("indice",)
+    # Rien de publié côté épisodes : l'échec de l'indice est celui de toute la source.
+    with pytest.raises(SourceError):
+        await AirQualityProvider(IndexDown({})).fetch(ANGERS)  # type: ignore[arg-type]
 
 
 async def test_air_quality_prefers_the_district_over_the_whole_city() -> None:

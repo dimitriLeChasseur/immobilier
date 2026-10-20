@@ -52,7 +52,7 @@ const mentions: LegalDocument = {
       heading: 'Sources des données',
       paragraphs: [
         `Les rapports s’appuient sur les sources suivantes : ${DATA_SOURCES}.`,
-        'Les données cartographiques des points d’intérêt sont © les contributeurs d’OpenStreetMap, sous licence ODbL. Le fond de carte est le Plan IGN. L’indice de la qualité de l’air est publié par Atmo France et les associations agréées de surveillance de la qualité de l’air.',
+        'Les données cartographiques des points d’intérêt sont © les contributeurs d’OpenStreetMap, sous licence ODbL. Le fond de carte est le Plan IGN. L’indice de la qualité de l’air, l’historique des épisodes de pollution et les inventaires territoriaux des émissions et des consommations d’énergie sont publiés par Atmo France et les associations agréées de surveillance de la qualité de l’air (source : Atmo France / AASQA, licence ODbL).',
         'Les données « Demandes de valeurs foncières » sont publiées par la Direction générale des finances publiques. Conformément à leurs conditions de réutilisation, les rapports qui les contiennent ne sont pas proposés à l’indexation par les moteurs de recherche.',
       ],
     },

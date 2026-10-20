@@ -323,6 +323,32 @@ def _low_fibre(data: Data) -> _Scored | None:
     )
 
 
+def _days(count: int) -> str:
+    return f"{count} jour" if count == 1 else f"{count} jours"
+
+
+def _pollution_alert(data: Data) -> _Scored | None:
+    """Un jour d'alerte est un fait réglementaire ; les jours d'information restent au bloc."""
+    episodes = _mapping(data.get("episodes"))
+    count = _number(episodes.get("nb_jours_alerte"))
+    if not count:
+        return None
+    pollutants = [
+        f"{item.get('libelle')} ({_days(int(item['nb_jours_alerte']))})"
+        for item in episodes.get("par_polluant") or []
+        if _number(item.get("nb_jours_alerte"))
+    ]
+    zone = _mapping(episodes.get("zone")).get("nom")
+    where = f" sur la zone {zone}" if zone else ""
+    return _scored(
+        50,
+        "Air",
+        f"{_days(int(count))} d'alerte à la pollution en un an",
+        f"Seuil d'alerte dépassé{where} au cours des 12 derniers mois : {', '.join(pollutants)}.",
+        local=False,
+    )
+
+
 # --- Points forts
 
 
@@ -470,6 +496,7 @@ _ALERTS: tuple[tuple[str, Rule], ...] = (
     ("marche_locatif", _vacancy),
     ("marche_locatif", _rent_control),
     ("connectivite", _low_fibre),
+    ("qualite_air", _pollution_alert),
 )
 _STRENGTHS: tuple[tuple[str, Rule], ...] = (
     ("proximite", _transport),

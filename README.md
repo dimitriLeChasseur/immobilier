@@ -17,7 +17,7 @@ Navigateur ── Vue 3 (Cloudflare Pages)
     ▼
 Caddy (80/443, TLS automatique) ── seul service exposé
     ▼
-FastAPI (backend/) ── pipeline asynchrone aiohttp, 20 sources en parallèle
+FastAPI (backend/) ── pipeline asynchrone aiohttp, 21 sources en parallèle
     ├── API publiques : BAN, Géorisques, API Carto IGN, DVF, ADEME, Overpass,
     │   Atmo France, ANFR, IGN altimétrie, data.gouv, OpenRouteService (facultatif)
     └── PostgreSQL 17 + PostGIS (image Supabase)
@@ -122,7 +122,7 @@ secrets. Le fichier `.env` n'est jamais versionné.
 | `SONAR_ADMIN_PASSWORD`, `SONAR_TOKEN` | Écrits par `scripts/sonar-setup.sh` | — | — |
 
 Réglages du backend, facultatifs (valeurs par défaut dans `backend/app/core/config.py`) :
-`HTTP_TIMEOUT_S` (9), `PROVIDER_DEADLINE_S` (20), `REPORT_VERSION` (15), `CACHE_TTL_HOURS` (168),
+`HTTP_TIMEOUT_S` (9), `PROVIDER_DEADLINE_S` (20), `REPORT_VERSION` (17), `CACHE_TTL_HOURS` (168),
 `CACHE_PARTIAL_TTL_MINUTES` (15), `RATE_LIMIT_REQUESTS` (30 par minute et par IP).
 
 Frontend (`frontend/.env`) : `VITE_API_URL`, l'URL publique de l'API, et
@@ -162,6 +162,8 @@ Données © les contributeurs d'OpenStreetMap (ODbL), extraits fournis par Geofa
 | Plans de prévention, territoires à risque d'inondation | Géorisques (`gaspar/pprn`, `gaspar/tri`) | plans listés à l'échelle de la commune |
 | Anciens sites industriels, cavités, mouvements de terrain | Géorisques (`ssp/casias`, `cavites`, `mvt`), rayon de 500 m | inventaires non exhaustifs |
 | Servitudes d'utilité publique, prescriptions | API Carto, Géoportail de l'urbanisme | selon les documents versés par la commune |
+| Épisodes de pollution des 12 derniers mois | WFS public d'Atmo France (`alrt:alrt`), sans compte : bassin d'air par le point en Auvergne-Rhône-Alpes, département ailleurs | la plupart des régions ne publient que les jours d'épisode, et seulement depuis 2025 |
+| Inventaire des émissions et des consommations d'énergie (`climat_air_energie`) | WFS public d'Atmo France (`emissions:emissions_epci`), par intercommunalité | millésimes 2010, 2018 et 2022 ; repère « France métropolitaine » codé en dur dans `providers/environment.py`, à recalculer à chaque millésime |
 | Zonage ABC | API tabulaire de data.gouv.fr | identifiants de ressource millésimés dans la configuration |
 | Loyers par typologie | table `ref_loyers` (toutes les communes, Paris/Lyon/Marseille par arrondissement) ; API tabulaire de data.gouv.fr en repli | `python -m app.ingestion loyers`. Nouvelle édition : mettre à jour `LOYERS_MILLESIME` et les quatre `LOYERS_*_RESOURCE_ID`, puis relancer (les lignes de l'ancien millésime sont retirées) |
 
@@ -491,8 +493,15 @@ bloque les appels à l'API.
   1er août 2026), dans `backend/app/services/providers/rental_rules.py` ; à relire à chaque
   nouveau décret.
 - **Charges de copropriété** : moyennes de 2018, proposées comme valeur de départ modifiable.
+- **Air et inventaires** : l'API d'Atmo Data (avec compte) n'est pas utilisée, elle ne sert
+  pas plus d'historique que le WFS public (vérifié le 20 octobre 2026). Hors Bretagne et
+  Normandie, le flux des épisodes ne contient que les jours d'épisode : « aucun épisode
+  publié » ne prouve pas l'absence d'épisode. Les inventaires suivent le découpage
+  intercommunal de mars 2023 : une intercommunalité créée depuis n'a pas de bloc, de même
+  que Mayotte et la Martinique (inventaire non communiqué). L'outre-mer s'arrête au millésime
+  2018 et l'Occitanie ne publie que des totaux par intercommunalité.
 - **Sauvegardes** : quotidiennes, copiées hors site sur Cloudflare R2, chiffrées si
   `BACKUP_PASSPHRASE` est renseignée. Aucune restauration complète n'a été répétée sur un
   serveur neuf.
-- **Licences à respecter** : indice ATMO (ODbL, attribution Atmo France et association
-  régionale), OpenStreetMap (ODbL), données publiques sous Licence Ouverte.
+- **Licences à respecter** : indice ATMO, épisodes de pollution et inventaires (ODbL,
+  attribution « Atmo France / AASQA » et association régionale), OpenStreetMap (ODbL), données publiques sous Licence Ouverte.

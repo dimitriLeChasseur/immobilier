@@ -73,8 +73,20 @@ Un quartier prioritaire de la politique de la ville (QPV), au sens de l'État.
 _Éviter_ : quartier (seul), quartier sensible
 
 **Chiffres de la commune** :
-Les données publiées à l'échelle de la commune (loyers, taxe foncière, délinquance, fibre),
-déjà visibles sur les fiches communales et donc en clair dans l'aperçu.
+Les données publiées à l'échelle de la commune ou d'un territoire plus large qui la contient
+(intercommunalité, département, bassin d'air) : loyers, taxe foncière, délinquance, fibre,
+émissions du territoire. Elles ne disent rien de propre à l'adresse et restent donc en clair
+dans l'aperçu.
+
+**Épisode de pollution** :
+Un jour où le seuil d'information ou d'alerte d'un polluant est dépassé sur une zone
+(département, bassin d'air, région), au sens des procédures préfectorales.
+_Éviter_ : pic de pollution, alerte (seul : c'est l'un des deux niveaux)
+
+**Inventaire** :
+Le bilan annuel de ce qu'un territoire émet (polluants, gaz à effet de serre) et consomme
+(énergie), par secteur, publié par millésime par les associations de surveillance de l'air.
+_Éviter_ : bilan carbone, émissions (seul)
 
 **Fiche communale** :
 La page publique d'une commune, qui présente ses chiffres sans adresse.

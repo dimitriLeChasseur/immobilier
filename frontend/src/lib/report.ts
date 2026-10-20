@@ -1,6 +1,7 @@
 import type {
   BatimentData,
   BruitData,
+  ClimatAirEnergieData,
   ReportSynthesis,
   ConnectiviteData,
   DelinquanceData,
@@ -9,6 +10,7 @@ import type {
   GeorisquesData,
   MarcheLocatifData,
   ProximiteData,
+  QualiteAirData,
   QuartierData,
   ReseauMobileData,
   SourceResults,
@@ -25,6 +27,7 @@ import {
   formatPercent,
   formatPricePerM2,
 } from './format'
+import { climateRows, energyRows, episodesNotice } from './air'
 import { inPreventionPlan, riskIndicators } from './insights'
 import { sectorNotice, tenseZoneNotice } from './housingRules'
 import { districtNotice, incomeGap, populationScope, populationTrend } from './neighbourhood'
@@ -280,15 +283,46 @@ function environment(sources: SourceResults): ReportSection {
         ...(sun.synthese ? ([['Exposition', sun.synthese]] satisfies Rows) : []),
       ]
     : []
-  const airRows: Rows = air
-    ? [
-        [
-          `Qualité de l’air (indice ATMO du ${formatDate(air.date)})`,
-          `${air.qualificatif} (${air.indice} sur 6), source ${air.producteur ?? 'Atmo France'}`,
-        ],
-      ]
-    : []
-  return { title: 'Énergie et environnement', rows: [...energyRows, ...sunRows, ...airRows, ...noiseRows] }
+  return {
+    title: 'Énergie et environnement',
+    rows: [...energyRows, ...sunRows, ...airRows(air), ...territoryRows(sources.climat_air_energie?.data), ...noiseRows],
+  }
+}
+
+/** Indice du jour, s'il est publié, puis épisodes de pollution des douze derniers mois. */
+function airRows(air: QualiteAirData | null | undefined): Rows {
+  const rows: Rows = []
+  if (air?.indice !== undefined) {
+    rows.push([
+      `Qualité de l’air (indice ATMO du ${formatDate(air.date)})`,
+      `${air.qualificatif} (${air.indice} sur 6), source ${air.producteur ?? 'Atmo France'}`,
+    ])
+  }
+  if (air?.episodes) {
+    const episodes = episodesNotice(air.episodes)
+    // Le détail porte la zone, la période et la réserve sur les régions qui ne publient que leurs épisodes.
+    const summary = [episodes.title, episodes.lines.join(' ; ')].filter(Boolean).join('. ')
+    rows.push(['Épisodes de pollution (12 mois)', `${summary}. ${episodes.detail}`])
+  }
+  return rows
+}
+
+/** Inventaire de l'intercommunalité : émissions, puis énergies des logements et des bureaux. */
+function territoryRows(climate: ClimatAirEnergieData | null | undefined): Rows {
+  if (!climate) return []
+  const energies = energyRows(climate)
+  return [
+    [
+      `Inventaire ${climate.millesime} de ${climate.territoire.nom}`,
+      [climate.producteur ?? 'Atmo France', climate.version_inventaire && `version ${climate.version_inventaire}`]
+        .filter(Boolean)
+        .join(', '),
+    ],
+    ...climateRows(climate),
+    ...(energies.length
+      ? ([['Énergie des logements et bureaux', energies.map((row) => `${row.label} ${row.local}`).join(', ')]] satisfies Rows)
+      : []),
+  ]
 }
 
 function burglaryRow(crime: DelinquanceData | null | undefined): Rows {

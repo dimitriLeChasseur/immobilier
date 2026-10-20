@@ -23,7 +23,11 @@ from app.services.providers.base import Provider
 from app.services.providers.building import BuildingProvider
 from app.services.providers.dpe import DpeProvider
 from app.services.providers.dvf import DvfProvider
-from app.services.providers.environment import AirQualityProvider, SunlightProvider
+from app.services.providers.environment import (
+    AirQualityProvider,
+    ClimateAirEnergyProvider,
+    SunlightProvider,
+)
 from app.services.providers.georisques import GeorisquesProvider
 from app.services.providers.higher_education import HigherEducationFinder
 from app.services.providers.housing import (
@@ -71,6 +75,7 @@ def build_audit_service(
         BuildingProvider(http),
         PoiProvider(http, repository=reference, ors_api_key=ors_key),
         AirQualityProvider(http),
+        ClimateAirEnergyProvider(http),
         SunlightProvider(http),
         RentsProvider(
             http,

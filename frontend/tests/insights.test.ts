@@ -297,6 +297,7 @@ describe('qualité de l’air', () => {
     demain: { indice: 2, qualificatif: 'Moyen' },
     producteur: 'Air Pays de la Loire',
     origine: 'Atmo France (indice ATMO, licence ODbL)',
+    episodes: null,
   }
 
   it('affiche l’indice ATMO, ce qui le détermine, la prévision et la source', () => {
@@ -315,6 +316,28 @@ describe('qualité de l’air', () => {
     const text = mount(AirCard, { props: { data: { ...data, zone, demain: null } } }).text()
     expect(text).toContain('l’intercommunalité (CC Loire Layon Aubance)')
     expect(text).not.toContain('Prévision pour demain')
+  })
+
+  it('garde les épisodes de l’année quand l’indice du jour n’est pas publié', () => {
+    const episodes = {
+      zone: { code: '49', nom: 'Maine-et-Loire' },
+      debut: '2025-10-20',
+      fin: '2026-10-19',
+      suivi_quotidien: false,
+      nb_jours: 4,
+      nb_jours_alerte: 0,
+      par_polluant: [{ polluant: 'o3', libelle: 'ozone', nb_jours: 4, nb_jours_alerte: 0 }],
+    }
+    const text = mount(AirCard, { props: { data: { episodes } } }).text()
+    expect(text).toContain('Indice ATMO non publié')
+    expect(text).toContain('4 jours d’épisode de pollution en 12 mois')
+    expect(text).toContain('Ozone : 4 jours')
+  })
+
+  it('signale un historique des épisodes indisponible sans masquer l’indice', () => {
+    const text = mount(AirCard, { props: { data } }).text()
+    expect(text).toContain('Dégradé')
+    expect(text).toContain('Historique des épisodes de pollution momentanément indisponible')
   })
 })
 

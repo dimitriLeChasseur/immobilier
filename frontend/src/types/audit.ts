@@ -235,7 +235,20 @@ export interface ProximiteData {
   categories: Record<string, { nb: number; plus_proche: PointOfInterest | null }>
 }
 
-export interface QualiteAirData {
+/** Jours d'épisode de pollution sur les douze derniers mois, dans la zone de l'adresse. */
+export interface EpisodesPollution {
+  /** Département, bassin d'air ou région ; sans `nom` quand la zone n'a rien publié. */
+  zone: { code: string | null; nom: string | null }
+  debut: string
+  fin: string
+  /** Vrai si la zone publie aussi les jours sans dépassement : zéro veut alors dire aucun. */
+  suivi_quotidien: boolean
+  nb_jours: number
+  nb_jours_alerte: number
+  par_polluant: { polluant: string; libelle: string; nb_jours: number; nb_jours_alerte: number }[]
+}
+
+export interface IndiceAtmo {
   /** Indice ATMO : 1 (bon) à 6 (extrêmement mauvais). */
   indice: number
   qualificatif: string
@@ -245,6 +258,36 @@ export interface QualiteAirData {
   polluants_dominants: string[]
   demain: { indice: number; qualificatif: string } | null
   producteur: string | null
+  origine: string
+}
+
+/** Indice du jour, absent quand il n'est pas publié, et épisodes de l'année (null : flux en échec). */
+export type QualiteAirData = (IndiceAtmo | { indice?: undefined }) & { episodes: EpisodesPollution | null }
+
+export type EnergieResidentielTertiaire = Record<
+  'electricite' | 'gaz' | 'produits_petroliers' | 'bois' | 'reseau_chaleur' | 'autres',
+  number
+>
+
+interface EmissionParKm2 {
+  t_par_km2: number | null
+  /** null : inventaire publié au total seulement. */
+  secteur_dominant: string | null
+  repere_t_par_km2: number | null
+}
+
+/** Inventaire des émissions et des consommations d'énergie de l'intercommunalité. */
+export interface ClimatAirEnergieData {
+  territoire: { code: string; nom: string }
+  millesime: number
+  version_inventaire: string | null
+  producteur: string | null
+  ges: { t_par_habitant: number | null; evolution_depuis_2018_pct: number | null; repere_t_par_habitant: number | null }
+  nox: EmissionParKm2
+  pm2_5: EmissionParKm2
+  /** Parts en % de chaque énergie dans la consommation des logements et des bureaux. */
+  energie_residentiel_tertiaire: EnergieResidentielTertiaire | null
+  repere: { territoire: string; millesime: number; energie_residentiel_tertiaire: EnergieResidentielTertiaire } | null
   origine: string
 }
 
@@ -467,6 +510,7 @@ export interface SourceDataMap {
   batiment: BatimentData
   proximite: ProximiteData
   qualite_air: QualiteAirData
+  climat_air_energie: ClimatAirEnergieData
   ensoleillement: EnsoleillementData
   loyers: LoyersData
   delinquance: DelinquanceData

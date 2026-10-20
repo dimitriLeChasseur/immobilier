@@ -7,6 +7,7 @@ import { isLocked, lockedGhost, lockedPromise, teaserHook } from '../lib/teaser'
 import type { SourceDataMap, SourceName, SourceResult, SourceResults } from '../types/audit'
 import AirCard from './cards/AirCard.vue'
 import BuildingCard from './cards/BuildingCard.vue'
+import ClimateCard from './cards/ClimateCard.vue'
 import CondoCard from './cards/CondoCard.vue'
 import ConnectivityCard from './cards/ConnectivityCard.vue'
 import CrimeCard from './cards/CrimeCard.vue'
@@ -172,6 +173,9 @@ const yieldPending = computed(() => !resultOf('loyers') || !resultOf('dvf'))
         </SourceCard>
         <SourceCard v-bind="card('bruit', true)">
           <template #default="{ data }"><NoiseCard :data="data" /></template>
+        </SourceCard>
+        <SourceCard class="lg:col-span-2" v-bind="card('climat_air_energie')">
+          <template #default="{ data }"><ClimateCard :data="data" /></template>
         </SourceCard>
       </div>
     </section>

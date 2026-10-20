@@ -36,7 +36,12 @@ export const SOURCE_INFO: Record<SourceName, SourceInfo> = {
   },
   qualite_air: {
     title: 'Qualité de l’air',
-    emptyText: 'Indice ATMO non publié pour cette commune aujourd’hui.',
+    emptyText: 'Ni indice ATMO du jour ni épisode de pollution publiés pour cette commune.',
+  },
+  climat_air_energie: {
+    title: 'Émissions et énergie du territoire',
+    emptyText:
+      'Aucun inventaire publié pour l’intercommunalité de cette commune (créée ou modifiée après le dernier inventaire, ou territoire non couvert).',
   },
   ensoleillement: { title: 'Ensoleillement', emptyText: 'Calcul impossible pour ce point.' },
   proximite: {

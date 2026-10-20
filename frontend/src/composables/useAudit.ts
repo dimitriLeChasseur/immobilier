@@ -15,6 +15,7 @@ export const DEFAULT_SOURCES: SourceName[] = [
   'batiment',
   'proximite',
   'qualite_air',
+  'climat_air_energie',
   'ensoleillement',
   'loyers',
   'delinquance',

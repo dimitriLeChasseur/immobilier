@@ -414,3 +414,41 @@ def test_yield_headline_is_the_best_dwelling_type_and_compares_the_others() -> N
     # Aucun type n'atteint le seuil : pas de point fort.
     dear = ok({"par_type": {"appartement": {"prix_m2_median": 4000, "nb_ventes": 60}}})
     assert build_synthesis({"loyers": rents, "dvf": dear}).points_forts == []
+
+
+def air(nb_days: int, alert_days: int) -> SourceResult:
+    return ok(
+        {
+            "episodes": {
+                "zone": {"code": "2003", "nom": "Bassin Lyon Nord-Isère"},
+                "nb_jours": nb_days,
+                "nb_jours_alerte": alert_days,
+                "par_polluant": [
+                    {
+                        "polluant": "o3",
+                        "libelle": "ozone",
+                        "nb_jours": nb_days,
+                        "nb_jours_alerte": alert_days,
+                    },
+                ],
+            }
+        }
+    )
+
+
+def test_a_pollution_alert_day_in_the_year_is_an_alert() -> None:
+    alerts = build_synthesis({"qualite_air": air(25, 6)}).alertes
+    assert alerts == [
+        Finding(
+            theme="Air",
+            titre="6 jours d'alerte à la pollution en un an",
+            detail="Seuil d'alerte dépassé sur la zone Bassin Lyon Nord-Isère au cours des "
+            "12 derniers mois : ozone (6 jours).",
+        )
+    ]
+
+
+def test_information_days_alone_raise_no_air_alert() -> None:
+    # L'ozone dépasse le seuil d'information presque chaque été : ce n'est pas une alerte.
+    assert build_synthesis({"qualite_air": air(25, 0)}).alertes == []
+    assert build_synthesis({"qualite_air": ok({"indice": 3, "episodes": None})}).alertes == []

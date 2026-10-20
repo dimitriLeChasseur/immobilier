@@ -320,8 +320,19 @@ REVIEWED_FIELDS: dict[type[BaseModel], set[str]] = {
     AuditReport: {"location", "sources", "meta"},
     # L'adresse saisie par le visiteur : rien qu'il ne connaisse déjà.
     Location: {
-        "lat", "lon", "label", "citycode", "postcode", "city", "region", "ban_id",
-        "adresse_id", "voie", "numero", "rue", "voie_non_verifiee",
+        "lat",
+        "lon",
+        "label",
+        "citycode",
+        "postcode",
+        "city",
+        "region",
+        "ban_id",
+        "adresse_id",
+        "voie",
+        "numero",
+        "rue",
+        "voie_non_verifiee",
     },  # fmt: skip
     # La voie de l'adresse en mode rue, d'après la Base Adresse Nationale.
     StreetInfo: {"id", "nom", "nb_numeros", "longueur_m", "points"},
@@ -329,8 +340,14 @@ REVIEWED_FIELDS: dict[type[BaseModel], set[str]] = {
     SourceResult: {"status", "data", "missing", "error", "duration_ms", "fetched_at"},
     # `synthese` est masquée par mask_meta ; le reste décrit la génération du rapport.
     ReportMeta: {
-        "generated_at", "cached", "is_partial", "failed_sources", "access",
-        "report_version", "duration_ms", "synthese",
+        "generated_at",
+        "cached",
+        "is_partial",
+        "failed_sources",
+        "access",
+        "report_version",
+        "duration_ms",
+        "synthese",
     },  # fmt: skip
 }
 
@@ -346,8 +363,26 @@ def test_every_report_field_outside_source_data_was_reviewed_for_the_teaser(
     )
 
 
-# Données réelles des quatre sources communales, telles que leurs fournisseurs les renvoient.
+# Chiffres de la commune, sous la forme que leurs fournisseurs renvoient.
 COMMUNE_FIGURES: dict[str, dict[str, Any]] = {
+    # Territoire qui contient la commune : intercommunalité (inventaires), département ou
+    # bassin d'air (épisodes de pollution).
+    "climat_air_energie": {
+        "territoire": {"code": "200046977", "nom": "Métropole de Lyon"},
+        "millesime": 2022,
+        "version_inventaire": "M2024",
+        "producteur": "Atmo Auvergne-Rhône-Alpes",
+        "ges": {"t_par_habitant": 3.45, "evolution_depuis_2018_pct": -18.4},
+        "nox": {"t_par_km2": 13.1, "secteur_dominant": "Transport routier"},
+        "pm2_5": {"t_par_km2": 1.7, "secteur_dominant": "Résidentiel et tertiaire"},
+        "energie_residentiel_tertiaire": {"electricite": 47.6, "gaz": 34.5},
+        "repere": {"territoire": "France métropolitaine", "millesime": 2022},
+        "origine": "Atmo France (inventaires territoriaux, licence ODbL)",
+    },
+    "qualite_air": {
+        "indice": 3,
+        "episodes": {"zone": {"code": "2003"}, "nb_jours": 25, "nb_jours_alerte": 6},
+    },
     "loyers": {
         "type_bien": "appartement",
         "loyer_m2_charges_comprises": 12.4,
@@ -381,7 +416,7 @@ COMMUNE_FIGURES: dict[str, dict[str, Any]] = {
 }
 
 
-def test_commune_figures_published_on_commune_pages_are_not_masked() -> None:
+def test_commune_figures_are_not_masked() -> None:
     for source, data in COMMUNE_FIGURES.items():
         assert mask_data(source, data) == data
 

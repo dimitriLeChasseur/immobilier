@@ -28,6 +28,8 @@ _CLEAR_KEYS: dict[str, frozenset[str]] = {
             "demain",
             "sous_indices",
             "polluants_dominants",
+            # Département ou bassin d'air : un chiffre de la commune, pas de l'adresse.
+            "episodes",
         }
     ),
     "georisques": frozenset({"risques", "catastrophes_naturelles"}),
@@ -73,6 +75,21 @@ _CLEAR_KEYS: dict[str, frozenset[str]] = {
         }
     ),
     "delinquance": frozenset({"annee", "indicateurs"}),
+    # Inventaire de l'intercommunalité : un chiffre du territoire, le même pour toute adresse.
+    "climat_air_energie": frozenset(
+        {
+            "territoire",
+            "millesime",
+            "version_inventaire",
+            "producteur",
+            "ges",
+            "nox",
+            "pm2_5",
+            "energie_residentiel_tertiaire",
+            "repere",
+            "origine",
+        }
+    ),
     "connectivite": frozenset(
         {
             "niveau",
