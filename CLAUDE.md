@@ -22,7 +22,11 @@ intervention qui sort d'un seul fichier.
 - **Densité de commentaires** : un commentaire dit *pourquoi*, pas *quoi*. Suivre le style du
   fichier voisin.
 - **Secrets** : jamais dans le dépôt ni dans une sortie affichée. `.env` n'est pas versionné ;
-  ce qui commence par `VITE_` finit dans le JavaScript public.
+  ce qui commence par `VITE_` finit dans le JavaScript public. Le hook
+  `.claude/hooks/garde.py` refuse les commandes et lectures qui nomment un `.env` (sauf
+  `.env.example` et `.env.production`) et les commits qui sautent le hook pre-commit. C'est
+  un garde-fou, pas un verrou : `grep -r` ou `docker compose config` lisent encore les
+  secrets sans les nommer, la consigne reste de ne pas le faire.
 
 Les règles propres à une partie du code sont dans `.claude/rules/` et se chargent quand on
 touche les fichiers concernés : aperçu et masquage, chemin de l'argent et prix, sources de
@@ -83,7 +87,8 @@ Les skills génériques viennent de [mattpocock/skills](https://github.com/mattp
 `agents/` propres à Codex. Le plugin `mattpocock-skills` est désactivé pour ce dépôt
 (`.claude/settings.json`) afin de ne pas charger chaque skill en double. Elles sont rédigées
 en anglais : répondre quand même en français. Pour les mettre à jour, recopier les dossiers
-depuis un commit précis et relire le diff avant de commiter. Correspondances avec ce dépôt :
+depuis un commit précis et relire le diff avant de commiter, en conservant les paragraphes
+marqués « Retouche locale » (`ask-matt`, `implement`). Correspondances avec ce dépôt :
 
 - `/code-review` est celui de Claude Code, pas celui de mattpocock/skills.
 - `GLOSSARY.md` (racine) fixe le vocabulaire du produit ; `docs/adr/` est créé à la première
@@ -104,6 +109,9 @@ depuis un commit précis et relire le diff avant de commiter. Correspondances av
 API publique, vérifier sa licence, sa fraîcheur et ses fichiers avant `research` ou
 `ajouter-une-source`, ou repérer un nouveau millésime. Expérimental : une information qui
 engage le rapport se confirme sur la page de la source.
+
+`context7` (MCP global, hors `.mcp.json`) : documentation à jour de FastAPI, pydantic, Vue,
+Vite et des autres dépendances, plutôt que de répondre de mémoire sur une version récente.
 
 ## Plugins du projet (`.claude/settings.json`)
 

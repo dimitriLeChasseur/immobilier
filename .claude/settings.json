@@ -5,13 +5,49 @@
     "playwright@claude-plugins-official": true
   },
   "permissions": {
+    "deny": [
+      "Read(./.env)",
+      "Read(./**/.env)",
+      "mcp__webstorm__execute_terminal_command"
+    ],
     "ask": [
       "Bash(git push *)",
       "Bash(git * push *)",
       "Bash(git reset --hard *)",
       "Bash(git * reset --hard *)",
       "Bash(git clean *)",
-      "Bash(git * clean *)"
+      "Bash(git * clean *)",
+      "Bash(git checkout -- *)",
+      "Bash(git checkout * -- *)",
+      "Bash(git checkout .)",
+      "Bash(git restore *)",
+      "Bash(git branch -D *)",
+      "Bash(git stash drop*)",
+      "Bash(git stash clear*)",
+      "Bash(docker compose down *-v*)",
+      "Bash(docker compose down *--volumes*)",
+      "Bash(docker-compose down *)",
+      "Bash(docker volume rm *)",
+      "Bash(*deploy-backend.sh*)",
+      "Bash(ssh *)",
+      "Bash(scp *)",
+      "Bash(rsync *)",
+      "Bash(*wrangler* deploy*)",
+      "Bash(gh pr merge *)",
+      "Bash(gh release *)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Read|Edit|Write|Grep|NotebookEdit|mcp__webstorm__.*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$CLAUDE_PROJECT_DIR/.claude/hooks/garde.py\""
+          }
+        ]
+      }
     ]
   }
 }

@@ -55,6 +55,10 @@ jobs:
         # Seuil un peu sous la couverture mesurée (84,2 % en octobre 2026) : il arrête une régression nette.
         run: uv run pytest --cov=app --cov-report=term --cov-fail-under=83
 
+      # Garde-fou des agents (.env, hook pre-commit) : bibliothèque standard seulement.
+      - name: Tester le hook des agents
+        run: uv run --no-project --python 3.11 python .claude/hooks/test_garde.py
+
       # Scripts autonomes des cartes de bruit : leurs dépendances ne sont pas celles du backend.
       - name: Tester les scripts d'ingestion du bruit
         run: >

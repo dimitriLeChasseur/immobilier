@@ -70,3 +70,9 @@ Thumbs.db
 
 # Émulateur Cloudflare Pages (npx wrangler pages dev dist)
 .wrangler/
+
+# Captures et instantanés du plugin Playwright de Claude Code
+.playwright-mcp/
+
+# Réglages Claude Code propres à un poste
+.claude/settings.local.json
