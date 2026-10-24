@@ -123,7 +123,7 @@ services:
   # --------------------------------------------------------------------------
   db:
     container_name: immo-db
-    image: supabase/postgres:17.11.0.004
+    image: supabase/postgres:17.11.0.006
     restart: unless-stopped
     logging: *default-logging
     shm_size: 256m
