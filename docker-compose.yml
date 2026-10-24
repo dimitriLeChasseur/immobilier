@@ -353,7 +353,7 @@ services:
 
   sonarqube:
     container_name: immo-sonarqube
-    image: sonarqube:26.9.0.129388-community
+    image: sonarqube:26.10.0.133078-community
     profiles: ["quality"]
     restart: unless-stopped
     logging: *default-logging
