@@ -52,9 +52,12 @@ services:
     environment:
       SITE_ADDRESS: ${SITE_ADDRESS:-:80}
       ACME_EMAIL: ${ACME_EMAIL:-}
+      TLS_MODE: ${TLS_MODE:-acme}
     volumes:
       # Développement par défaut ; en production : CADDYFILE=./deploy/Caddyfile
       - ${CADDYFILE:-./infra/caddy/Caddyfile}:/etc/caddy/Caddyfile:ro
+      # Certificat d'origine Cloudflare (TLS_MODE=origine), hors Git.
+      - ./deploy/certs:/etc/caddy/certs:ro
       - caddy-data:/data
       - caddy-config:/config
     networks:

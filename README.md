@@ -109,6 +109,7 @@ secrets. Le fichier `.env` n'est jamais versionné.
 | `CORS_ALLOWED_ORIGINS` | Origines autorisées à appeler l'API, séparées par des virgules | `http://localhost:5173` | URL Cloudflare Pages |
 | `CADDYFILE` | Configuration de Caddy montée dans le conteneur | `./infra/caddy/Caddyfile` | `./deploy/Caddyfile` |
 | `ACME_EMAIL` | Contact Let's Encrypt | vide | adresse de l'exploitant |
+| `TLS_MODE` | `acme` : certificat Let's Encrypt ; `origine` : certificat d'origine Cloudflare (`deploy/certs/origine.pem`, `origine-cle.pem`), pour un domaine derrière le proxy Cloudflare sans port 80 | `acme` | `acme` ou `origine` |
 | `HTTP_PORT`, `HTTPS_PORT` | Ports publiés par Caddy | `80`, `443` | `80`, `443` |
 | `DATA_DIR` | Répertoire des données Postgres | `./data` | `/srv/immo` |
 | `DB_HOST_PORT` | Port Postgres sur `127.0.0.1` | `5433` | `5433` |

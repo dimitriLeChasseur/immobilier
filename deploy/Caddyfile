@@ -6,13 +6,26 @@
 #   ACME_EMAIL=vous@mondomaine.fr      # contact Let's Encrypt (alertes d'expiration)
 #
 # Caddy obtient et renouvelle le certificat tout seul ; HTTP (80) est redirigé vers HTTPS.
+#
+# Derrière le proxy Cloudflare (enregistrement « proxied »), les défis ACME n'atteignent pas
+# Caddy si le port 80 est fermé : TLS_MODE=origine sert le certificat d'origine Cloudflare
+# (mode SSL « Full (strict) »), déposé dans deploy/certs/origine.pem et origine-cle.pem.
+# Sans TLS_MODE, rien ne change (certificat Let's Encrypt).
 # Différences avec infra/caddy/Caddyfile (développement) : le domaine est obligatoire, et
 # seules l'API FastAPI et l'authentification Supabase sont exposées.
 {
 	email {$ACME_EMAIL}
 }
 
+(tls_acme) {
+}
+
+(tls_origine) {
+	tls /etc/caddy/certs/origine.pem /etc/caddy/certs/origine-cle.pem
+}
+
 {$SITE_ADDRESS} {
+	import tls_{$TLS_MODE:acme}
 	encode zstd gzip
 
 	header {

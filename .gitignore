@@ -76,3 +76,7 @@ Thumbs.db
 
 # Réglages Claude Code propres à un poste
 .claude/settings.local.json
+
+# Certificat d'origine Cloudflare (TLS_MODE=origine) : jamais versionné.
+deploy/certs/*
+!deploy/certs/.gitkeep
