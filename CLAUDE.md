@@ -5,6 +5,12 @@ rapport (tableau de bord et PDF). Aperçu gratuit, audit complet payant (à l'un
 Le `README.md` décrit l'architecture, les variables et l'exploitation : le lire avant toute
 intervention qui sort d'un seul fichier.
 
+Documentation complémentaire dans `docs/` : produit, offres et priorités (`PRD.md`), contrat
+d'API (`api.md`), décisions (`adr/`), données personnelles (`rgpd.md`), sécurité et
+inventaire des secrets (`securite.md`, `secrets.md`, noms seulement), base de connaissance du
+support (`support/`), positionnement, économie et conformité, modèles (post-mortem, notes de
+version, revue mensuelle) et politique de dépendances.
+
 ## Règles du projet
 
 - **Aucun service payant.** Projet autofinancé : pas d'API, d'hébergement ni d'outil payant
