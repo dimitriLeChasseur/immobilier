@@ -45,7 +45,7 @@ def circle_polygon(lat: float, lon: float, radius_m: float, segments: int = 16) 
 
 def walking_minutes(distance_m: float) -> int:
     """Temps de marche estimé à partir de la distance à vol d'oiseau."""
-    return max(0, round(distance_m * _WALK_DETOUR_FACTOR / _WALK_SPEED_M_PER_MIN))
+    return max(1, round(distance_m * _WALK_DETOUR_FACTOR / _WALK_SPEED_M_PER_MIN))
 
 
 def departement_code(citycode: str) -> str:
